@@ -8,5 +8,5 @@
   "type": "manga-provider",
   "language": "javascript",
   "lang": "en",
-  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Mangafreak-seanime/refs/heads/main/provider.js"
+  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/mangafreak/provider.js"
 }
