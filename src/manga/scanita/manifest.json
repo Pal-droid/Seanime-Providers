@@ -7,6 +7,6 @@
   "author": "pal",
   "type": "manga-provider",
   "language": "javascript",
-  "lang": "en",
+  "lang": "it",
   "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/scanita/provider.js"
 }
