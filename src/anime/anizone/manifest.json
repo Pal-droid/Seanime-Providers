@@ -8,4 +8,4 @@
     "type": "onlinestream-provider",
     "language": "typescript",
     "lang": "multi",
-    "payloadURI": ""
+    "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/anime/anizone/provider.ts"
