@@ -3,7 +3,6 @@
  * Implements MangaProvider interface for 'scanita'.
  */
 class Provider {
-
     constructor() {
         this.api = 'https://scanita.org';
     }
@@ -27,48 +26,78 @@ class Provider {
         try {
             const response = await fetch(url, {
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                }
+                    'User-Agent':
+                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                },
             });
 
             if (!response.ok) return [];
-            
-            const body = await response.text();
-            const doc = LoadDoc(body);
-            
-            let mangas = [];
 
-            const items = doc('div.series');
+            const text = await response.text();
+            let html;
 
-            items.each((index, element) => {
+            // Step 1: Handle JSON response that contains escaped HTML
+            try {
+                const parsed = JSON.parse(text);
+                const escapedHtml = parsed.html || parsed;
+
+                html = escapedHtml
+                    .replace(/\\u003C/g, '<')
+                    .replace(/\\u003E/g, '>')
+                    .replace(/\\u0026/g, '&')
+                    .replace(/\\"/g, '"');
+            } catch {
+                html = text; // fallback if it's already plain HTML
+            }
+
+            // Step 2: Load and parse HTML
+            const doc = LoadDoc(html);
+            const mangas = [];
+
+            // Step 3: Extract all manga results
+            doc('div.series').each((index, el) => {
+                const element = doc(el);
+
                 const linkElement = element.find('a.link-series').first();
                 const imgElement = element.find('img').first();
 
-                if (!linkElement || !imgElement) return;
+                if (!linkElement.length || !imgElement.length) return;
 
                 const title = linkElement.text().trim();
-                const mangaUrlSegment = linkElement.attrs()['href']; // e.g. /manga/tonikaku-kawaii
-                const mangaId = mangaUrlSegment.split('/manga/')[1];
-                
-                let thumbnailUrl = imgElement.attrs()['data-src'] || imgElement.attrs()['src'];
-                
+                const mangaUrlSegment = linkElement.attr('href');
+                const mangaId = mangaUrlSegment?.split('/manga/')[1];
+
+                let thumbnailUrl =
+                    imgElement.attr('data-src') || imgElement.attr('src');
+
                 // Proxy through Weserv to bypass 403 or optimize delivery
-                if (thumbnailUrl && thumbnailUrl.startsWith('https://cdn.manga-italia.com/')) {
-                    thumbnailUrl = `https://images.weserv.nl/?url=${thumbnailUrl.replace(/^https?:\/\//, '')}`;
+                if (
+                    thumbnailUrl &&
+                    thumbnailUrl.startsWith('https://cdn.manga-italia.com/')
+                ) {
+                    thumbnailUrl = `https://images.weserv.nl/?url=${thumbnailUrl.replace(
+                        /^https?:\/\//,
+                        '',
+                    )}`;
                 }
 
                 mangas.push({
                     id: mangaId,
-                    title: title,
+                    title,
                     synonyms: undefined,
                     year: undefined,
                     image: thumbnailUrl,
                 });
             });
 
+            if (mangas.length === 0) {
+                console.warn('No search results found for:', queryParam);
+                console.warn('Sample HTML:', html.slice(0, 500));
+            }
+
             return mangas;
-        }
-        catch (e) {
+        } catch (e) {
+            console.error('Search error:', e);
             return [];
         }
     }
@@ -81,15 +110,17 @@ class Provider {
 
         try {
             const response = await fetch(url);
+            if (!response.ok) return [];
+
             const body = await response.text();
             const doc = LoadDoc(body);
-
-            let chapters = [];
+            const chapters = [];
 
             const items = doc('div.col-chapter a');
 
-            items.each((index, element) => {
-                const href = element.attrs()['href']; // e.g. /scan/84477
+            items.each((index, el) => {
+                const element = doc(el);
+                const href = element.attr('href'); // e.g. /scan/84477
                 const title = element.find('h5').text().trim(); // e.g. "Capitolo 114"
                 const date = element.find('div.text-muted').text().trim();
 
@@ -108,16 +139,17 @@ class Provider {
                 });
             });
 
-            // Sort by chapter number
+            // Sort chapters numerically
             chapters.sort((a, b) => parseFloat(a.chapter) - parseFloat(b.chapter));
 
+            // Reindex
             chapters.forEach((chapter, i) => {
                 chapter.index = i;
             });
 
             return chapters;
-        }
-        catch (e) {
+        } catch (e) {
+            console.error('Chapter fetch error:', e);
             return [];
         }
     }
@@ -127,44 +159,47 @@ class Provider {
      */
     async findChapterPages(chapterId) {
         const url = `${this.api}/scan/${chapterId}`;
-        const referer = url; 
+        const referer = url;
 
         try {
             const response = await fetch(url);
+            if (!response.ok) return [];
+
             const body = await response.text();
             const doc = LoadDoc(body);
-            
-            let pages = [];
+            const pages = [];
 
-            // Extract all image URLs in the current page
-            doc('div.book-page img').each((index, element) => {
-                let imgUrl = element.attrs()['src'];
+            doc('div.book-page img').each((index, el) => {
+                const element = doc(el);
+                let imgUrl = element.attr('src');
                 if (!imgUrl) return;
 
                 // Proxy through Weserv if needed
                 if (imgUrl.startsWith('https://cdn-s.manga-italia.com/')) {
-                    imgUrl = `https://images.weserv.nl/?url=${imgUrl.replace(/^https?:\/\//, '')}`;
+                    imgUrl = `https://images.weserv.nl/?url=${imgUrl.replace(
+                        /^https?:\/\//,
+                        '',
+                    )}`;
                 }
 
                 pages.push({
                     url: imgUrl,
-                    index: index,
+                    index,
                     headers: {
-                        'Referer': referer, 
+                        Referer: referer,
                     },
                 });
             });
 
-            // Optional: detect next page button
-            const nextLink = doc('a.btn-next').attrs()?.['href'];
+            // Optional: detect "next page" button
+            const nextLink = doc('a.btn-next').attr('href');
             if (nextLink) {
-                // Optionally handle pagination here
-                // e.g., recursively load /scan/{chapterId}/2, etc.
+                // Could recursively load /scan/{chapterId}/2, etc.
             }
 
             return pages;
-        }
-        catch (e) {
+        } catch (e) {
+            console.error('Page fetch error:', e);
             return [];
         }
     }
