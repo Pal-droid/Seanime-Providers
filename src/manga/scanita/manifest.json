@@ -1,7 +1,7 @@
 {
-  "id": "mangafreak",
-  "name": "MangaFreak",
-  "description": "MangaFreak is a manga provider for Seanime",
+  "id": "scanita",
+  "name": "Scanita",
+  "description": "Scanita is a manga provider for Seanime",
   "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/scanita/manifest.json",
   "version": "1.0.2",
   "author": "pal",
