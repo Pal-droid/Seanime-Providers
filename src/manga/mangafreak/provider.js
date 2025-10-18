@@ -19,6 +19,7 @@ class Provider {
 
     /**
      * Searches for manga based on a query.
+     * Proxies thumbnail images through weserv.nl.
      */
     async search(opts) {
         const queryParam = opts.query;
@@ -45,14 +46,20 @@ class Provider {
                 const title = titleElement.text().trim();
                 const mangaUrlSegment = titleElement.attrs()['href'];
                 const mangaId = mangaUrlSegment.split('/Manga/')[1];
-                const thumbnailUrl = imageElement.attrs()['src']; // Use direct image URL
+                const originalThumbnailUrl = imageElement.attrs()['src']; // Original image URL
+                
+                // Strip protocol for weserv
+                const strippedUrl = originalThumbnailUrl.replace(/^https?:\/\//, '');
+
+                // Proxy through weserv
+                const proxiedThumbnailUrl = `https://images.weserv.nl/?url=${strippedUrl}`;
 
                 mangas.push({
                     id: mangaId,
                     title: title,
                     synonyms: undefined,
                     year: undefined,
-                    image: thumbnailUrl, // Direct URL to Mangafreak image
+                    image: proxiedThumbnailUrl, // Use proxied URL here
                 });
             });
 
