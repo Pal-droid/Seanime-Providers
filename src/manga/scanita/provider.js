@@ -1,206 +1,218 @@
-/**
- * Seanime Extension for Scanita
- * Implements MangaProvider interface for 'scanita'.
- */
 class Provider {
-    constructor() {
-        this.api = 'https://scanita.org';
-    }
+  constructor() {
+    this.api = "https://scanita.org";
+  }
 
-    api = ''; 
+  api = "";
 
-    getSettings() {
-        return {
-            supportsMultiLanguage: false,
-            supportsMultiScanlator: false,
-        };
-    }
+  sleep(ms) {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {}
+  }
 
-    /**
-     * Searches for manga based on a query.
-     */
-    async search(opts) {
-        const queryParam = opts.query;
-        const url = `${this.api}/search?q=${encodeURIComponent(queryParam)}`;
+  getSettings() {
+    return {
+      supportsMultiLanguage: false,
+      supportsMultiScanlator: false,
+    };
+  }
 
-        try {
-            const response = await fetch(url, {
-                headers: {
-                    'User-Agent':
-                        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                },
-            });
+  async search(opts) {
+    const queryParam = opts.query;
+    const url = `${this.api}/search?q=${encodeURIComponent(queryParam)}`;
 
-            if (!response.ok) return [];
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
+          "Accept": "*/*",
+          "X-Requested-With": "XMLHttpRequest",
+          "Referer": "https://scanita.org/",
+        },
+      });
 
-            const text = await response.text();
-            let html;
+      if (!response.ok) {
+        console.warn(`HTTP error: ${response.status} ${response.statusText}`);
+        return [];
+      }
 
-            // Step 1: Handle JSON response that contains escaped HTML
-            try {
-                const parsed = JSON.parse(text);
-                const escapedHtml = parsed.html || parsed;
+      const text = await response.text();
+      let html = "";
 
-                html = escapedHtml
-                    .replace(/\\u003C/g, '<')
-                    .replace(/\\u003E/g, '>')
-                    .replace(/\\u0026/g, '&')
-                    .replace(/\\"/g, '"');
-            } catch {
-                html = text; // fallback if it's already plain HTML
-            }
+      try {
+        const parsed = JSON.parse(text);
+        html = typeof parsed === "string" ? parsed : parsed?.html || "";
+      } catch {
+        html = text;
+      }
 
-            // Step 2: Load and parse HTML
-            const doc = LoadDoc(html);
-            const mangas = [];
+      if (!html.trim()) {
+        console.warn("Empty HTML content");
+        return [];
+      }
 
-            // Step 3: Extract all manga results
-            doc('div.series').each((index, el) => {
-                const element = doc(el);
+      const decoded = typeof he !== "undefined" ? he.decode(html) : html;
+      const entryBlockRegex = /<a[^>]+href="\/manga\/[^"]+"[\s\S]*?<\/a>/gi;
 
-                const linkElement = element.find('a.link-series').first();
-                const imgElement = element.find('img').first();
+      const mangas = [];
+      let block;
 
-                if (!linkElement.length || !imgElement.length) return;
-
-                const title = linkElement.text().trim();
-                const mangaUrlSegment = linkElement.attr('href');
-                const mangaId = mangaUrlSegment?.split('/manga/')[1];
-
-                let thumbnailUrl =
-                    imgElement.attr('data-src') || imgElement.attr('src');
-
-                // Proxy through Weserv to bypass 403 or optimize delivery
-                if (
-                    thumbnailUrl &&
-                    thumbnailUrl.startsWith('https://cdn.manga-italia.com/')
-                ) {
-                    thumbnailUrl = `https://images.weserv.nl/?url=${thumbnailUrl.replace(
-                        /^https?:\/\//,
-                        '',
-                    )}`;
-                }
-
-                mangas.push({
-                    id: mangaId,
-                    title,
-                    synonyms: undefined,
-                    year: undefined,
-                    image: thumbnailUrl,
-                });
-            });
-
-            if (mangas.length === 0) {
-                console.warn('No search results found for:', queryParam);
-                console.warn('Sample HTML:', html.slice(0, 500));
-            }
-
-            return mangas;
-        } catch (e) {
-            console.error('Search error:', e);
-            return [];
+      while ((block = entryBlockRegex.exec(decoded)) !== null) {
+        const chunk = block[0];
+        const idMatch = chunk.match(/href="\/manga\/([^"]+)"/i);
+        if (!idMatch) continue;
+        const mangaId = idMatch[1].trim();
+        const titleMatch = chunk.match(/<h3[^>]*>([^<]+)<\/h3>/i);
+        const title = titleMatch ? titleMatch[1].trim() : "Untitled";
+        const thumbMatch = chunk.match(/(https:\/\/cdn\.manga-italia\.com\/[^"]+?\/thumb\.[^"]+?\.webp)/i);
+        let image = thumbMatch ? thumbMatch[1].trim() : null;
+        if (image) {
+          image = `https://images.weserv.nl/?url=${image.replace(/^https?:\/\//, "")}`;
         }
+        mangas.push({
+          id: mangaId,
+          title,
+          image,
+          synonyms: undefined,
+          year: undefined,
+        });
+      }
+
+      if (mangas.length === 0) {
+        console.warn("No search results found.");
+      }
+
+      return mangas;
+    } catch (e) {
+      console.error("Search error:", e.message || "Unknown error", e.stack || "No stack trace");
+      return [];
     }
+  }
 
-    /**
-     * Finds and parses all chapters for a given manga ID.
-     */
-    async findChapters(mangaId) {
-        const url = `${this.api}/manga/${mangaId}`;
+  async findChapters(mangaId) {
+    const baseUrl = `${this.api}/manga/${mangaId}`;
 
-        try {
-            const response = await fetch(url);
-            if (!response.ok) return [];
+    try {
+      this.sleep(1000);
 
-            const body = await response.text();
-            const doc = LoadDoc(body);
-            const chapters = [];
+      const response = await fetch(baseUrl, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
+          "Accept": "*/*",
+        },
+      });
 
-            const items = doc('div.col-chapter a');
+      if (!response.ok) {
+        console.warn(`HTTP error: ${response.status} ${response.statusText}`);
+        return [];
+      }
 
-            items.each((index, el) => {
-                const element = doc(el);
-                const href = element.attr('href'); // e.g. /scan/84477
-                const title = element.find('h5').text().trim(); // e.g. "Capitolo 114"
-                const date = element.find('div.text-muted').text().trim();
+      const html = await response.text();
+      const decoded = typeof he !== "undefined" ? he.decode(html) : html;
+      const moreMatch = decoded.match(/<button[^>]+data-path="([^"]+)"[^>]*>\s*Mostra di più\s*<\/button>/i);
 
-                if (!href) return;
-
-                const chapterId = href.split('/scan/')[1];
-                const chapMatch = title.match(/(\d+(\.\d+)?)/);
-                const chapterNumber = chapMatch ? chapMatch[0] : '0';
-
-                chapters.push({
-                    id: chapterId,
-                    url: `${this.api}${href}`,
-                    title: `${title} (${date})`,
-                    chapter: chapterNumber,
-                    index: 0,
-                });
-            });
-
-            // Sort chapters numerically
-            chapters.sort((a, b) => parseFloat(a.chapter) - parseFloat(b.chapter));
-
-            // Reindex
-            chapters.forEach((chapter, i) => {
-                chapter.index = i;
-            });
-
-            return chapters;
-        } catch (e) {
-            console.error('Chapter fetch error:', e);
-            return [];
+      let chapterUrl = baseUrl;
+      if (moreMatch && moreMatch[1]) {
+        const path = moreMatch[1].trim();
+        if (path.startsWith("http")) {
+          chapterUrl = path;
+        } else {
+          chapterUrl = `${this.api}${path}`;
         }
+      }
+
+      this.sleep(1000);
+
+      const chaptersResp = await fetch(chapterUrl, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
+          "Accept": "*/*",
+        },
+      });
+
+      if (!chaptersResp.ok) {
+        console.warn(`HTTP error: ${chaptersResp.status} ${chaptersResp.statusText}`);
+        return [];
+      }
+
+      const chaptersHtml = await chaptersResp.text();
+      const chaptersDecoded = typeof he !== "undefined" ? he.decode(chaptersHtml) : chaptersHtml;
+
+      const chapterRegex =
+        /<a[^>]+href="\/scan\/(\d+)"[^>]*>[\s\S]*?(?:Capitolo|Chapter|Ch\.?)\s*([0-9]+(?:\.[0-9]+)?)/gi;
+
+      const chapters = [];
+      let match;
+
+      while ((match = chapterRegex.exec(chaptersDecoded)) !== null) {
+        const chapterId = match[1];
+        const chapterNum = match[2];
+
+        chapters.push({
+          id: chapterId,
+          url: `${this.api}/scan/${chapterId}`,
+          title: chapterNum,
+          chapter: chapterNum,
+          index: 0,
+        });
+      }
+
+      chapters.sort((a, b) => parseFloat(a.chapter) - parseFloat(b.chapter));
+      chapters.forEach((c, i) => (c.index = i));
+
+      return chapters;
+    } catch (e) {
+      console.error("Chapter fetch error:", e.message || "Unknown error", e.stack || "No stack trace");
+      return [];
     }
+  }
 
-    /**
-     * Finds and parses the image pages for a given chapter ID.
-     */
-    async findChapterPages(chapterId) {
-        const url = `${this.api}/scan/${chapterId}`;
-        const referer = url;
+  async findChapterPages(chapterId) {
+    const pages = [];
+    const visited = new Set();
 
-        try {
-            const response = await fetch(url);
-            if (!response.ok) return [];
+    const crawl = async (url) => {
+      if (visited.has(url)) return;
+      visited.add(url);
+      this.sleep(1000);
 
-            const body = await response.text();
-            const doc = LoadDoc(body);
-            const pages = [];
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
+          "Accept": "*/*",
+        },
+      });
 
-            doc('div.book-page img').each((index, el) => {
-                const element = doc(el);
-                let imgUrl = element.attr('src');
-                if (!imgUrl) return;
+      if (!response.ok) return;
+      const html = await response.text();
+      const decoded = typeof he !== "undefined" ? he.decode(html) : html;
 
-                // Proxy through Weserv if needed
-                if (imgUrl.startsWith('https://cdn-s.manga-italia.com/')) {
-                    imgUrl = `https://images.weserv.nl/?url=${imgUrl.replace(
-                        /^https?:\/\//,
-                        '',
-                    )}`;
-                }
+      const imgRegex = /<div[^>]*class="[^"]*book-page[^"]*"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/gi;
+      let match;
+      let idx = pages.length;
 
-                pages.push({
-                    url: imgUrl,
-                    index,
-                    headers: {
-                        Referer: referer,
-                    },
-                });
-            });
+      while ((match = imgRegex.exec(decoded)) !== null) {
+        let imgUrl = match[1].trim();
+        if (imgUrl.startsWith("/")) imgUrl = `${this.api}${imgUrl}`;
+        imgUrl = `https://images.weserv.nl/?url=${imgUrl.replace(/^https?:\/\//, "")}`;
 
-            // Optional: detect "next page" button
-            const nextLink = doc('a.btn-next').attr('href');
-            if (nextLink) {
-                // Could recursively load /scan/{chapterId}/2, etc.
-            }
+        pages.push({ url: imgUrl, index: idx++, headers: { Referer: url } });
+      }
 
-            return pages;
-        } catch (e) {
-            console.error('Page fetch error:', e);
-            return [];
-        }
-    }
+      const nextMatch = decoded.match(/<a[^>]+href="([^"]+)"[^>]*class="[^"]*btn-next[^"]*"[^>]*>/);
+      if (nextMatch && nextMatch[1]) {
+        const nextUrl = nextMatch[1].startsWith("http")
+          ? nextMatch[1]
+          : `${this.api}${nextMatch[1]}`;
+        await crawl(nextUrl);
+      }
+    };
+
+    await crawl(`${this.api}/scan/${chapterId}`);
+    return pages;
+  }
 }
