@@ -45,19 +45,14 @@ class Provider {
                 const title = titleElement.text().trim();
                 const mangaUrlSegment = titleElement.attrs()['href'];
                 const mangaId = mangaUrlSegment.split('/Manga/')[1];
-                let thumbnailUrl = imageElement.attrs()['src'];
-
-                // Proxy through Weserv to bypass 403
-                if (thumbnailUrl.startsWith('https://images.mangafreak.me/')) {
-                    thumbnailUrl = `https://images.weserv.nl/?url=${thumbnailUrl.replace(/^https?:\/\//, '')}`;
-                }
+                const thumbnailUrl = imageElement.attrs()['src']; // Use direct image URL
 
                 mangas.push({
                     id: mangaId,
                     title: title,
                     synonyms: undefined,
                     year: undefined,
-                    image: thumbnailUrl,
+                    image: thumbnailUrl, // Direct URL to Mangafreak image
                 });
             });
 
@@ -151,18 +146,13 @@ class Provider {
             let pages = [];
 
             doc('div.mySlides.fade img').each((index, element) => {
-                let imgUrl = element.attrs()['src'];
-
-                // Proxy through Weserv to bypass 403
-                if (imgUrl.startsWith('https://images.mangafreak.me/')) {
-                    imgUrl = `https://images.weserv.nl/?url=${imgUrl.replace(/^https?:\/\//, '')}`;
-                }
+                const imgUrl = element.attrs()['src']; // Use direct image URL
 
                 pages.push({
                     url: imgUrl,
                     index: index,
                     headers: {
-                        'Referer': referer, 
+                        'Referer': referer, // Still set this in fetch requests if needed
                     },
                 });
             });
