@@ -1,0 +1,11 @@
+{
+    "id": "anizone",
+    "name": "Anizone",
+    "description": "An online streaming provider extension for Anizone.",
+    "manifestURI": "",
+    "version": "1.0.0",
+    "author": "pal",
+    "type": "onlinestream-provider",
+    "language": "typescript",
+    "lang": "multi",
+    "payloadURI": ""
