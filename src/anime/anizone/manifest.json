@@ -2,7 +2,7 @@
     "id": "anizone",
     "name": "Anizone",
     "description": "An online streaming provider extension for Anizone.",
-    "manifestURI": "",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/anime/anizone/manifest.json",
     "version": "1.0.0",
     "author": "pal",
     "type": "onlinestream-provider",
