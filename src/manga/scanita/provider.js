@@ -5,11 +5,6 @@ class Provider {
 
   api = "";
 
-  sleep(ms) {
-    const end = Date.now() + ms;
-    while (Date.now() < end) {}
-  }
-
   getSettings() {
     return {
       supportsMultiLanguage: false,
@@ -17,29 +12,29 @@ class Provider {
     };
   }
 
+  async fetchWithHeaders(url) {
+    return fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
+        "Accept": "*/*",
+        "X-Requested-With": "XMLHttpRequest",
+        "Referer": "https://scanita.org/",
+      },
+    });
+  }
+
   async search(opts) {
-    const queryParam = opts.query;
-    const url = `${this.api}/search?q=${encodeURIComponent(queryParam)}`;
+    const url = `${this.api}/search?q=${encodeURIComponent(opts.query)}`;
 
     try {
-      const response = await fetch(url, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
-          "Accept": "*/*",
-          "X-Requested-With": "XMLHttpRequest",
-          "Referer": "https://scanita.org/",
-        },
-      });
-
-      if (!response.ok) {
-        console.warn(`HTTP error: ${response.status} ${response.statusText}`);
-        return [];
-      }
+      const response = await this.fetchWithHeaders(url);
+      if (!response.ok)
+        throw new Error(`${response.status} ${response.statusText}`);
 
       const text = await response.text();
-      let html = "";
 
+      let html;
       try {
         const parsed = JSON.parse(text);
         html = typeof parsed === "string" ? parsed : parsed?.html || "";
@@ -47,125 +42,96 @@ class Provider {
         html = text;
       }
 
-      if (!html.trim()) {
-        console.warn("Empty HTML content");
-        return [];
-      }
+      if (!html.trim()) return [];
+
+      // Decode escaped unicode (\u003Cdiv → <div>)
+      html = html.replace(/\\u([\dA-F]{4})/gi, (_, g) =>
+        String.fromCharCode(parseInt(g, 16))
+      );
 
       const decoded = typeof he !== "undefined" ? he.decode(html) : html;
+
+      // Extract entries
       const entryBlockRegex = /<a[^>]+href="\/manga\/[^"]+"[\s\S]*?<\/a>/gi;
-
       const mangas = [];
-      let block;
 
-      while ((block = entryBlockRegex.exec(decoded)) !== null) {
-        const chunk = block[0];
-        const idMatch = chunk.match(/href="\/manga\/([^"]+)"/i);
-        if (!idMatch) continue;
-        const mangaId = idMatch[1].trim();
-        const titleMatch = chunk.match(/<h3[^>]*>([^<]+)<\/h3>/i);
-        const title = titleMatch ? titleMatch[1].trim() : "Untitled";
-        const thumbMatch = chunk.match(/(https:\/\/cdn\.manga-italia\.com\/[^"]+?\/thumb\.[^"]+?\.webp)/i);
-        let image = thumbMatch ? thumbMatch[1].trim() : null;
-        if (image) {
-          image = `https://images.weserv.nl/?url=${image.replace(/^https?:\/\//, "")}`;
-        }
+      let match;
+      while ((match = entryBlockRegex.exec(decoded)) !== null) {
+        const chunk = match[0];
+
+        const id = chunk.match(/href="\/manga\/([^"]+)"/i)?.[1];
+        const title =
+          chunk.match(/<h3[^>]*>([^<]+)<\/h3>/i)?.[1]?.trim() ||
+          // fallback: title from id
+          id?.replace(/-/g, " ") || 
+          "Untitled";
+
+        const thumb = chunk.match(
+          /(https:\/\/cdn\.manga-italia\.com\/[^"]+?\/(?:cover|thumb)\.[^"]+?\.webp)/i
+        )?.[1];
+
+        // Skip if no image (avoid duplicates)
+        if (!thumb) continue;
+
         mangas.push({
-          id: mangaId,
+          id,
           title,
-          image,
-          synonyms: undefined,
-          year: undefined,
+          image: `https://images.weserv.nl/?url=${thumb.replace(/^https?:\/\//, "")}`,
         });
-      }
-
-      if (mangas.length === 0) {
-        console.warn("No search results found.");
       }
 
       return mangas;
     } catch (e) {
-      console.error("Search error:", e.message || "Unknown error", e.stack || "No stack trace");
+      console.error("Search error:", e);
       return [];
     }
   }
 
   async findChapters(mangaId) {
-    const baseUrl = `${this.api}/manga/${mangaId}`;
-
     try {
-      this.sleep(1000);
-
-      const response = await fetch(baseUrl, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
-          "Accept": "*/*",
-        },
-      });
-
-      if (!response.ok) {
-        console.warn(`HTTP error: ${response.status} ${response.statusText}`);
-        return [];
-      }
+      const response = await this.fetchWithHeaders(`${this.api}/manga/${mangaId}`);
+      if (!response.ok)
+        throw new Error(`${response.status} ${response.statusText}`);
 
       const html = await response.text();
       const decoded = typeof he !== "undefined" ? he.decode(html) : html;
-      const moreMatch = decoded.match(/<button[^>]+data-path="([^"]+)"[^>]*>\s*Mostra di più\s*<\/button>/i);
 
-      let chapterUrl = baseUrl;
-      if (moreMatch && moreMatch[1]) {
-        const path = moreMatch[1].trim();
-        if (path.startsWith("http")) {
-          chapterUrl = path;
-        } else {
-          chapterUrl = `${this.api}${path}`;
-        }
-      }
+      const moreMatch = decoded.match(/<button[^>]+data-path="([^"]+)"/i);
+      const chapterUrl = moreMatch
+        ? moreMatch[1].startsWith("http")
+          ? moreMatch[1]
+          : `${this.api}${moreMatch[1]}`
+        : `${this.api}/manga/${mangaId}`;
 
-      this.sleep(1000);
-
-      const chaptersResp = await fetch(chapterUrl, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
-          "Accept": "*/*",
-        },
-      });
-
-      if (!chaptersResp.ok) {
-        console.warn(`HTTP error: ${chaptersResp.status} ${chaptersResp.statusText}`);
-        return [];
-      }
+      const chaptersResp = await this.fetchWithHeaders(chapterUrl);
+      if (!chaptersResp.ok)
+        throw new Error(`${chaptersResp.status} ${chaptersResp.statusText}`);
 
       const chaptersHtml = await chaptersResp.text();
-      const chaptersDecoded = typeof he !== "undefined" ? he.decode(chaptersHtml) : chaptersHtml;
+      const chaptersDecoded =
+        typeof he !== "undefined" ? he.decode(chaptersHtml) : chaptersHtml;
 
       const chapterRegex =
         /<a[^>]+href="\/scan\/(\d+)"[^>]*>[\s\S]*?(?:Capitolo|Chapter|Ch\.?)\s*([0-9]+(?:\.[0-9]+)?)/gi;
 
       const chapters = [];
       let match;
-
       while ((match = chapterRegex.exec(chaptersDecoded)) !== null) {
         const chapterId = match[1];
         const chapterNum = match[2];
-
         chapters.push({
           id: chapterId,
           url: `${this.api}/scan/${chapterId}`,
           title: chapterNum,
           chapter: chapterNum,
-          index: 0,
         });
       }
 
-      chapters.sort((a, b) => parseFloat(a.chapter) - parseFloat(b.chapter));
-      chapters.forEach((c, i) => (c.index = i));
-
-      return chapters;
+      return chapters
+        .sort((a, b) => parseFloat(a.chapter) - parseFloat(b.chapter))
+        .map((c, i) => ({ ...c, index: i }));
     } catch (e) {
-      console.error("Chapter fetch error:", e.message || "Unknown error", e.stack || "No stack trace");
+      console.error("findChapters error:", e);
       return [];
     }
   }
@@ -173,46 +139,48 @@ class Provider {
   async findChapterPages(chapterId) {
     const pages = [];
     const visited = new Set();
+    const queue = [`${this.api}/scan/${chapterId}`];
 
-    const crawl = async (url) => {
+    const fetchPage = async (url) => {
       if (visited.has(url)) return;
       visited.add(url);
-      this.sleep(1000);
 
-      const response = await fetch(url, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
-          "Accept": "*/*",
-        },
-      });
+      const resp = await this.fetchWithHeaders(url);
+      if (!resp.ok) return;
 
-      if (!response.ok) return;
-      const html = await response.text();
+      const html = await resp.text();
       const decoded = typeof he !== "undefined" ? he.decode(html) : html;
 
-      const imgRegex = /<div[^>]*class="[^"]*book-page[^"]*"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/gi;
-      let match;
-      let idx = pages.length;
-
-      while ((match = imgRegex.exec(decoded)) !== null) {
-        let imgUrl = match[1].trim();
+      const imgRegex =
+        /<div[^>]*class="[^"]*book-page[^"]*"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/gi;
+      let m;
+      while ((m = imgRegex.exec(decoded)) !== null) {
+        let imgUrl = m[1].trim();
         if (imgUrl.startsWith("/")) imgUrl = `${this.api}${imgUrl}`;
-        imgUrl = `https://images.weserv.nl/?url=${imgUrl.replace(/^https?:\/\//, "")}`;
-
-        pages.push({ url: imgUrl, index: idx++, headers: { Referer: url } });
+        imgUrl = `https://images.weserv.nl/?url=${imgUrl.replace(
+          /^https?:\/\//,
+          ""
+        )}`;
+        pages.push({ url: imgUrl, index: pages.length, headers: { Referer: url } });
       }
 
-      const nextMatch = decoded.match(/<a[^>]+href="([^"]+)"[^>]*class="[^"]*btn-next[^"]*"[^>]*>/);
+      const nextMatch = decoded.match(
+        /<a[^>]+href="([^"]+)"[^>]*class="[^"]*btn-next[^"]*"[^>]*>/
+      );
       if (nextMatch && nextMatch[1]) {
         const nextUrl = nextMatch[1].startsWith("http")
           ? nextMatch[1]
           : `${this.api}${nextMatch[1]}`;
-        await crawl(nextUrl);
+        queue.push(nextUrl);
       }
     };
 
-    await crawl(`${this.api}/scan/${chapterId}`);
+    // Crawl concurrently (3 requests at once)
+    while (queue.length > 0) {
+      const batch = queue.splice(0, 3);
+      await Promise.all(batch.map(fetchPage));
+    }
+
     return pages;
   }
 }
