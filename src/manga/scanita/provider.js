@@ -44,14 +44,12 @@ class Provider {
 
       if (!html.trim()) return [];
 
-      // Decode escaped unicode (\u003Cdiv → <div>)
       html = html.replace(/\\u([\dA-F]{4})/gi, (_, g) =>
         String.fromCharCode(parseInt(g, 16))
       );
 
       const decoded = typeof he !== "undefined" ? he.decode(html) : html;
 
-      // Extract entries
       const entryBlockRegex = /<a[^>]+href="\/manga\/[^"]+"[\s\S]*?<\/a>/gi;
       const mangas = [];
 
@@ -62,15 +60,13 @@ class Provider {
         const id = chunk.match(/href="\/manga\/([^"]+)"/i)?.[1];
         const title =
           chunk.match(/<h3[^>]*>([^<]+)<\/h3>/i)?.[1]?.trim() ||
-          // fallback: title from id
-          id?.replace(/-/g, " ") || 
+          id?.replace(/-/g, " ") ||
           "Untitled";
 
         const thumb = chunk.match(
           /(https:\/\/cdn\.manga-italia\.com\/[^"]+?\/(?:cover|thumb)\.[^"]+?\.webp)/i
         )?.[1];
 
-        // Skip if no image (avoid duplicates)
         if (!thumb) continue;
 
         mangas.push({
@@ -139,48 +135,61 @@ class Provider {
   async findChapterPages(chapterId) {
     const pages = [];
     const visited = new Set();
-    const queue = [`${this.api}/scan/${chapterId}`];
+    const activePromises = new Set();
 
-    const fetchPage = async (url) => {
-      if (visited.has(url)) return;
-      visited.add(url);
-
-      const resp = await this.fetchWithHeaders(url);
-      if (!resp.ok) return;
-
-      const html = await resp.text();
-      const decoded = typeof he !== "undefined" ? he.decode(html) : html;
-
-      const imgRegex =
-        /<div[^>]*class="[^"]*book-page[^"]*"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/gi;
-      let m;
-      while ((m = imgRegex.exec(decoded)) !== null) {
-        let imgUrl = m[1].trim();
-        if (imgUrl.startsWith("/")) imgUrl = `${this.api}${imgUrl}`;
-        imgUrl = `https://images.weserv.nl/?url=${imgUrl.replace(
-          /^https?:\/\//,
-          ""
-        )}`;
-        pages.push({ url: imgUrl, index: pages.length, headers: { Referer: url } });
-      }
-
-      const nextMatch = decoded.match(
-        /<a[^>]+href="([^"]+)"[^>]*class="[^"]*btn-next[^"]*"[^>]*>/
-      );
-      if (nextMatch && nextMatch[1]) {
-        const nextUrl = nextMatch[1].startsWith("http")
-          ? nextMatch[1]
-          : `${this.api}${nextMatch[1]}`;
-        queue.push(nextUrl);
+    const addToQueue = (url) => {
+      if (!visited.has(url)) {
+        visited.add(url);
+        const p = fetchPage(url).finally(() => activePromises.delete(p));
+        activePromises.add(p);
       }
     };
 
-    // Crawl concurrently (3 requests at once)
-    while (queue.length > 0) {
-      const batch = queue.splice(0, 3);
-      await Promise.all(batch.map(fetchPage));
+    const fetchPage = async (url) => {
+      try {
+        console.log("Fetching:", url);
+        const resp = await this.fetchWithHeaders(url);
+        if (!resp.ok) return;
+
+        const html = await resp.text();
+        const decoded = typeof he !== "undefined" ? he.decode(html) : html;
+
+        const imgRegex =
+          /<div[^>]*class="[^"]*book-page[^"]*"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/gi;
+        let m;
+        while ((m = imgRegex.exec(decoded)) !== null) {
+          let imgUrl = m[1].trim();
+          if (imgUrl.startsWith("/")) imgUrl = `${this.api}${imgUrl}`;
+          imgUrl = `https://images.weserv.nl/?url=${imgUrl.replace(/^https?:\/\//, "")}`;
+          pages.push({
+            url: imgUrl,
+            index: pages.length,
+            headers: { Referer: url },
+          });
+        }
+
+        const nextMatch = decoded.match(
+          /<a[^>]+href="([^"]+)"[^>]*class="[^"]*btn-next[^"]*"[^>]*>/
+        );
+        if (nextMatch && nextMatch[1]) {
+          const nextUrl = nextMatch[1].startsWith("http")
+            ? nextMatch[1]
+            : `${this.api}${nextMatch[1]}`;
+          addToQueue(nextUrl);
+        }
+      } catch (e) {
+        console.error("Error fetching page:", e);
+      }
+    };
+
+    // Start with first page
+    addToQueue(`${this.api}/scan/${chapterId}`);
+
+    // Wait for all dynamic fetches to finish
+    while (activePromises.size > 0) {
+      await Promise.all([...activePromises]);
     }
 
-    return pages;
+    return pages.sort((a, b) => a.index - b.index);
   }
 }
