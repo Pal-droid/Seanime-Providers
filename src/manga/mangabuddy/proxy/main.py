@@ -1,24 +1,45 @@
 from fastapi import FastAPI, Query, HTTPException
-from fastapi.responses import Response
+from fastapi.responses import StreamingResponse
 import httpx
+from typing import AsyncGenerator
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+
+client = httpx.AsyncClient(
+    headers={"Referer": "https://mangabuddy.com"},
+    timeout=httpx.Timeout(10.0, connect=5.0),
+    limits=httpx.Limits(max_connections=50, max_keepalive_connections=20),
+    follow_redirects=True,
+)
+
+async def iter_stream(url: str) -> AsyncGenerator[bytes, None]:
+    """Yields image bytes in chunks, keeping the connection open."""
+    async with client.stream("GET", url) as resp:
+        resp.raise_for_status()
+        async for chunk in resp.aiter_bytes():
+            yield chunk
 
 @app.get("/proxy")
 async def proxy_image(url: str = Query(..., description="Image URL to proxy")):
-    headers = {"Referer": "https://mangabuddy.com"}
-    async with httpx.AsyncClient() as client:
-        try:
-            # Fetch the image with the custom Referer
-            r = await client.get(url, headers=headers, timeout=10.0)
-            r.raise_for_status()
-        except httpx.RequestError as e:
-            raise HTTPException(status_code=400, detail=f"Request error: {e}")
-        except httpx.HTTPStatusError as e:
-            raise HTTPException(status_code=e.response.status_code, detail=str(e))
-    
-    # Return the image bytes with its original content type
-    content_type = r.headers.get("content-type", "image/jpeg")
-    return Response(content=r.content, media_type=content_type)
+    try:
+        # Peek at headers only (no body download)
+        async with client.stream("HEAD", url) as head:
+            content_type = head.headers.get("content-type", "image/jpeg")
 
-# Run the server: uvicorn main:app --reload --port 8000
+        return StreamingResponse(
+            iter_stream(url),
+            media_type=content_type,
+            headers={
+                "Cache-Control": "public, max-age=86400",  # 1-day browser cache
+                "X-Proxy": "fastapi-light-proxy",
+            },
+        )
+
+    except httpx.RequestError:
+        raise HTTPException(status_code=400, detail="Failed to fetch remote URL")
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail="Remote error")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    await client.aclose()
