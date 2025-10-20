@@ -1,0 +1,1 @@
+# This is the proxy's source code used by the mangabuddy extension.
