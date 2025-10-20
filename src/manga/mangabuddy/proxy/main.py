@@ -30,7 +30,7 @@ async def proxy_image(url: str = Query(..., description="Image URL to proxy")):
             iter_stream(url),
             media_type=content_type,
             headers={
-                "Cache-Control": "public, max-age=86400",  # 1-day browser cache
+                "Cache-Control": "public, max-age=31536000, immutable",  # 1-year browser cache
                 "X-Proxy": "fastapi-light-proxy",
             },
         )
