@@ -1,6 +1,7 @@
 class Provider {
   constructor() {
     this.api = "https://mangabuddy.com";
+    this.imageProxy = "https://mangabuddy-proxy.onrender.com/proxy?url=";
   }
 
   api = "";
@@ -56,10 +57,7 @@ class Provider {
         mangas.push({
           id,
           title,
-          image: `https://images.weserv.nl/?url=${thumb.replace(
-            /^https?:\/\//,
-            ""
-          )}`,
+          image: `${this.imageProxy}${encodeURIComponent(thumb)}`,
         });
       }
 
@@ -142,16 +140,18 @@ class Provider {
         return [];
       }
 
-      const rawImages = imgVarMatch[1].split(",").map((img) => img.trim()).filter(Boolean);
-      const pages = rawImages.map((imgUrl, index) => {
-        return {
-          url: `https://images.weserv.nl/?url=${imgUrl.replace(/^https?:\/\//, "")}&w=0`,
-          index,
-          headers: {
-            Referer: this.api,
-          },
-        };
-      });
+      const rawImages = imgVarMatch[1]
+        .split(",")
+        .map((img) => img.trim())
+        .filter(Boolean);
+
+      const pages = rawImages.map((imgUrl, index) => ({
+        url: `${this.imageProxy}${encodeURIComponent(imgUrl)}`,
+        index,
+        headers: {
+          Referer: this.api,
+        },
+      }));
 
       return pages;
     } catch (e) {
