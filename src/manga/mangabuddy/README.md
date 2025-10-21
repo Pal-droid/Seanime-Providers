@@ -37,3 +37,7 @@ This is a **Seanime extension** implementation for [Mangabuddy](https://mangabud
 * The `findChapterPages` method loads the chapter page and looks for the variable `var chapImages = '...'`.  
 * This variable contains a comma-separated list of image URLs.  
 * Each image URL is proxied and returned with a **Referer** header pointing to the base site (`https://mangabuddy.com`).
+
+### Notes
+
+* Other Mangabuddy mirrors are also available, you can choose which mirror to scrape from in the extension's settings after adding it on Seanime.
