@@ -1,7 +1,6 @@
 class Provider {
   constructor() {
     this.api = "https://mangabuddy.com";
-    this.imageProxy = "https://mangabuddy-proxy.onrender.com/proxy?url=";
   }
 
   api = "";
@@ -43,21 +42,18 @@ class Provider {
       let match;
       while ((match = entryBlockRegex.exec(decoded)) !== null) {
         const chunk = match[1];
-
         const id = chunk.match(/href="\/([^"]+)"/i)?.[1];
         const title =
           chunk.match(/<h3>\s*<a[^>]+title="([^"]+)"/i)?.[1]?.trim() ||
           id?.replace(/-/g, " ") ||
           "Untitled";
-
         const thumb = chunk.match(/data-src="([^"]+\.png)"/i)?.[1];
-
         if (!thumb || !id) continue;
 
         mangas.push({
           id,
           title,
-          image: `${this.imageProxy}${encodeURIComponent(thumb)}`,
+          image: thumb, // direct image only
         });
       }
 
@@ -81,10 +77,7 @@ class Provider {
 
       const bookIdMatch = decodedDetail.match(/var\s+bookId\s*=\s*(\d+);/i);
       const bookId = bookIdMatch?.[1];
-      if (!bookId) {
-        console.error("Book ID not found");
-        return [];
-      }
+      if (!bookId) return [];
 
       const apiUrl = `${this.api}/api/manga/${bookId}/chapters?source=detail`;
       const chaptersResp = await this.fetchWithHeaders(apiUrl);
@@ -103,7 +96,6 @@ class Provider {
       while ((match = chapterRegex.exec(decodedChapters)) !== null) {
         const href = match[1].trim();
         const title = match[2].trim();
-
         const chapterId = href.startsWith("/") ? href.slice(1) : href;
         const chapterNum = title.match(/Chapter\s+([\d.]+)/i)?.[1] || "0";
 
@@ -135,10 +127,7 @@ class Provider {
       const decoded = typeof he !== "undefined" ? he.decode(html) : html;
 
       const imgVarMatch = decoded.match(/var\s+chapImages\s*=\s*'([^']+)'/i);
-      if (!imgVarMatch || !imgVarMatch[1]) {
-        console.error("Chapter images not found.");
-        return [];
-      }
+      if (!imgVarMatch || !imgVarMatch[1]) return [];
 
       const rawImages = imgVarMatch[1]
         .split(",")
@@ -146,13 +135,12 @@ class Provider {
         .filter(Boolean);
 
       const pages = rawImages.map((imgUrl, index) => ({
-        url: `${this.imageProxy}${encodeURIComponent(imgUrl)}`,
+        url: imgUrl,
         index,
-        headers: {
-          Referer: this.api,
-        },
+        headers: { Referer: this.api },
       }));
 
+      console.log(`Found ${pages.length} images for chapter ${chapterId} (direct-only mode)`);
       return pages;
     } catch (e) {
       console.error("findChapterPages error:", e);
