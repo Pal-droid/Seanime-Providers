@@ -1,7 +1,6 @@
 class Provider {
   constructor() {
-    this.api = "https://mangabuddy.com";
-    this.imageProxy = "https://mangabuddy-proxy.onrender.com/proxy?url=";
+    this.api = "{{domain}}";
   }
 
   api = "";
@@ -20,7 +19,7 @@ class Provider {
           "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
         Accept: "*/*",
         "X-Requested-With": "XMLHttpRequest",
-        Referer: "https://mangabuddy.com/",
+        Referer: "${this.api}/",
       },
     });
   }
@@ -54,7 +53,7 @@ class Provider {
         mangas.push({
           id,
           title,
-          image: `${this.imageProxy}${encodeURIComponent(thumb)}`,
+          image: thumb, // direct image only
         });
       }
 
@@ -135,47 +134,13 @@ class Provider {
         .map((img) => img.trim())
         .filter(Boolean);
 
-      const pages = await Promise.all(
-        rawImages.map(async (imgUrl, index) => {
-          try {
-            const test = await fetch(imgUrl, { method: "HEAD" });
+      const pages = rawImages.map((imgUrl, index) => ({
+        url: imgUrl,
+        index,
+        headers: { Referer: this.api },
+      }));
 
-            // Allow opaque responses (CORS-protected but still accessible)
-            if (test.type === "opaque" || test.ok) {
-              console.log(`Direct OK (${index + 1}): ${imgUrl}`);
-              return {
-                url: imgUrl,
-                index,
-                headers: { Referer: this.api },
-              };
-            } else {
-              throw new Error("blocked");
-            }
-          } catch {
-            console.log(`Using fallback proxy (${index + 1}): ${imgUrl}`);
-
-            // Uncomment this block to enable fallback again
-            /*
-            return {
-              url: `${this.imageProxy}${encodeURIComponent(imgUrl)}`,
-              index,
-              headers: { Referer: this.api },
-            };
-            */
-
-            // Direct return during test mode
-            return {
-              url: imgUrl,
-              index,
-              headers: { Referer: this.api },
-            };
-          }
-        })
-      );
-
-      console.log(
-        `Found ${pages.length} images for chapter ${chapterId} (direct mode)`
-      );
+      console.log(`Found ${pages.length} images for chapter ${chapterId} (direct-only mode)`);
       return pages;
     } catch (e) {
       console.error("findChapterPages error:", e);
