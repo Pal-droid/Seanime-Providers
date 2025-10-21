@@ -8,7 +8,7 @@
   "type": "manga-provider",
   "language": "javascript",
   "lang": "en",
-  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/test-extensions/mangabuddy/provider.js",
+  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/test-extensions/mangabuddy/test",
 
   "userConfig": {
     "requiresConfig": true,
