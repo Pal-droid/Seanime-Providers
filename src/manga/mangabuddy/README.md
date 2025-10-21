@@ -16,7 +16,7 @@ This is a **Seanime extension** implementation for [Mangabuddy](https://mangabud
 * `https://mangabuddy.com`
 
 ### Image Proxy
-* All images are proxied through `https://mangabuddy-proxy.onrender.com/proxy?url=` to ensure consistent HTTPS delivery and avoid CORS issues.
+* All images are proxied internally by the extension ~through `https://mangabuddy-proxy.onrender.com/proxy?url=`~ to ensure consistent HTTPS delivery and avoid CORS issues.
 
 ### Search Logic
 * The `search` method performs a GET request to `/search?q={query}`.
