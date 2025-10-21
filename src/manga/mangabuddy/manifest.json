@@ -3,7 +3,7 @@
   "name": "MangaBuddy",
   "description": "MangaBuddy is a manga provider for Seanime",
   "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/mangabuddy/manifest.json",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "pal",
   "type": "manga-provider",
   "language": "javascript",
