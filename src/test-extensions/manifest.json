@@ -2,11 +2,11 @@
   "id": "mangabuddy-test",
   "name": "MangaBuddy Test",
   "description": "MangaBuddy is a manga provider for Seanime",
-  "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/test-extensions/manifest.json",
+  "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/test-extensions/manifest.json",
   "version": "1.0.0",
   "author": "pal",
   "type": "manga-provider",
   "language": "javascript",
   "lang": "en",
-  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/test-extensions/test"
+  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/test-extensions/test"
 }
