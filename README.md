@@ -38,3 +38,7 @@ https://raw.githubusercontent.com/pal-droid/seanime-providers/main/src/manga/sca
 5. Seanime will automatically fetch and register the provider.
 
 ---
+
+### Credits
+
+* [Seanime](https://github.com/5rahim/seanime) made by [5rahim](https://github.com/5rahim)
