@@ -2,11 +2,28 @@
   "id": "scanita",
   "name": "Scanita",
   "description": "Scanita is a manga provider for Seanime",
-  "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/scanita/manifest.json",
-  "version": "1.0.2",
+  "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/scanita/manifest.json",
+  "version": "1.0.3",
   "author": "pal",
   "type": "manga-provider",
   "language": "javascript",
   "lang": "it",
-  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/scanita/provider.js"
+  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/scanita/provider.js",
+
+  "userConfig": {
+    "requiresConfig": false,
+    "version": 1,
+    "fields": [
+      {
+        "name": "domain",
+        "label": "Preferred Domain",
+        "type": "select",
+        "default": "https://scanita.org",
+        "options": [
+          { "label": "scanita.org", "value": "https://scanita.org" },
+          { "label": "mangaita.io", "value": "https://mangaita.io" }
+        ]
+      }
+    ]
+  }
 }
