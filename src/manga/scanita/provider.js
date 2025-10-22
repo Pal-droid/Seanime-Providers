@@ -17,9 +17,9 @@ class Provider {
       headers: {
         "User-Agent":
           "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
-        "Accept": "*/*",
+        Accept: "*/*",
         "X-Requested-With": "XMLHttpRequest",
-        "Referer": "{{domain}}",
+        Referer: this.api,
       },
     });
   }
@@ -49,30 +49,22 @@ class Provider {
       );
 
       const decoded = typeof he !== "undefined" ? he.decode(html) : html;
+      const entryRegex =
+        /<a[^>]+href="\/manga\/([^"]+)"[\s\S]*?(?:<img[^>]+src="([^"]+)"[^>]*>)[\s\S]*?(?:<h3[^>]*>([^<]+)<\/h3>|<p[^>]*>([^<]+)<\/p>)/gi;
 
-      const entryBlockRegex = /<a[^>]+href="\/manga\/[^"]+"[\s\S]*?<\/a>/gi;
       const mangas = [];
-
       let match;
-      while ((match = entryBlockRegex.exec(decoded)) !== null) {
-        const chunk = match[0];
+      while ((match = entryRegex.exec(decoded)) !== null) {
+        const id = match[1];
+        const img = match[2];
+        const title = (match[3] || match[4] || id)?.trim();
 
-        const id = chunk.match(/href="\/manga\/([^"]+)"/i)?.[1];
-        const title =
-          chunk.match(/<h3[^>]*>([^<]+)<\/h3>/i)?.[1]?.trim() ||
-          id?.replace(/-/g, " ") ||
-          "Untitled";
-
-        const thumb = chunk.match(
-          /(https:\/\/cdn\.manga-italia\.com\/[^"]+?\/(?:cover|thumb)\.[^"]+?\.webp)/i
-        )?.[1];
-
-        if (!thumb) continue;
+        if (!img || !id) continue;
 
         mangas.push({
           id,
           title,
-          image: `https://images.weserv.nl/?url=${thumb.replace(/^https?:\/\//, "")}`,
+          image: `https://images.weserv.nl/?url=${encodeURIComponent(img.replace(/^https?:\/\//, ""))}`,
         });
       }
 
@@ -118,7 +110,7 @@ class Provider {
         chapters.push({
           id: chapterId,
           url: `${this.api}/scan/${chapterId}`,
-          title: chapterNum,
+          title: `Capitolo ${chapterNum}`,
           chapter: chapterNum,
         });
       }
@@ -147,29 +139,42 @@ class Provider {
 
     const fetchPage = async (url) => {
       try {
-        console.log("Fetching:", url);
         const resp = await this.fetchWithHeaders(url);
         if (!resp.ok) return;
 
-        const html = await resp.text();
+        let html = await resp.text();
+
+        html = html
+          .replace(/\\u([\dA-F]{4})/gi, (_, g) =>
+            String.fromCharCode(parseInt(g, 16))
+          )
+          .replace(/\\u0026amp;/g, "&")
+          .replace(/\\u0026/g, "&")
+          .replace(/&amp;/g, "&");
+
         const decoded = typeof he !== "undefined" ? he.decode(html) : html;
 
         const imgRegex =
-          /<div[^>]*class="[^"]*book-page[^"]*"[^>]*>[\s\S]*?<img[^>]+src="([^"]+)"/gi;
+          /<div[^>]*class=["'][^"']*book-page[^"']*["'][^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+
         let m;
         while ((m = imgRegex.exec(decoded)) !== null) {
           let imgUrl = m[1].trim();
+
           if (imgUrl.startsWith("/")) imgUrl = `${this.api}${imgUrl}`;
-          imgUrl = `https://images.weserv.nl/?url=${imgUrl.replace(/^https?:\/\//, "")}`;
+          if (imgUrl.startsWith("//")) imgUrl = "https:" + imgUrl;
+          
+          const directUrl = imgUrl;
+
           pages.push({
-            url: imgUrl,
+            url: directUrl,
             index: pages.length,
-            headers: { Referer: url },
+            headers: { Referer: this.api }, 
           });
         }
 
         const nextMatch = decoded.match(
-          /<a[^>]+href="([^"]+)"[^>]*class="[^"]*btn-next[^"]*"[^>]*>/
+          /<a[^>]+href=["']([^"']+)["'][^>]*class=["'][^"']*btn-next[^"']*["'][^>]*>/
         );
         if (nextMatch && nextMatch[1]) {
           const nextUrl = nextMatch[1].startsWith("http")
@@ -182,10 +187,8 @@ class Provider {
       }
     };
 
-    // Start with first page
     addToQueue(`${this.api}/scan/${chapterId}`);
 
-    // Wait for all dynamic fetches to finish
     while (activePromises.size > 0) {
       await Promise.all([...activePromises]);
     }
