@@ -1,0 +1,29 @@
+{
+  "id": "bato",
+  "name": "Bato",
+  "description": "Bato is a manga provider for Seanime",
+  "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/bato/manifest.json",
+  "version": "1.0.0",
+  "author": "pal",
+  "icon": "",
+  "type": "manga-provider",
+  "language": "javascript",
+  "lang": "multi",
+  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/bato/provider.js",
+
+  "userConfig": {
+    "requiresConfig": false,
+    "version": 1,
+    "fields": [
+      {
+        "name": "domain",
+        "label": "Preferred Domain",
+        "type": "select",
+        "default": "https://bato.to",
+        "options": [
+          { "label": "bato.to", "value": "https://bato.to" }
+        ]
+      }
+    ]
+  }
+}
