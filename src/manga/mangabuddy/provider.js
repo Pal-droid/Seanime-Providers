@@ -3,8 +3,6 @@ class Provider {
     this.api = "{{domain}}";
   }
 
-  api = "";
-
   getSettings() {
     return {
       supportsMultiLanguage: false,
@@ -19,27 +17,24 @@ class Provider {
           "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
         Accept: "*/*",
         "X-Requested-With": "XMLHttpRequest",
-        Referer: "${this.api}/",
+        Referer: `${this.api}/`,
       },
     });
   }
 
   async search(opts) {
     const url = `${this.api}/search?q=${encodeURIComponent(opts.query)}`;
-
     try {
       const response = await this.fetchWithHeaders(url);
-      if (!response.ok)
-        throw new Error(`${response.status} ${response.statusText}`);
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
 
       const html = await response.text();
       const decoded = typeof he !== "undefined" ? he.decode(html) : html;
 
-      const entryBlockRegex =
-        /<div class="book-item">([\s\S]*?)<\/div>\s*<\/div>/gi;
+      const entryBlockRegex = /<div\s+class="book-item">([\s\S]*?)<\/div>\s*<\/div>/gi;
       const mangas = [];
-
       let match;
+
       while ((match = entryBlockRegex.exec(decoded)) !== null) {
         const chunk = match[1];
         const id = chunk.match(/href="\/([^"]+)"/i)?.[1];
@@ -47,13 +42,14 @@ class Provider {
           chunk.match(/<h3>\s*<a[^>]+title="([^"]+)"/i)?.[1]?.trim() ||
           id?.replace(/-/g, " ") ||
           "Untitled";
-        const thumb = chunk.match(/data-src="([^"]+\.png)"/i)?.[1];
+        const thumb = chunk.match(/data-src="([^"]+\.(?:png|jpg|jpeg))"/i)?.[1];
+
         if (!thumb || !id) continue;
 
         mangas.push({
           id,
           title,
-          image: thumb, // direct image only
+          image: thumb.startsWith("http") ? thumb : `${this.api}${thumb}`,
         });
       }
 
@@ -68,12 +64,10 @@ class Provider {
     try {
       const mangaUrl = `${this.api}/${mangaId}`;
       const detailResp = await this.fetchWithHeaders(mangaUrl);
-      if (!detailResp.ok)
-        throw new Error(`${detailResp.status} ${detailResp.statusText}`);
+      if (!detailResp.ok) throw new Error(`${detailResp.status} ${detailResp.statusText}`);
 
       const detailHtml = await detailResp.text();
-      const decodedDetail =
-        typeof he !== "undefined" ? he.decode(detailHtml) : detailHtml;
+      const decodedDetail = typeof he !== "undefined" ? he.decode(detailHtml) : detailHtml;
 
       const bookIdMatch = decodedDetail.match(/var\s+bookId\s*=\s*(\d+);/i);
       const bookId = bookIdMatch?.[1];
@@ -81,12 +75,10 @@ class Provider {
 
       const apiUrl = `${this.api}/api/manga/${bookId}/chapters?source=detail`;
       const chaptersResp = await this.fetchWithHeaders(apiUrl);
-      if (!chaptersResp.ok)
-        throw new Error(`${chaptersResp.status} ${chaptersResp.statusText}`);
+      if (!chaptersResp.ok) throw new Error(`${chaptersResp.status} ${chaptersResp.statusText}`);
 
       const chaptersHtml = await chaptersResp.text();
-      const decodedChapters =
-        typeof he !== "undefined" ? he.decode(chaptersHtml) : chaptersHtml;
+      const decodedChapters = typeof he !== "undefined" ? he.decode(chaptersHtml) : chaptersHtml;
 
       const chapterRegex =
         /<li[^>]*>[\s\S]*?<a[^>]+href="([^"]+)"[^>]*>[\s\S]*?<strong[^>]*class="chapter-title"[^>]*>([^<]+)<\/strong>/gi;
@@ -120,8 +112,7 @@ class Provider {
     try {
       const url = `${this.api}/${chapterId}`;
       const response = await this.fetchWithHeaders(url);
-      if (!response.ok)
-        throw new Error(`${response.status} ${response.statusText}`);
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
 
       const html = await response.text();
       const decoded = typeof he !== "undefined" ? he.decode(html) : html;
@@ -135,7 +126,7 @@ class Provider {
         .filter(Boolean);
 
       const pages = rawImages.map((imgUrl, index) => ({
-        url: imgUrl,
+        url: imgUrl.startsWith("http") ? imgUrl : `${this.api}${imgUrl}`,
         index,
         headers: { Referer: this.api },
       }));
