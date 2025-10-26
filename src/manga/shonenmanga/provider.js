@@ -1,4 +1,4 @@
-class ShonenMangaZProvider {
+class Provider {
   constructor() {
     this.api = "https://www.shonenmangaz.com";
   }
@@ -17,7 +17,7 @@ class ShonenMangaZProvider {
           "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
         Accept: "*/*",
         "X-Requested-With": "XMLHttpRequest",
-        Referer: this.api, // always send referer
+        Referer: `${this.api}/`,
       },
     });
   }
@@ -31,11 +31,12 @@ class ShonenMangaZProvider {
       const html = await response.text();
       const decoded = typeof he !== "undefined" ? he.decode(html) : html;
 
-      const entryRegex = /<div class="col-4 col-lg-2 col-md-3 badge-pos-1">([\s\S]*?)<\/div>\s*<\/div>/gi;
+      const entryBlockRegex =
+        /<div class="col-4 col-lg-2 col-md-3 badge-pos-1">([\s\S]*?)<\/div>\s*<\/div>/gi;
       const mangas = [];
       let match;
 
-      while ((match = entryRegex.exec(decoded)) !== null) {
+      while ((match = entryBlockRegex.exec(decoded)) !== null) {
         const chunk = match[1];
         const linkMatch = chunk.match(/<a[^>]+href="([^"]+)"[^>]*>/i);
         const titleMatch = chunk.match(/<a[^>]+title="([^"]+)"/i);
@@ -66,7 +67,8 @@ class ShonenMangaZProvider {
       const html = await response.text();
       const decoded = typeof he !== "undefined" ? he.decode(html) : html;
 
-      const chapterRegex = /<div class="wp-manga-chapter manga-chapter-id-\d+">[\s\S]*?<a href="([^"]+)"[^>]*>([^<]+)<\/a>/gi;
+      const chapterRegex =
+        /<div class="wp-manga-chapter manga-chapter-id-\d+">[\s\S]*?<a href="([^"]+)"[^>]*>([^<]+)<\/a>/gi;
       const chapters = [];
       let match;
 
@@ -83,7 +85,7 @@ class ShonenMangaZProvider {
         });
       }
 
-      // reverse because site shows newest first
+      // reverse because site lists newest → oldest
       return chapters
         .reverse()
         .map((c, i) => ({ ...c, index: i }));
@@ -102,7 +104,8 @@ class ShonenMangaZProvider {
       const html = await response.text();
       const decoded = typeof he !== "undefined" ? he.decode(html) : html;
 
-      const imgRegex = /<img[^>]+class=['"]wp-manga-chapter-img[^'"]*['"][^>]+src=['"]([^'"]+)['"]/gi;
+      const imgRegex =
+        /<img[^>]+class=['"]wp-manga-chapter-img[^'"]*['"][^>]+src=['"]([^'"]+)['"]/gi;
       const pages = [];
       let match;
 
