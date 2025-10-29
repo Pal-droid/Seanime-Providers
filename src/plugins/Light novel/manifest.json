@@ -2,11 +2,11 @@
   "id": "LN-reader",
   "name": "Light Novel Reader",
   "version": "1.0.0",
-  "description": "Allows reading light novels from NovelBuddy directly in Seanime for AniList novel entries.",
+  "description": "Read light‑novels from NovelBuddy inside Seanime (AniList novel entries).",
   "author": "Pal",
   "language": "typescript",
   "type": "plugin",
-  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/main.ts",
+  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/Light%20novel/main.ts",
   "plugin": {
     "version": "1",
     "permissions": {
