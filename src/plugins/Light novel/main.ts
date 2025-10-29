@@ -36,10 +36,8 @@ function init() {
     $ui.register((ctx) => {
 
         // 1. CREATE THE TRAY ICON
-        // This creates the icon in the seanime tray.
         const tray = ctx.newTray({
             tooltipText: "Novel Reader",
-            // Using a simple book icon
             iconUrl: "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/png/book.png",
             withContent: true,
         });
@@ -47,8 +45,6 @@ function init() {
         // 2. DEFINE PLUGIN STATE
         // We manage the UI's "page"
         const pageState = ctx.state<"search" | "results" | "chapters" | "reader">("search");
-        // Holds the text from the search input
-        const searchQuery = ctx.state<string>("");
         // Used to show loading indicators
         const isLoading = ctx.state<boolean>(false);
         // Holds the list of novels after searching
@@ -57,6 +53,9 @@ function init() {
         const currentNovel = ctx.state<NovelDetails | null>(null);
         // Holds the raw HTML content of the selected chapter
         const currentChapterContent = ctx.state<string | null>(null);
+
+        // Create a reference for the search input field
+        const searchInputRef = ctx.fieldRef<string>("");
 
 
         // 3. RENDER THE TRAY UI
@@ -78,19 +77,21 @@ function init() {
             if (state === "search") {
                 return tray.stack([
                     tray.text("Novel Reader", { style: { fontWeight: "bold", fontSize: 16, margin: "0 0 0.5rem 0" } }),
-                    // NOTE: This assumes a `tray.input` component exists, as it's
-                    // essential for search. This follows a standard reactive UI pattern.
-                    tray.input({
-                        value: searchQuery.get(),
-                        placeholder: "Search NovelBuddy...",
-                        onChange: ctx.eventHandler("search-onchange", (val) => searchQuery.set(val))
+                    
+                    // Use tray.input with the fieldRef, as per the new docs
+                    tray.input("Search for a novel", {
+                        fieldRef: searchInputRef,
+                        placeholder: "e.g., Classroom of the Elite"
                     }),
+
                     tray.button("Search", {
                         onClick: ctx.eventHandler("search-btn", async () => {
-                            if (searchQuery.get().trim() === "") return;
+                            // Get the value from the ref's .current property
+                            const query = searchInputRef.current;
+                            if (query.trim() === "") return;
                             
                             isLoading.set(true);
-                            const results = await searchNovels(ctx, searchQuery.get());
+                            const results = await searchNovels(ctx, query);
                             searchResults.set(results);
                             isLoading.set(false);
                             pageState.set("results");
@@ -135,7 +136,7 @@ function init() {
                         intent: "gray-subtle"
                     }),
                     tray.text("Search Results", { style: { fontWeight: "bold", fontSize: 16, margin: "0.5rem 0" } }),
-                    ...resultItems
+                    ...(resultItems.length > 0 ? resultItems : [tray.text("No results found.", { style: { padding: "1rem", textAlign: "center", opacity: 0.8 } })])
                 ], { style: { padding: "1rem" } });
             }
 
@@ -175,7 +176,7 @@ function init() {
                     }),
                     tray.text(novel.title, { style: { fontWeight: "bold", fontSize: 16, margin: "0.5rem 0" } }),
                     tray.text(`Author: ${novel.author}`, { style: { fontSize: 12, opacity: 0.8, marginBottom: "0.5rem" } }),
-                    ...chapterItems
+                    ...(chapterItems.length > 0 ? chapterItems : [tray.text("No chapters found.", { style: { padding: "1rem", textAlign: "center", opacity: 0.8 } })])
                 ], { style: { padding: "1rem" } });
             }
 
@@ -192,12 +193,12 @@ function init() {
                 }
 
                 // Convert chapter HTML to plain text for the tray.text component
-                // This is a simple conversion; a more robust one might be needed.
                 const plainText = contentHtml
-                    .replace(/<p>/gi, "\n") // Replace <p> with newlines
-                    .replace(/<\/p>/gi, "\n")
+                    .replace(/<p>/gi, "\n\n") // Replace <p> with newlines
+                    .replace(/<\/p>/gi, "")
                     .replace(/<br\s*\/?>/gi, "\n") // Replace <br> with newlines
-                    .replace(/<[^>]+>/g, ""); // Strip all other tags
+                    .replace(/<[^>]+>/g, "") // Strip all other tags
+                    .trim();
 
                 return tray.stack([
                     tray.button("← Back", {
@@ -213,37 +214,40 @@ function init() {
         }); // End of tray.render
         
         // ---------------------------------------------------------------------------
-        // SCRAPING FUNCTIONS (Moved inside $ui.register to access ctx)
+        // SCRAPING FUNCTIONS (NOW USING REGEX)
         // ---------------------------------------------------------------------------
 
         const NOVELBUDDY_URL = "https://novelbuddy.com";
 
-        async function searchNovels(ctx, query): Promise<NovelSearchResult[]> {
+        async function searchNovels(ctx, query: string): Promise<NovelSearchResult[]> {
             const url = `${NOVELBUDDY_URL}/search?q=${encodeURIComponent(query)}`;
             try {
                 const res = await ctx.fetch(url);
                 const html = await res.text();
-                const $ = LoadDoc(html);
 
                 const results: NovelSearchResult[] = [];
-                $("div.book-item").each((i, el) => {
-                    const $el = $(el);
-                    const title = $el.find("h3 > a").attr("title");
-                    const novelUrl = $el.find("h3 > a").attr("href");
-                    const image = $el.find("img.lazy").attr("data-src");
-                    const latestChapter = $el.find("span.latest-chapter").attr("title");
-                    
+                const itemMatches = [...html.matchAll(/<div class="book-item">([\s\S]*?)<\/div>/g)];
+                
+                console.log(`[novel-plugin] Found ${itemMatches.length} items on search page.`);
+
+                for (const m of itemMatches) {
+                    const block = m[1];
+                    const title = block.match(/<a title="([^"]+)"/)?.[1] || "Unknown Title";
+                    const novelUrl = block.match(/href="(\/novel\/[^"]+)"/)?.[1] || "#";
+                    const image = block.match(/data-src="([^"]+)"/)?.[1] || "";
+                    const latestChapter = block.match(/<span class="latest-chapter" title="([^"]+)">/)?.[1] || "No chapter";
+
                     results.push({
                         title: title,
                         url: novelUrl,
                         image: image.startsWith("http") ? image : `https:${image}`,
                         latestChapter: latestChapter
                     });
-                });
+                }
                 return results;
 
             } catch (err) {
-                console.error("NovelSearch Error:", err.message);
+                console.error("[novel-plugin] NovelSearch Error:", err);
                 return [];
             }
         }
@@ -253,29 +257,27 @@ function init() {
             try {
                 const res = await ctx.fetch(url);
                 const html = await res.text();
-                const $ = LoadDoc(html);
 
-                const title = $("div.book-info h1.name").text().trim();
-                const image = $("div.book-img img").attr("src");
-                const author = $("div.author span.name").text().trim();
-                const status = $("div.status span.text").text().trim();
-                const description = $("div.summary div.content").html();
+                const title = html.match(/<h1 class="name">([^<]+)<\/h1>/)?.[1]?.trim() || "Unknown Title";
+                const image = html.match(/<div class="book-img"[^>]*><img src="([^"]+)"/)?.[1] || "";
+                const author = html.match(/<div class="author"[^>]*>[\s\S]*?<span class="name">([^<]+)<\/span>/)?.[1]?.trim() || "Unknown Author";
+                const status = html.match(/<div class="status"[^>]*>[\s\S]*?<span class="text">([^<]+)<\/span>/)?.[1]?.trim() || "Unknown";
+                const description = html.match(/<div class="summary"[^>]*>[\s\S]*?<div class="content">([\s\S]*?)<\/div>/)?.[1] || "<p>No description.</p>";
                 
                 const genres: string[] = [];
-                $('div.meta-data a[href*="/genre/"]').each((i, el) => {
-                    genres.push($(el).text().trim());
-                });
+                const genreMatches = [...html.matchAll(/<a href="\/genre\/[^"]+"[^>]*>([^<]+)<\/a>/g)];
+                for (const g of genreMatches) {
+                    genres.push(g[1].trim());
+                }
 
                 const chapters: Array<{ title: string, url: string }> = [];
-                $("ul.list-chapters li.chapter-item").each((i, el) => {
-                    const $el = $(el);
-                    const title = $el.find("a").attr("title");
-                    const chapterUrl = $el.find("a").attr("href");
+                const chapterMatches = [...html.matchAll(/<li class="chapter-item">[\s\S]*?<a href="([^"]+)" title="([^"]+)">/g)];
+                for (const c of chapterMatches) {
                     chapters.push({
-                        title: title,
-                        url: chapterUrl
+                        url: c[1],
+                        title: c[2]
                     });
-                });
+                }
 
                 return {
                     title,
@@ -284,11 +286,11 @@ function init() {
                     status,
                     genres,
                     description,
-                    chapters: chapters.reverse()
+                    chapters: chapters.reverse() // novelbuddy lists chapters desc, so reverse them
                 };
 
             } catch (err) {
-                console.error("NovelDetails Error:", err.message);
+                console.error("[novel-plugin] NovelDetails Error:", err);
                 return null;
             }
         }
@@ -298,15 +300,21 @@ function init() {
             try {
                 const res = await ctx.fetch(url);
                 const html = await res.text();
-                const $ = LoadDoc(html);
 
-                const contentElement = $("div.content-story");
-                contentElement.find("script, div[id^='pf-']").remove();
+                let contentHtml = html.match(/<div class="content-story"[^>]*>([\s\S]*?)<\/div>/)?.[1];
+
+                if (!contentHtml) {
+                    return "<p>Error loading chapter content.</p>";
+                }
                 
-                return `<div class="content-story">${contentElement.html()}</div>`;
+                // Remove scripts and ad divs
+                contentHtml = contentHtml.replace(/<script[\s\S]*?<\/script>/gi, "");
+                contentHtml = contentHtml.replace(/<div id="pf-[^"]+">[\s\S]*?<\/div>/gi, "");
+
+                return `<div class="content-story">${contentHtml}</div>`;
 
             } catch (err) {
-                console.error("ChapterContent Error:", err.message);
+                console.error("[novel-plugin] ChapterContent Error:", err);
                 return "<p>Error loading chapter content.</p>";
             }
         }
@@ -314,5 +322,4 @@ function init() {
 
     }); // End of $ui.register
 }
-
 
