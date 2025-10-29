@@ -6,6 +6,7 @@
   "author": "Pal",
   "language": "typescript",
   "type": "plugin",
+  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/main.ts",
   "plugin": {
     "version": "1",
     "permissions": {
