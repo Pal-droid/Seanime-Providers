@@ -28,9 +28,6 @@ type NovelDetails = {
 };
 
 
-/**
- * This is the main entrypoint for your plugin.
- */
 function init() {
     // Register the UI context to gain access to UI-related APIs.
     $ui.register((ctx) => {
@@ -38,7 +35,7 @@ function init() {
         // 1. CREATE THE TRAY ICON
         const tray = ctx.newTray({
             tooltipText: "Novel Reader",
-            iconUrl: "https://raw.githubusercontent.com/tabler/tabler-icons/main/icons/png/book.png",
+            iconUrl: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/novelbuddy.ico",
             withContent: true,
         });
 
@@ -77,8 +74,6 @@ function init() {
             if (state === "search") {
                 return tray.stack([
                     tray.text("Novel Reader", { style: { fontWeight: "bold", fontSize: 16, margin: "0 0 0.5rem 0" } }),
-                    
-                    // Use tray.input with the fieldRef, as per the new docs
                     tray.input("Search for a novel", {
                         fieldRef: searchInputRef,
                         placeholder: "e.g., Classroom of the Elite"
@@ -211,10 +206,10 @@ function init() {
                 ], { style: { padding: "1rem" } });
             }
 
-        }); // End of tray.render
+        }); 
         
         // ---------------------------------------------------------------------------
-        // SCRAPING FUNCTIONS (NOW USING REGEX)
+        // SCRAPING FUNCTIONS 
         // ---------------------------------------------------------------------------
 
         const NOVELBUDDY_URL = "https://novelbuddy.com";
@@ -320,6 +315,6 @@ function init() {
         }
 
 
-    }); // End of $ui.register
+    }); 
 }
 
