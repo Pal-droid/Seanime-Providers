@@ -27,10 +27,7 @@ type NovelDetails = {
     chapters: Array<{ title: string, url: string }>;
 };
 
-
-/**
- * This is the main entrypoint for your plugin.
- */
+// main entry point
 function init() {
     // Register the UI context to gain access to UI-related APIs.
     $ui.register((ctx) => {
@@ -38,7 +35,6 @@ function init() {
         // 1. CREATE THE TRAY ICON
         const tray = ctx.newTray({
             tooltipText: "Novel Reader",
-            // UPDATED: Set icon to the novelbuddy.ico URL
             iconUrl: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/novelbuddy.ico",
             withContent: true,
         });
@@ -222,10 +218,10 @@ function init() {
                 ], { style: { padding: "1rem" } });
             }
 
-        }); // End of tray.render
+        }); 
 
         // ---------------------------------------------------------------------------
-        // SCRAPING FUNCTIONS (USING REGEX)
+        // SCRAPING FUNCTIONS 
         // ---------------------------------------------------------------------------
 
         const NOVELBUDDY_URL = "https://novelbuddy.com";
@@ -313,14 +309,12 @@ function init() {
                 const chapterHtml = await chapterRes.text();
 
                 const chapters: Array<{ title: string, url: string }> = [];
-                // Regex adjusted for the API response structure
                 const chapterRegex = /<li[^>]*>[\s\S]*?<a href="([^"]+)" title="([^"]+)">/g;
                 let chapterMatch;
 
                 while ((chapterMatch = chapterRegex.exec(chapterHtml)) !== null) {
                     chapters.push({
                         url: chapterMatch[1],
-                        // Extract just the chapter title part from the full title attribute if needed
                         title: chapterMatch[2].split(" - ").pop()?.trim() || "Unknown Chapter"
                     });
                 }
@@ -351,7 +345,6 @@ function init() {
                 const html = await res.text();
 
                 // Regex to find the main content div
-                // UPDATED: Changed class from "content-story" to "content-inner"
                 let contentHtml = html.match(/<div class="content-inner">([\s\S]*?)<\/div>/)?.[1];
 
                 if (!contentHtml) {
@@ -376,7 +369,7 @@ function init() {
         }
 
 
-    }); // End of $ui.register
+    }); 
 }
 
 
