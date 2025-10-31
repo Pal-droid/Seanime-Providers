@@ -4,17 +4,16 @@
 
 /* --- Base --- */
 #novel-plugin-backdrop {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    /* Reverting: Remove centering, use block display */
+    display: block;
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--bg-primary); /* Use primary background color for seamless transition */
     z-index: 2147483646;
-    overflow: auto;
+    overflow-y: auto; /* Allow scrolling on the main page if needed */
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: #e1e1e1;
     --bg-primary: #121212;
@@ -27,22 +26,25 @@
     --border-color: #333333;
 }
 
-/* --- Modal & Layout --- */
+/* --- Modal & Layout (Now Full Screen) --- */
 #novel-plugin-modal-content {
-    width: 90vw;
-    max-width: 1000px;
-    height: 85vh;
+    /* Full Screen Revert: Set dimensions to 100% of viewport */
+    width: 100vw;
+    max-width: 100%;
+    height: 100vh;
+    
     background: var(--bg-primary);
-    border-radius: 12px;
+    border-radius: 0; /* Remove rounded corners */
     padding: 0;
     position: relative;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-    border: 1px solid var(--border-color);
+    box-shadow: none; /* Remove shadow */
+    border: none; /* Remove border */
+    
     display: flex;
     flex-direction: column;
     overflow: hidden;
 
-    /* Entry Animation */
+    /* Entry Animation (Keep for smooth transition) */
     opacity: 0;
     transform: scale(0.95);
     animation: fadeInScale 0.2s ease-out forwards;
@@ -56,9 +58,9 @@
 }
 
 #novel-plugin-btn-close {
-    position: absolute;
-    top: 1rem;
-    right: 1.25rem;
+    position: fixed; /* Fixed position relative to viewport, not modal content */
+    top: 1.5rem;
+    right: 1.5rem;
     width: 32px;
     height: 32px;
     background: var(--bg-secondary);
@@ -66,7 +68,7 @@
     border: 1px solid var(--border-color);
     border-radius: 50%;
     cursor: pointer;
-    z-index: 10;
+    z-index: 100; /* High z-index to ensure it is above all content */
     font-size: 1.2rem;
     line-height: 1;
     padding: 0;
@@ -89,6 +91,8 @@
 
 .novel-plugin-page-content {
     padding: 1.5rem;
+    max-width: 1000px; /* Constrain content width for better readability */
+    margin: 0 auto; /* Center the content */
 }
 
 /* --- Header & Tabs --- */
@@ -100,6 +104,8 @@
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-primary);
     z-index: 5;
+    max-width: 1000px; /* Constrain header/tab width to match content */
+    margin: 0 auto;
 }
 .novel-plugin-tabs {
     display: flex;
@@ -342,15 +348,23 @@
     height: 250px;
     background-size: cover;
     background-position: 50% 35%;
-    margin: -1.5rem -1.5rem 0 -1.5rem; /* Bleed to edges */
+    margin: -1.5rem -1.5rem 0 -1.5rem; /* Bleed to edges relative to max-width container */
+    max-width: 1000px;
+    width: 100%;
+    box-sizing: content-box;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
 }
+
+/* Adjusting details header padding to fit new full-screen center alignment */
 .novel-plugin-details-header {
     display: flex;
     align-items: flex-end;
     gap: 1rem;
-    margin-top: -80px; /* Pull cover up over banner */
-    padding: 0 1.5rem; /* Match wrapper padding */
-    position: relative; /* For z-index */
+    margin-top: -80px; 
+    padding: 0 1.5rem; 
+    position: relative;
     z-index: 2;
 }
 .novel-plugin-details-cover {
@@ -502,4 +516,3 @@
 .novel-plugin-reader-content p {
     margin: 0 0 1.5rem 0;
 }
-
