@@ -1,6 +1,16 @@
 /* --------------------------------------------------------------------
-   NOVEL READER PLUGIN CSS 
+   NOVEL READER PLUGIN CSS
    -------------------------------------------------------------------- */
+
+:root {
+    --plugin-bg: #121212;
+    --plugin-bg-light: #181818;
+    --plugin-bg-lighter: #1e1e1e;
+    --plugin-text: #FFFFFF;
+    --plugin-text-muted: #aaa;
+    --plugin-accent: #8A2BE2; /* Violet */
+    --plugin-border: #282828;
+}
 
 @keyframes novelPluginBackdropFadeIn {
     from { opacity: 0; }
@@ -10,7 +20,7 @@
 @keyframes novelPluginModalFadeIn {
     from { 
         opacity: 0;
-        transform: scale(0.95);
+        transform: scale(0.98);
     }
     to { 
         opacity: 1;
@@ -36,8 +46,8 @@
 #novel-plugin-modal-content {
     width: 100vw;
     height: 100vh;
-    background: #121212; /* Deep dark background */
-    color: #FFFFFF;
+    background: var(--plugin-bg);
+    color: var(--plugin-text);
     position: relative;
     display: flex;
     flex-direction: column;
@@ -57,7 +67,7 @@
     width: 2.5rem;
     height: 2.5rem;
     background: rgba(255, 255, 255, 0.1);
-    color: #FFFFFF;
+    color: var(--plugin-text);
     border: none;
     border-radius: 50%;
     cursor: pointer;
@@ -78,11 +88,48 @@
     transform: scale(1.1);
 }
 
+/* Header & Tabs */
+.novel-plugin-header {
+    width: 100%;
+    padding: 1.5rem 3rem 0;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 10;
+}
+
+.novel-plugin-tabs {
+    display: flex;
+    gap: 0.5rem;
+    border-bottom: 2px solid var(--plugin-border);
+}
+
+.novel-plugin-tab {
+    background: none;
+    border: none;
+    color: var(--plugin-text-muted);
+    font-size: 1.2rem;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px; /* Overlap the border */
+}
+
+.novel-plugin-tab:hover {
+    color: var(--plugin-text);
+}
+
+.novel-plugin-tab.active {
+    color: var(--plugin-text);
+    border-bottom-color: var(--plugin-accent);
+}
+
 /* Main Content Wrapper */
 #novel-plugin-content-wrapper {
     flex: 1;
     overflow-y: auto;
-    padding: 3rem;
+    padding: 2rem 3rem 3rem;
     box-sizing: border-box;
 }
 
@@ -91,7 +138,7 @@
     width: 8px;
 }
 #novel-plugin-content-wrapper::-webkit-scrollbar-track {
-    background: #181818;
+    background: var(--plugin-bg-light);
 }
 #novel-plugin-content-wrapper::-webkit-scrollbar-thumb {
     background-color: #444;
@@ -105,7 +152,7 @@
 .novel-plugin-back-btn {
     background: transparent;
     border: none;
-    color: #aaa;
+    color: var(--plugin-text-muted);
     padding: 0.5rem 0;
     border-radius: 6px;
     cursor: pointer;
@@ -116,12 +163,12 @@
 }
 
 .novel-plugin-back-btn:hover {
-    color: #FFF;
+    color: var(--plugin-text);
 }
 
 .novel-plugin-page-content {
     width: 100%;
-    max-width: 1200px; /* Max content width */
+    max-width: 1400px; /* Max content width */
     margin: 0 auto;
 }
 
@@ -130,21 +177,28 @@
     font-size: 2.5rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
-    color: #FFF;
+    color: var(--plugin-text);
 }
 
 .novel-plugin-subtitle {
     font-size: 1.2rem;
     font-weight: 400;
-    color: #aaa;
+    color: var(--plugin-text-muted);
     margin-bottom: 2rem;
 }
 
-.novel-plugin-chapter-author {
-    font-size: 1.1rem;
-    opacity: 0.8;
-    margin-bottom: 2rem;
-    color: #aaa;
+.novel-plugin-section-title {
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-top: 3rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--plugin-border);
+    padding-bottom: 0.5rem;
+}
+
+.novel-plugin-error-text {
+    color: #ff6b6b;
+    font-weight: 500;
 }
 
 /* Search Form */
@@ -157,24 +211,25 @@
 .novel-plugin-input {
     flex: 1;
     padding: 0.8rem 1rem;
-    background: #282828;
+    background: var(--plugin-bg-lighter);
     color: white;
-    border: 2px solid #282828;
+    border: 2px solid var(--plugin-border);
     border-radius: 6px;
     font-size: 1rem;
     box-sizing: border-box;
-    transition: border-color 0.2s ease;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
 }
 
 .novel-plugin-input:focus {
     outline: none;
-    border-color: #8A2BE2; /* Accent color */
+    border-color: var(--plugin-accent);
+    background-color: var(--plugin-bg);
 }
 
 /* Primary Button */
 .novel-plugin-button {
     padding: 0.8rem 1.5rem;
-    background: #8A2BE2; /* Accent color */
+    background: var(--plugin-accent);
     color: white;
     border: none;
     border-radius: 6px;
@@ -189,78 +244,198 @@
     transform: scale(1.02);
 }
 
-/* Results Grid */
-.novel-plugin-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1.5rem;
-}
+/* --- Discover Page --- */
 
-/* Result Card */
-.novel-plugin-result-card {
+.novel-plugin-hero {
+    height: 400px;
+    border-radius: 12px;
+    background-size: cover;
+    background-position: center 30%;
+    position: relative;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    gap: 0.5rem;
-    padding: 1rem;
-    background: #1e1e1e;
-    border: 1px solid #282828;
-    border-radius: 8px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    justify-content: flex-end;
+    padding: 2rem;
+    box-sizing: border-box;
+    margin-bottom: 2rem;
 }
 
-.novel-plugin-result-card:hover {
-    transform: translateY(-5px);
-    background-color: #282828;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+.novel-plugin-hero-content {
+    max-width: 50%;
 }
 
-.novel-plugin-result-stack {
-    flex: 1;
+.novel-plugin-hero-title {
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: var(--plugin-text);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.5);
     margin-bottom: 0.5rem;
 }
 
-.novel-plugin-result-title {
+.novel-plugin-hero-score {
+    font-size: 1rem;
     font-weight: 600;
-    font-size: 1.1rem;
-    color: #FFF;
-    margin-bottom: 0.25rem;
-    /* Ellipsis for long titles */
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    color: var(--plugin-accent);
+    margin-bottom: 1.5rem;
 }
 
-.novel-plugin-result-chapter {
-    font-size: 0.9rem;
-    color: #aaa;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+/* Poster Card Grid */
+.novel-plugin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 1.5rem;
 }
 
-/* View/Read Button (on cards) */
-.novel-plugin-view-btn {
-    width: 100%;
-    padding: 0.6rem 1rem;
-    background: #8A2BE2;
-    color: white;
-    border: none;
-    border-radius: 6px;
+.novel-plugin-poster-card {
+    background: transparent;
+    border-radius: 8px;
     cursor: pointer;
-    font-weight: 600;
     transition: transform 0.2s ease, filter 0.2s ease;
 }
 
-.novel-plugin-view-btn:hover {
-    filter: brightness(1.15);
+.novel-plugin-poster-card:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
 }
 
-/* Chapter List */
+.novel-plugin-poster-img {
+    width: 100%;
+    height: 260px;
+    object-fit: cover;
+    border-radius: 8px;
+    background-color: var(--plugin-bg-lighter);
+    border: 2px solid var(--plugin-border);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    border-bottom: 4px solid var(--cover-color, var(--plugin-accent));
+}
+
+.novel-plugin-poster-title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--plugin-text);
+    margin-top: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+/* --- Details Page --- */
+
+.novel-plugin-details-banner {
+    height: 350px;
+    width: 100%;
+    background-size: cover;
+    background-position: center 30%;
+    margin-bottom: -100px; /* Pull header up */
+    border-radius: 12px;
+}
+
+.novel-plugin-details-header {
+    display: flex;
+    gap: 2rem;
+    padding: 0 2rem;
+    position: relative; /* To stack on top of banner */
+    align-items: flex-end;
+}
+
+.novel-plugin-details-cover {
+    width: 200px;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 4px solid var(--plugin-bg);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    background-color: var(--plugin-bg-lighter);
+    border-bottom: 6px solid var(--cover-color, var(--plugin-accent));
+    flex-shrink: 0;
+}
+
+.novel-plugin-details-info {
+    padding-bottom: 1rem;
+}
+
+.novel-plugin-details-info .novel-plugin-title {
+    font-size: 3rem;
+}
+
+.novel-plugin-details-body {
+    margin-top: 2rem;
+    display: flex;
+    gap: 2rem;
+}
+
+.novel-plugin-details-description {
+    flex: 3;
+    background: var(--plugin-bg-lighter);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--plugin-border);
+}
+
+.novel-plugin-details-description h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--plugin-text);
+    margin: 0 0 1rem 0;
+    border-bottom: 1px solid var(--plugin-border);
+    padding-bottom: 0.5rem;
+}
+
+.novel-plugin-details-description p {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: var(--plugin-text-muted);
+    margin: 0;
+}
+
+.novel-plugin-details-sidebar {
+    flex: 1;
+}
+
+.novel-plugin-details-sidebar h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0 0 1rem 0;
+}
+
+.novel-plugin-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.novel-plugin-tag {
+    background: var(--plugin-bg-lighter);
+    color: var(--plugin-text-muted);
+    padding: 0.3rem 0.7rem;
+    border-radius: 100px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: 1px solid var(--plugin-border);
+}
+
+.novel-plugin-tag.score {
+    color: var(--plugin-accent);
+    font-weight: 700;
+}
+
+#novel-plugin-chapter-button-container {
+    margin-top: 2rem;
+}
+
+#novel-plugin-chapter-button-container .novel-plugin-button {
+    width: 100%;
+}
+
+
+/* --- Chapter List Page --- */
 .novel-plugin-chapter-list {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    max-width: 1000px;
+    margin-top: 1.5rem;
 }
 
 .novel-plugin-chapter-item {
@@ -268,14 +443,14 @@
     gap: 1rem;
     align-items: center;
     padding: 0.75rem 1rem;
-    background: #1e1e1e;
-    border: 1px solid #282828;
+    background: var(--plugin-bg-lighter);
+    border: 1px solid var(--plugin-border);
     border-radius: 8px;
     transition: background-color 0.2s ease;
 }
 
 .novel-plugin-chapter-item:hover {
-    background-color: #282828;
+    background-color: #2a2a2a;
 }
 
 .novel-plugin-chapter-title {
@@ -284,25 +459,31 @@
     overflow: hidden;
     text-overflow: ellipsis;
     font-size: 1rem;
-    color: #ddd;
+    color: var(--plugin-text-muted);
+}
+
+.novel-plugin-chapter-item:hover .novel-plugin-chapter-title {
+    color: var(--plugin-text);
 }
 
 .novel-plugin-chapter-item .novel-plugin-view-btn {
     width: auto; /* Allow button to shrink */
     flex-shrink: 0;
+    padding: 0.4rem 1rem;
+    font-size: 0.9rem;
 }
 
-/* Reader View */
+/* --- Reader View --- */
 .novel-plugin-reader-container {
     width: 100%;
     display: flex;
     justify-content: center;
+    padding-top: 1rem;
 }
 .novel-plugin-reader-content {
-    margin-top: 1rem;
     line-height: 1.7;
     font-size: 1.1rem;
-    color: #ddd;
+    color: var(--plugin-text-muted);
     max-width: 800px; /* Optimal reading width */
     white-space: pre-wrap; /* Preserves line breaks from source */
 }
@@ -311,12 +492,24 @@
     margin-bottom: 1.5rem;
 }
 
-/* Loader */
+/* --- Loader --- */
 .novel-plugin-loader {
     width: 50px;
     height: 50px;
     border: 5px solid #444;
-    border-top-color: #8A2BE2;
+    border-top-color: var(--plugin-accent);
     border-radius: 50%;
     animation: novelPluginSpin 1s linear infinite;
     margin: 5rem auto;
+}
+
+.novel-plugin-loader.small {
+    width: 24px;
+    height: 24px;
+    border-width: 3px;
+    margin: 0.5rem 0;
+}
+
+@keyframes novelPluginSpin {
+    to { transform: rotate(360deg); }
+}
