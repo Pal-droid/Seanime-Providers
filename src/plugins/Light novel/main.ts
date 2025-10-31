@@ -1,144 +1,161 @@
-/**
- * This script is the core entry point injected into the host application.
- * It contains the main state, the openNovelPage function, and the primary
- * event listeners for the novel reader modal.
- */
+/// <reference path="./core.d.ts" />
 
-// %%CONSTANTS%% is replaced by the injected script builder
-// %%UTILS%% is replaced by utility functions (e.g., htmlToElement)
-// %%ANILIST_API%% is replaced by Anilist API functions
-// %%NOVELBUDDY_API%% is replaced by NovelBuddy API functions
-// %%UI%% is replaced by UI rendering functions
+// ---------------------------------------------------------------------------
+// TYPE DEFINITIONS
+// ---------------------------------------------------------------------------
 
-// %%PLUGIN_STATE%% is replaced by state initialization variables like:
-/*
-    let pageState = "discover";
-    let activeTabState = "discover";
-    let isLoading = false;
-    let currentNovel = null;
-    // ... and others
-*/
+type AnilistMedia = { id: number, title: { romaji: string, english: string }, /* ... */ };
+type NovelBuddySearchResult = { title: string, url: string, image?: string, latestChapter?: string };
+type NovelBuddyDetails = { title: string, /* ... */ chapters: Array<{ title: string, url: string }> };
 
-// Note: The global state variables (pageState, isLoading, mainLayout, etc.)
-// are assumed to be declared and initialized by the %%PLUGIN_STATE%% block
-// that wraps this code during injection.
 
-/**
- * Opens the main novel reader modal, injects the backdrop and modal structure,
- * and fetches the external CSS.
- */
-async function openNovelPage() {
-    // Hide the main application layout while the modal is open
-    // 'mainLayout' is assumed to be defined in %%PLUGIN_STATE%%
-    if (mainLayout) mainLayout.style.display = "none";
-    
-    // Promise to handle the CSS loading before rendering content
-    const loadCss = new Promise(async (resolve, reject) => {
-        // !! IMPORTANT !!
-        // This URL must be correct in your final version
-        // NOTE: This is the critical section you were asking about.
-        const cssUrl = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/anilist-styles.css";
-        
-        try {
-            console.log(`[novel-plugin] Attempting to fetch CSS from: ${cssUrl}`);
-            const res = await fetch(cssUrl); // <-- The CSS fetch happens here
-            if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
-            const cssText = await res.text();
-            
-            // Check if styles are already injected
-            if (!document.getElementById(STYLE_ID)) {
-                const style = document.createElement("style");
-                style.id = STYLE_ID;
-                style.textContent = cssText;
-                document.head.appendChild(style);
-                console.log("[novel-plugin] External CSS fetched and injected.");
-            } else {
-                console.log("[novel-plugin] CSS already present.");
+// ---------------------------------------------------------------------------
+// MAIN ENTRYPOINT
+// ---------------------------------------------------------------------------
+
+function init() {
+    // 1. Register the UI context
+    $ui.register((ctx) => {
+        console.log("[novel-plugin] $ui.register() called.");
+
+        // ---------------------------------------------------------------------------
+        // INJECTED SCRIPT BUILDER 
+        // ---------------------------------------------------------------------------
+
+        /**
+         * Fetches the raw text content of a file from a URL.
+         * This handles the core requirement of using 'fetch' instead of 'import'.
+         */
+        async function fetchScriptText(url) {
+            try {
+                // Exponential backoff or retry logic would be added here in a robust system
+                const res = await fetch(url);
+                if (!res.ok) {
+                    throw new Error(`Failed to fetch script: ${res.status} ${res.statusText}`);
+                }
+                return await res.text();
+            } catch (err) {
+                console.error(`[novel-plugin] FATAL: Could not fetch script at ${url}`, err);
+                return ""; // Return empty string on failure
             }
-            resolve(true);
-        } catch (err) {
-            console.error("[novel-plugin] Failed to fetch or inject CSS:", err);
-            // We resolve true anyway to allow the UI to load, even if unstyled
-            resolve(false); 
         }
-    });
 
-    // Wait for the CSS to load (or fail gracefully)
-    await loadCss;
+        /**
+         * Creates the constants string locally, as it depends on the runtime scriptId.
+         */
+        function getConstantsString(scriptId: string): string {
+            return `
+            const SCRIPT_ID = "${scriptId}";
+            const NOVELBUDDY_URL = "https://novelbuddy.com";
+            const ANILIST_API_URL = "https://graphql.anilist.co";
+            
+            // DOM IDs
+            const STYLE_ID = "novel-plugin-styles";
+            const BACKDROP_ID = "novel-plugin-backdrop";
+            const MODAL_ID = "novel-plugin-modal-content";
+            const WRAPPER_ID = "novel-plugin-content-wrapper";
+            const CLOSE_BTN_ID = "novel-plugin-btn-close";
+            const SEARCH_INPUT_ID = "novel-plugin-search-input";
+            
+            const APP_LAYOUT_SELECTOR = ".UI-AppLayout__root";
+            `;
+        }
 
-    // Build the modal HTML (using functions from the injected %%UI%% block)
-    const backdropHtml = renderBackdrop(); // Assumed to be in ui.js
-    const backdropElement = htmlToElement(backdropHtml); // Assumed to be in utils.js
+        /**
+         * Fetches all external script parts concurrently using fetch and then
+         * assembles them into a single executable string.
+         */
+        async function getInjectedScriptString(scriptId: string): Promise<string> {
+            const urls = {
+                main: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/Light%20novel/main.ts",
+                utils: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/Light%20novel/utils.js",
+                anilistApi: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/Light%20novel/anilist.js",
+                novelbuddyApi: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/Light%20novel/novelbuddy.js",
+                ui: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/Light%20novel/ui.js"
+            };
 
-    // Append to body
-    document.body.appendChild(backdropElement);
-    console.log("[novel-plugin] Modal backdrop rendered.");
+            // Fetch all code files in parallel
+            const [
+                mainTemplate,
+                utilsCode,
+                anilistApiCode,
+                novelbuddyApiCode,
+                uiCode
+            ] = await Promise.all([
+                fetchScriptText(urls.main),
+                fetchScriptText(urls.utils),
+                fetchScriptText(urls.anilistApi),
+                fetchScriptText(urls.novelbuddyApi),
+                fetchScriptText(urls.ui)
+            ]);
 
-    // Initial render of the content based on current state
-    updateModalContent(); // Assumed to be in ui.js
-
-    // Setup event listeners for the modal
-    setupEventListeners();
-
-    // Trigger initial search for AniList
-    fetchAniListMedia(); // Assumed to be in anilist.js
-}
-
-/**
- * Closes the novel reader modal and cleans up the injected elements.
- */
-function closeNovelPage() {
-    const backdrop = document.getElementById(BACKDROP_ID);
-    if (backdrop) {
-        backdrop.remove();
-        console.log("[novel-plugin] Modal closed and backdrop removed.");
-    }
-    
-    // Restore the main application layout
-    if (mainLayout) mainLayout.style.display = "flex"; // Assuming 'flex' for layout
-}
-
-/**
- * Sets up listeners for closing the modal and handling other modal events.
- */
-function setupEventListeners() {
-    const backdrop = document.getElementById(BACKDROP_ID);
-    if (backdrop) {
-        // Close button listener
-        const closeBtn = document.getElementById(CLOSE_BTN_ID);
-        closeBtn?.addEventListener("click", closeNovelPage);
-
-        // Backdrop click listener (to close when clicking outside the modal)
-        backdrop.addEventListener("click", (event) => {
-            // Check if the click target is the backdrop itself
-            if (event.target === backdrop) {
-                closeNovelPage();
+            if (!mainTemplate) {
+                console.error("[novel-plugin] FATAL: Could not load main template. Aborting.");
+                return ""; // Return empty string if the core template fails
             }
+
+            // Assemble the final script by replacing placeholders
+            const finalScript = mainTemplate
+                .replace("%%CONSTANTS%%", getConstantsString(scriptId))
+                .replace("%%PLUGIN_STATE%%", `
+                    let pageState = "discover";
+                    let activeTabState = "discover";
+                    let isLoading = false;
+                    let currentNovel = null;
+                    let currentChapterContent = null;
+                    let currentNovelBuddyChapters = [];
+                    const mainLayout = document.querySelector(APP_LAYOUT_SELECTOR);
+                `)
+                .replace("%%UTILS%%", utilsCode)
+                .replace("%%ANILIST_API%%", anilistApiCode)
+                .replace("%%NOVELBUDDY_API%%", novelbuddyApiCode)
+                .replace("%%UI%%", uiCode);
+
+            return finalScript;
+        }
+
+        // 2. Create the Tray Icon
+        const tray = ctx.newTray({
+            tooltipText: "Novel Reader",
+            iconUrl: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/novelbuddy.ico",
+            withContent: false,
         });
 
-        // Keydown listener for ESC to close
-        document.addEventListener('keydown', (event) => {
-            if (event.key === 'Escape') {
-                closeNovelPage();
+        // 3. Set up the Tray Click Handler
+        tray.onClick(async () => {
+            console.log("[novel-plugin] Tray clicked.");
+            
+            try {
+                const existingModal = await ctx.dom.queryOne(`#${"novel-plugin-backdrop"}`);
+                if (existingModal) {
+                    console.log("[novel-plugin] Modal is already open. Aborting.");
+                    return;
+                }
+                
+                const body = await ctx.dom.queryOne("body");
+                if (!body) {
+                    console.error("[novel-plugin] FATAL: Could not find <body>!");
+                    return;
+                }
+                
+                const scriptId = `novel-plugin-script-${Date.now()}`;
+                const script = await ctx.dom.createElement("script");
+                script.setAttribute("data-novel-plugin-id", scriptId);
+                
+                // Fetch and assemble the script string (AWAIT is critical here!)
+                const scriptText = await getInjectedScriptString(scriptId);
+                if (scriptText) {
+                    // Set the script content and inject it into the body
+                    script.setText(scriptText);
+                    body.append(script);
+                    console.log(`[novel-plugin] Injected script tag #${scriptId}`);
+                } else {
+                    console.error("[novel-plugin] Failed to build script, not injecting.");
+                }
+
+            } catch (err) {
+                console.error("[novel-plugin] FATAL ERROR in tray.onClick():", err);
             }
-        });
-    }
-
-    // Add search input listeners (assuming this is handled in ui.js or here)
-    // const searchInput = document.getElementById(SEARCH_INPUT_ID);
-    // searchInput?.addEventListener("input", handleSearchInput);
+        }); // End of tray.onClick
+    }); // End of $ui.register
 }
-
-// Ensure the main function is exported or called if needed
-// This script is usually invoked right after injection
-// openNovelPage is called by the tray.onClick event listener in the outer plugin file
-// But since this is the "main" script, we assume a setup function is needed
-function novelPluginMain() {
-    // In a fully assembled script, this function is the entry point
-    console.log("[novel-plugin] Injected script started running.");
-    
-    // The main execution logic will be handled by the listener in the outer script
-    // which calls openNovelPage()
-}
-// Run the setup function if necessary, or rely on the host to call openNovelPage()
-// novelPluginMain(); 
