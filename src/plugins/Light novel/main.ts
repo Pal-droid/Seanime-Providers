@@ -4,372 +4,154 @@
 // TYPE DEFINITIONS
 // ---------------------------------------------------------------------------
 
-/**
- * The structure of a single search result from searchNovels.
- */
-type NovelSearchResult = {
-    title: string;
-    url: string;
-    image: string;
-    latestChapter: string;
-};
+type AnilistMedia = { id: number, title: { romaji: string, english: string }, /* ... */ };
+type NovelBuddySearchResult = { title: string, url: string, image?: string, latestChapter?: string };
+type NovelBuddyDetails = { title: string, /* ... */ chapters: Array<{ title: string, url: string }> };
 
-/**
- * The structure of a novel's details from getNovelDetails.
- */
-type NovelDetails = {
-    title: string;
-    image: string;
-    author: string;
-    status: string;
-    genres: string[];
-    description: string;
-    chapters: Array<{ title: string, url: string }>;
-};
 
-// main entry point
+// ---------------------------------------------------------------------------
+// MAIN ENTRYPOINT
+// ---------------------------------------------------------------------------
+
 function init() {
-    // Register the UI context to gain access to UI-related APIs.
+    // 1. Register the UI context
     $ui.register((ctx) => {
+        console.log("[novel-plugin] $ui.register() called.");
 
-        // 1. CREATE THE TRAY ICON
+        // ---------------------------------------------------------------------------
+        // INJECTED SCRIPT BUILDER 
+        // ---------------------------------------------------------------------------
+
+        /**
+         * Fetches the raw text content of a file from a URL.
+         */
+        async function fetchScriptText(url) {
+            try {
+                const res = await fetch(url);
+                if (!res.ok) {
+                    throw new Error(`Failed to fetch script: ${res.status} ${res.statusText}`);
+                }
+                return await res.text();
+            } catch (err) {
+                console.error(`[novel-plugin] FATAL: Could not fetch script at ${url}`, err);
+                return ""; // Return empty string on failure
+            }
+        }
+
+        /**
+         * Creates the constants string locally, as it depends on the runtime scriptId.
+         */
+        function getConstantsString(scriptId: string): string {
+            return `
+            const SCRIPT_ID = "${scriptId}";
+            const NOVELBUDDY_URL = "https://novelbuddy.com";
+            const ANILIST_API_URL = "https://graphql.anilist.co";
+            
+            // DOM IDs
+            const STYLE_ID = "novel-plugin-styles";
+            const BACKDROP_ID = "novel-plugin-backdrop";
+            const MODAL_ID = "novel-plugin-modal-content";
+            const WRAPPER_ID = "novel-plugin-content-wrapper";
+            const CLOSE_BTN_ID = "novel-plugin-btn-close";
+            const SEARCH_INPUT_ID = "novel-plugin-search-input";
+            
+            const APP_LAYOUT_SELECTOR = ".UI-AppLayout__root";
+            `;
+        }
+
+        /**
+         * Fetches all external script parts and assembles them into a single string.
+         */
+        async function getInjectedScriptString(scriptId: string): Promise<string> {
+            const urls = {
+                main: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/Light%20novel/main.ts",
+                utils: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/Light%20novel/utils.js",
+                anilistApi: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/Light%20novel/anilist.js",
+                novelbuddyApi: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/Light%20novel/novelbuddy.js",
+                ui: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/Light%20novel/ui.js"
+            };
+
+            const [
+                mainTemplate,
+                utilsCode,
+                anilistApiCode,
+                novelbuddyApiCode,
+                uiCode
+            ] = await Promise.all([
+                fetchScriptText(urls.main),
+                fetchScriptText(urls.utils),
+                fetchScriptText(urls.anilistApi),
+                fetchScriptText(urls.novelbuddyApi),
+                fetchScriptText(urls.ui)
+            ]);
+
+            if (!mainTemplate) {
+                console.error("[novel-plugin] FATAL: Could not load main template. Aborting.");
+                return ""; // Return empty string if the core template fails
+            }
+
+            // Assemble the final script by replacing placeholders
+            const finalScript = mainTemplate
+                .replace("%%CONSTANTS%%", getConstantsString(scriptId))
+                .replace("%%PLUGIN_STATE%%", `
+                    let pageState = "discover";
+                    let activeTabState = "discover";
+                    let isLoading = false;
+                    let currentNovel = null;
+                    let currentChapterContent = null;
+                    let currentNovelBuddyChapters = [];
+                    const mainLayout = document.querySelector(APP_LAYOUT_SELECTOR);
+                `)
+                .replace("%%UTILS%%", utilsCode)
+                .replace("%%ANILIST_API%%", anilistApiCode)
+                .replace("%%NOVELBUDDY_API%%", novelbuddyApiCode)
+                .replace("%%UI%%", uiCode);
+
+            return finalScript;
+        }
+
+        // 2. Create the Tray Icon
         const tray = ctx.newTray({
             tooltipText: "Novel Reader",
             iconUrl: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/novelbuddy.ico",
-            withContent: true,
+            withContent: false,
         });
 
-        // 2. DEFINE PLUGIN STATE
-        // We manage the UI's "page"
-        const pageState = ctx.state<"search" | "results" | "chapters" | "reader">("search");
-        // Used to show loading indicators
-        const isLoading = ctx.state<boolean>(false);
-        // Holds the list of novels after searching
-        const searchResults = ctx.state<NovelSearchResult[]>([]);
-        // Holds the details of the currently selected novel
-        const currentNovel = ctx.state<NovelDetails | null>(null);
-        // Holds the raw HTML content of the selected chapter
-        const currentChapterContent = ctx.state<string | null>(null);
-
-        // Create a reference for the search input field
-        const searchInputRef = ctx.fieldRef<string>("");
-
-
-        // 3. RENDER THE TRAY UI
-        // This function is re-run every time a state it uses (e.g., pageState.get()) changes.
-        tray.render(() => {
-            const state = pageState.get();
-            const loading = isLoading.get();
-
-            // Central loading indicator
-            if (loading) {
-                return tray.stack([
-                    tray.text("Loading...", { style: { padding: "1.5rem", textAlign: "center", opacity: 0.8 } })
-                ]);
-            }
-
-            // -------------------------
-            // STATE 1: SEARCH VIEW
-            // -------------------------
-            if (state === "search") {
-                return tray.stack([
-                    tray.text("Novel Reader", { style: { fontWeight: "bold", fontSize: 16, margin: "0 0 0.5rem 0" } }),
-
-                    // Use tray.input with the fieldRef, as per the new docs
-                    tray.input("Search for a novel", {
-                        fieldRef: searchInputRef,
-                        placeholder: "e.g., Classroom of the Elite"
-                    }),
-
-                    tray.button("Search", {
-                        onClick: ctx.eventHandler("search-btn", async () => {
-                            // Get the value from the ref's .current property
-                            const query = searchInputRef.current;
-                            if (query.trim() === "") return;
-
-                            isLoading.set(true);
-                            const results = await searchNovels(ctx, query);
-                            searchResults.set(results);
-                            isLoading.set(false);
-                            pageState.set("results");
-                        }),
-                        style: { marginTop: "0.5rem" }
-                    })
-                ], { style: { padding: "1rem" } });
-            }
-
-            // -------------------------
-            // STATE 2: RESULTS VIEW
-            // -------------------------
-            if (state === "results") {
-                const results = searchResults.get();
-
-                // Map results to tray.flex components
-                const resultItems = results.map(item =>
-                    tray.flex([
-                        tray.stack([
-                            tray.text(item.title, { style: { fontWeight: "500", fontSize: 13 } }),
-                            tray.text(item.latestChapter, { style: { fontSize: 11, opacity: 0.7 } })
-                        ], { style: { flex: 1, overflow: "hidden" } }),
-
-                        tray.button("View", {
-                            size: "sm",
-                            intent: "info",
-                            onClick: ctx.eventHandler(item.url, async () => {
-                                isLoading.set(true);
-                                const details = await getNovelDetails(ctx, item.url);
-                                currentNovel.set(details);
-                                isLoading.set(false);
-                                pageState.set("chapters");
-                            })
-                        })
-                    ], { gap: 2, style: { borderBottom: "1px solid #333", padding: "0.5rem 0" } })
-                );
-
-                return tray.stack([
-                    tray.button("← Back", {
-                        onClick: ctx.eventHandler("back-to-search", () => pageState.set("search")),
-                        size: "sm",
-                        intent: "gray-subtle"
-                    }),
-                    tray.text("Search Results", { style: { fontWeight: "bold", fontSize: 16, margin: "0.5rem 0" } }),
-                    ...(resultItems.length > 0 ? resultItems : [tray.text("No results found.", { style: { padding: "1rem", textAlign: "center", opacity: 0.8 } })])
-                ], { style: { padding: "1rem" } });
-            }
-
-            // -------------------------
-            // STATE 3: CHAPTERS VIEW
-            // -------------------------
-            if (state === "chapters") {
-                const novel = currentNovel.get();
-                if (!novel) {
-                    pageState.set("results"); // Go back if no novel
+        // 3. Set up the Tray Click Handler
+        tray.onClick(async () => {
+            console.log("[novel-plugin] Tray clicked.");
+            
+            try {
+                const existingModal = await ctx.dom.queryOne(`#${"novel-plugin-backdrop"}`);
+                if (existingModal) {
+                    console.log("[novel-plugin] Modal is already open. Aborting.");
                     return;
                 }
-
-                // Map chapters to tray.flex components
-                const chapterItems = novel.chapters.map(chapter =>
-                    tray.flex([
-                        tray.text(chapter.title, { style: { flex: 1, fontSize: 13, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" } }),
-                        tray.button("Read", {
-                            size: "sm",
-                            intent: "info",
-                            onClick: ctx.eventHandler(chapter.url, async () => {
-                                isLoading.set(true);
-                                const content = await getChapterContent(ctx, chapter.url);
-                                currentChapterContent.set(content);
-                                isLoading.set(false);
-                                pageState.set("reader");
-                            })
-                        })
-                    ], { gap: 2, style: { borderBottom: "1px solid #333", padding: "0.5rem 0" } })
-                );
-
-                return tray.stack([
-                    tray.button("← Back", {
-                        onClick: ctx.eventHandler("back-to-results", () => pageState.set("results")),
-                        size: "sm",
-                        intent: "gray-subtle"
-                    }),
-                    tray.text(novel.title, { style: { fontWeight: "bold", fontSize: 16, margin: "0.5rem 0" } }),
-                    tray.text(`Author: ${novel.author}`, { style: { fontSize: 12, opacity: 0.8, marginBottom: "0.5rem" } }),
-                    ...(chapterItems.length > 0 ? chapterItems : [tray.text("No chapters found.", { style: { padding: "1rem", textAlign: "center", opacity: 0.8 } })])
-                ], { style: { padding: "1rem" } });
-            }
-
-            // -------------------------
-            // STATE 4: READER VIEW
-            // -------------------------
-            if (state === "reader") {
-                const contentHtml = currentChapterContent.get();
-                const novel = currentNovel.get();
-
-                if (!contentHtml || !novel) {
-                    pageState.set("chapters"); // Go back if no content
+                
+                const body = await ctx.dom.queryOne("body");
+                if (!body) {
+                    console.error("[novel-plugin] FATAL: Could not find <body>!");
                     return;
                 }
-
-                // Convert chapter HTML to plain text for the tray.text component
-                // Replace paragraphs and line breaks with newlines, strip other tags
-                const plainText = contentHtml
-                    .replace(/<p>/gi, "\n\n")
-                    .replace(/<\/p>/gi, "")
-                    .replace(/<br\s*\/?>/gi, "\n")
-                    .replace(/<[^>]+>/g, "")
-                    .replace(/&nbsp;/g, ' ') // Replace non-breaking spaces
-                    .replace(/&amp;/g, '&')  // Replace HTML entities
-                    .replace(/&lt;/g, '<')
-                    .replace(/&gt;/g, '>')
-                    .replace(/&quot;/g, '"')
-                    .replace(/&#39;/g, "'")
-                    .trim();
-
-                return tray.stack([
-                    tray.button("← Back", {
-                        onClick: ctx.eventHandler("back-to-chapters", () => pageState.set("chapters")),
-                        size: "sm",
-                        intent: "gray-subtle"
-                    }),
-                    tray.text(novel.title, { style: { fontWeight: "bold", fontSize: 16, margin: "0.5rem 0" } }),
-                    // Added a scrollable container for the text
-                    tray.div([
-                        tray.text(plainText, { style: { fontSize: 13, whiteSpace: "pre-wrap", lineHeight: 1.6 } })
-                    ], { style: { maxHeight: '60vh', overflowY: 'auto', marginTop: '0.5rem' }})
-                ], { style: { padding: "1rem" } });
-            }
-
-        }); 
-
-        // ---------------------------------------------------------------------------
-        // SCRAPING FUNCTIONS 
-        // ---------------------------------------------------------------------------
-
-        const NOVELBUDDY_URL = "https://novelbuddy.com";
-
-        async function searchNovels(ctx, query: string): Promise<NovelSearchResult[]> {
-            const url = `${NOVELBUDDY_URL}/search?q=${encodeURIComponent(query)}`;
-            try {
-                const res = await ctx.fetch(url);
-                const html = await res.text();
-
-                const results: NovelSearchResult[] = [];
-                // Regex to find each book item block
-                const itemRegex = /<div class="book-item">([\s\S]*?)<\/div>/g;
-                let match;
-
-                while ((match = itemRegex.exec(html)) !== null) {
-                    const block = match[1];
-                    // Extract data within the block using more specific regex
-                    const title = block.match(/<a title="([^"]+)"/)?.[1]?.replace(/<span[^>]*>/g, '').replace(/<\/span>/g, '') || "Unknown Title"; // Clean spans from title
-                    const novelUrl = block.match(/href="(\/novel\/[^"]+)"/)?.[1] || "#";
-                    // Handle potential // prefix for image URLs
-                    let image = block.match(/data-src="([^"]+)"/)?.[1] || "";
-                    if (image.startsWith("//")) {
-                       image = `https:${image}`;
-                    } else if (!image.startsWith("http")) {
-                       // Handle cases where it might be a relative path (less likely but possible)
-                       image = `${NOVELBUDDY_URL}${image}`;
-                    }
-                    const latestChapter = block.match(/<span class="latest-chapter"[^>]*>([^<]+)<\/span>/)?.[1] || "No chapter"; // Adjusted regex for latest chapter
-
-                    results.push({
-                        title: title.trim(),
-                        url: novelUrl,
-                        image: image,
-                        latestChapter: latestChapter.trim()
-                    });
+                
+                const scriptId = `novel-plugin-script-${Date.now()}`;
+                const script = await ctx.dom.createElement("script");
+                script.setAttribute("data-novel-plugin-id", scriptId);
+                
+                // Fetch and assemble the script string
+                const scriptText = await getInjectedScriptString(scriptId);
+                if (scriptText) {
+                    script.setText(scriptText);
+                    body.append(script);
+                    console.log(`[novel-plugin] Injected script tag #${scriptId}`);
+                } else {
+                    console.error("[novel-plugin] Failed to build script, not injecting.");
                 }
-                console.log(`[novel-plugin] Parsed ${results.length} items from search page.`);
-                return results;
 
             } catch (err) {
-                console.error("[novel-plugin] NovelSearch Error:", err);
-                return [];
+                console.error("[novel-plugin] FATAL ERROR in tray.onClick():", err);
             }
-        }
-
-        async function getNovelDetails(ctx, novelUrl): Promise<NovelDetails | null> {
-            const url = `${NOVELBUDDY_URL}${novelUrl}`;
-            try {
-                // --- Step 1: Fetch the main novel page to get details and bookId ---
-                const res = await ctx.fetch(url);
-                const html = await res.text();
-
-                const title = html.match(/<h1 class="name">([^<]+)<\/h1>/)?.[1]?.trim() || "Unknown Title";
-                // Handle potential // prefix for image URLs
-                 let image = html.match(/<div class="book-img"[^>]*><img[^>]*src="([^"]+)"/)?.[1] || "";
-                 if (image.startsWith("//")) {
-                    image = `https:${image}`;
-                 } else if (!image.startsWith("http")) {
-                    image = `${NOVELBUDDY_URL}${image}`;
-                 }
-                const author = html.match(/<div class="author"[^>]*>[\s\S]*?<span class="name">([^<]+)<\/span>/)?.[1]?.trim() || "Unknown Author";
-                const status = html.match(/<div class="status"[^>]*>[\s\S]*?<span class="text">([^<]+)<\/span>/)?.[1]?.trim() || "Unknown";
-                const description = html.match(/<div class="summary"[^>]*>[\s\S]*?<div class="content">([\s\S]*?)<\/div>/)?.[1] || "<p>No description.</p>";
-
-                const genres: string[] = [];
-                const genreMatches = [...html.matchAll(/<a href="\/genre\/[^"]+"[^>]*>([^<]+)<\/a>/g)];
-                for (const g of genreMatches) {
-                    genres.push(g[1].trim());
-                }
-
-                // --- Step 2: Extract bookId to fetch chapters ---
-                const bookIdMatch = html.match(/var bookId = (\d+);/);
-                if (!bookIdMatch || !bookIdMatch[1]) {
-                    console.error("[novel-plugin] Could not find bookId on novel page:", url);
-                    return { // Return partial details even if chapters fail
-                        title, image, author, status, genres, description, chapters: []
-                    };
-                }
-                const bookId = bookIdMatch[1];
-                const chapterApiUrl = `${NOVELBUDDY_URL}/api/manga/${bookId}/chapters?source=detail`;
-
-                // --- Step 3: Fetch the chapter list from the API ---
-                const chapterRes = await ctx.fetch(chapterApiUrl);
-                const chapterHtml = await chapterRes.text();
-
-                const chapters: Array<{ title: string, url: string }> = [];
-                const chapterRegex = /<li[^>]*>[\s\S]*?<a href="([^"]+)" title="([^"]+)">/g;
-                let chapterMatch;
-
-                while ((chapterMatch = chapterRegex.exec(chapterHtml)) !== null) {
-                    chapters.push({
-                        url: chapterMatch[1],
-                        title: chapterMatch[2].split(" - ").pop()?.trim() || "Unknown Chapter"
-                    });
-                }
-                 console.log(`[novel-plugin] Parsed ${chapters.length} chapters for bookId ${bookId}.`);
-
-
-                return {
-                    title,
-                    image,
-                    author,
-                    status,
-                    genres,
-                    description,
-                    // Chapters from API are newest first, reverse them for correct order
-                    chapters: chapters.reverse()
-                };
-
-            } catch (err) {
-                console.error("[novel-plugin] NovelDetails Error:", err);
-                return null;
-            }
-        }
-
-        async function getChapterContent(ctx, chapterUrl): Promise<string> {
-            const url = `${NOVELBUDDY_URL}${chapterUrl}`;
-            try {
-                const res = await ctx.fetch(url);
-                const html = await res.text();
-
-                // Regex to find the main content div
-                let contentHtml = html.match(/<div class="content-inner">([\s\S]*?)<\/div>/)?.[1];
-
-                if (!contentHtml) {
-                    console.error("[novel-plugin] Could not find content-inner div for chapter:", url);
-                    return "<p>Error: Could not extract chapter content.</p>";
-                }
-
-                // Remove scripts and known ad/placeholder divs more aggressively
-                contentHtml = contentHtml.replace(/<script[\s\S]*?<\/script>/gi, "");
-                contentHtml = contentHtml.replace(/<div[^>]*id="pf-[^"]+"[^>]*>[\s\S]*?<\/div>/gi, ""); // Remove specific ad divs by ID pattern
-                contentHtml = contentHtml.replace(/<div[^>]*style="text-align:center"[^>]*>[\s\S]*?<\/div>/gi, ""); // Remove centered divs likely containing ads/placeholders
-                contentHtml = contentHtml.replace(/<ins[^>]*>[\s\S]*?<\/ins>/gi, ""); // Remove <ins> tags (often ads)
-                contentHtml = contentHtml.replace(/<div>\s*<div id="pf-[^"]+">[\s\S]*?<\/div>\s*<\/div>/gi, ""); // Remove ad divs wrapped in another div
-
-                // Return just the inner HTML content
-                return contentHtml;
-
-            } catch (err) {
-                console.error("[novel-plugin] ChapterContent Error:", err);
-                return "<p>Error loading chapter content.</p>";
-            }
-        }
-
-
-    }); 
+        }); // End of tray.onClick
+    }); // End of $ui.register
 }
-
 
