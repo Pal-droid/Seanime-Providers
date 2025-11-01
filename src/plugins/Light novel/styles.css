@@ -72,7 +72,8 @@
 
 #novel-plugin-btn-close:hover {
     background: var(--bg-tertiary);
-    transform: scale(1.1) rotate(90deg);
+    /* FIX 1: Removed transform animation */
+    transform: none;
 }
 
 #novel-plugin-content-wrapper {
@@ -84,6 +85,8 @@
 
 .novel-plugin-page-content {
     padding: 1.5rem;
+    /* BUG 1 FIX: Added padding-top to avoid overlap with fixed back button */
+    padding-top: 4.5rem; 
     max-width: 1000px;
     margin: 0 auto;
     animation: pageFadeIn 0.3s ease-out;
@@ -105,6 +108,8 @@
     z-index: 5;
     max-width: 1000px;
     margin: 0 auto;
+    /* BUG 1 FIX: Added padding-top to avoid overlap */
+    padding-top: 4.5rem;
 }
 
 .novel-plugin-tabs {
@@ -171,21 +176,33 @@
     box-shadow: none;
 }
 
+/* BUG 1 FIX: Styles for the back button */
 .novel-plugin-back-btn {
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
+    position: fixed;
+    top: 1.5rem;
+    left: 1.5rem;
+    width: 32px;
+    height: 32px;
+    background: rgba(30, 30, 30, 0.8);
+    backdrop-filter: blur(5px);
     color: var(--text-primary);
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
     cursor: pointer;
-    margin-bottom: 1rem;
-    font-size: 0.9rem;
+    font-size: 1.2rem;
+    line-height: 1;
+    padding: 0;
+    margin-bottom: 0;
     transition: background 0.2s, transform 0.2s;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .novel-plugin-back-btn:hover {
-    background: #444;
-    transform: translateX(-3px);
+    background: var(--bg-tertiary);
+    transform: scale(1.1);
 }
 
 .novel-plugin-view-btn {
@@ -471,6 +488,8 @@
     left: 50%;
     transform: translateX(-50%);
     background-image: linear-gradient(to top, #000 15%, rgba(0,0,0,0)), var(--bg-image, none);
+    /* BUG 1 FIX: Adjust for fixed header/back button */
+    margin-top: -4.5rem; 
 }
 
 .novel-plugin-details-header {
