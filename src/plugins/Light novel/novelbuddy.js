@@ -1,8 +1,6 @@
 // ---------------------------------------------------------------
-// NOVELBUDDY SCRAPERS (External Module)
+// NOVELBUDDY SCRAPERS 
 // ---------------------------------------------------------------
-// This file should be hosted, and its raw URL placed in
-// 'SCRAPER_SCRIPT_URL' in ln-reader.js
 
 // This URL is defined here because all functions in this file depend on it.
 const NOVELBUDDY_URL = "https://novelbuddy.com";
