@@ -1,3 +1,5 @@
+// WORK IN PROGRESS
+
 class Provider {
   constructor() {
     this.api = "https://www.shonenmangaz.com";
