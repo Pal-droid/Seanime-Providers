@@ -12,7 +12,7 @@
   "plugin": {
     "version": "1",
     "permissions": {
-      "scopes": ["anilist", "storage"]
+      "scopes": []
     }
   }
 }
