@@ -2,6 +2,8 @@
 
 This repository contains custom **Seanime** extensions for adding support to various manga and anime sources.
 
+*Plugins are also available.*
+
 ## Repository Structure
 
 ```
