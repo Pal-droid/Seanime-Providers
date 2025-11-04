@@ -37,6 +37,8 @@
     overflow: hidden;
     opacity: 0; /* Will be faded in */
     transform: scale(0.98); /* Will be scaled in */
+    /* *** FIXED: Added missing transition *** */
+    transition: opacity 0.2s ease-out, transform 0.2s ease-out;
 }
 
 /* --- Base Layout --- */
@@ -421,9 +423,11 @@
 @media (max-width: 768px) {
     .novel-plugin-layout {
         /* Stack sidebar and main content vertically */
+        /* *** FIXED: Defined rows explicitly *** */
         grid-template-columns: 1fr;
-        height: 100vh; /* Ensure it takes full height */
-        overflow-y: hidden; /* Hide overflow here */
+        grid-template-rows: auto 1fr; /* Sidebar (auto) | Main (1fr) */
+        height: 100vh;
+        overflow: hidden; /* Use 'overflow' instead of 'overflow-y' */
     }
 
     .novel-plugin-sidebar {
@@ -439,7 +443,7 @@
     .novel-plugin-main {
         padding: 1rem;
         overflow-y: auto; /* This is where the main content scrolls */
-        height: 100%; /* Fill remaining space */
+        height: 100%; /* Fill remaining grid row (1fr) */
     }
 
     #novel-plugin-modal-content {
@@ -540,4 +544,5 @@
     height: -webkit-fill-available;
   }
 }
+
 
