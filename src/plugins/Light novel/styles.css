@@ -35,10 +35,20 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    opacity: 0; /* Will be faded in */
-    transform: scale(0.98); /* Will be scaled in */
-    /* *** FIXED: Added missing transition *** */
+    /* Start state (hidden) */
+    opacity: 0;
+    transform: scale(0.98);
+    /* Animation properties */
     transition: opacity 0.2s ease-out, transform 0.2s ease-out;
+}
+
+/* * *** THE FIX ***
+ * This class is added by the JavaScript to fade the modal in.
+ * It was missing from the previous versions.
+*/
+#novel-plugin-modal-content.novel-plugin-modal-visible {
+    opacity: 1;
+    transform: scale(1);
 }
 
 /* --- Base Layout --- */
@@ -423,26 +433,25 @@
 @media (max-width: 768px) {
     .novel-plugin-layout {
         /* Stack sidebar and main content vertically */
-        /* *** FIXED: Defined rows explicitly *** */
         grid-template-columns: 1fr;
         grid-template-rows: auto 1fr; /* Sidebar (auto) | Main (1fr) */
         height: 100vh;
-        overflow: hidden; /* Use 'overflow' instead of 'overflow-y' */
+        overflow: hidden;
     }
 
     .novel-plugin-sidebar {
         border-right: none;
         border-bottom: 1px solid var(--border-color);
         padding: 1rem;
-        overflow-y: auto; /* Allow sidebar to scroll if needed */
-        height: auto; /* Auto height for content */
-        max-height: 50vh; /* Don't let it take over */
+        overflow-y: auto;
+        height: auto;
+        max-height: 50vh;
         flex-shrink: 0;
     }
 
     .novel-plugin-main {
         padding: 1rem;
-        overflow-y: auto; /* This is where the main content scrolls */
+        overflow-y: auto;
         height: 100%; /* Fill remaining grid row (1fr) */
     }
 
@@ -461,21 +470,20 @@
 
     /* --- Mobile Detail View --- */
     .novel-plugin-detail-header {
-        /* Stack cover and info vertically */
         grid-template-columns: 1fr;
         gap: 1rem;
-        padding: 0; /* Remove padding, handled by main */
+        padding: 0;
     }
 
     .novel-plugin-detail-cover {
         width: 150px;
         height: 220px;
-        margin: 0 auto; /* Center the cover image */
+        margin: 0 auto;
         flex-shrink: 0;
     }
 
     .novel-plugin-detail-info {
-        text-align: center; /* Center text info */
+        text-align: center;
     }
 
     .novel-plugin-detail-title {
@@ -483,15 +491,14 @@
     }
 
     .novel-plugin-detail-meta {
-        /* Center the meta items */
         justify-content: center;
-        flex-wrap: wrap; /* Allow wrapping */
+        flex-wrap: wrap;
         font-size: 0.9rem;
     }
 
     .novel-plugin-detail-desc {
         font-size: 0.9rem;
-        max-height: 150px; /* Limit description height */
+        max-height: 150px;
     }
     
     .novel-plugin-detail-genres {
