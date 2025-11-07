@@ -1,0 +1,13 @@
+{
+  "id": "manganato",
+  "name": "MangaNato",
+  "description": "Manganato is a manga provider for Seanime",
+  "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/manganato/manifest.json",
+  "version": "1.0.0",
+  "author": "Pal",
+  "icon": "",
+  "type": "manga-provider",
+  "language": "javascript",
+  "lang": "en",
+  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/manganato/provider.js"
+}
