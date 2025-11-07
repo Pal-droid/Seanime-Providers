@@ -1080,7 +1080,7 @@ function init() {
         // 2. Create the Tray Icon
         const tray = ctx.newTray({
             tooltipText: "Novel Reader",
-            iconUrl: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/novelbuddy.ico",
+            iconUrl: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/ln.png",
             withContent: false,
         });
 
