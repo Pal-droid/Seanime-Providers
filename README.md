@@ -1,6 +1,6 @@
 # Seanime Extensions
 
-This repository contains custom **Seanime** extensions for adding support to various manga and anime sources.
+This repository contains custom **[Seanime](https://github.com/5rahim/seanime)** extensions for adding support to various manga and anime sources.
 
 *Plugins are also available.*
 
@@ -56,3 +56,9 @@ https://raw.githubusercontent.com/pal-droid/seanime-providers/main/src/manga/sca
 ### Credits
 
 * [Seanime](https://github.com/5rahim/seanime) made by [5rahim](https://github.com/5rahim)
+
+* [Seanime docs](https://seanime.app/docs)
+
+* [Seanime official site](https://seanime.app/)
+
+* [Seanime extension docs](https://seanime.gitbook.io/seanime-extensions)
