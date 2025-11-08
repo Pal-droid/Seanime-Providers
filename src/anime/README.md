@@ -10,4 +10,4 @@
 
 | Name | Status | Notes |
 |------|--------|-------|
-| Agefans | Planned | Chinese-only provider
+| Agefans | Work in progress | Chinese-only provider
