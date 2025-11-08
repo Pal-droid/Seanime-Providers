@@ -14,4 +14,5 @@
 |------|--------|-------|
 | Bato | Work in progress | 
 | Manganato | Work in progress |
+| Comix | Planned |
 | Allmanga | Considering | 
