@@ -53,6 +53,12 @@ https://raw.githubusercontent.com/pal-droid/seanime-providers/main/src/manga/sca
 
 ---
 
+### Want to suggest more providers?
+
+[Open an issue](https://github.com/Pal-droid/Seanime-Providers/issues/new)
+
+---
+
 ### Credits
 
 * [Seanime](https://github.com/5rahim/seanime) made by [5rahim](https://github.com/5rahim)
