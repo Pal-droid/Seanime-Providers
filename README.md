@@ -51,6 +51,10 @@ https://raw.githubusercontent.com/pal-droid/seanime-providers/main/src/manga/sca
 
 [Click here for custom sources](https://github.com/Pal-droid/Seanime-Providers/tree/main/src/Custom%20source)
 
+or
+
+[Click here to see full list of extensions and extension marketplace](https://github.com/Pal-droid/Seanime-Providers/tree/main/marketplace)
+
 ---
 
 ### Want to suggest more providers?
