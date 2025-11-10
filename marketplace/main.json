@@ -2,49 +2,49 @@
   {
     "id": "mangabuddy",
     "name": "MangaBuddy",
-    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/mangabuddy/manifest.json",
-    "language": "javascript",
-    "type": "extension",
     "description": "MangaBuddy is a manga provider for Seanime",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/mangabuddy/manifest.json",
     "author": "Pal",
+    "type": "manga-provider",
+    "language": "javascript",
+    "lang": "en",
     "icon": "https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/mangabuddy.png",
-    "website": "",
-    "lang": "en"
+    "website": ""
   },
   {
     "id": "mangafreak",
     "name": "MangaFreak",
-    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/mangafreak/manifest.json",
-    "language": "javascript",
-    "type": "extension",
     "description": "MangaFreak is a manga provider for Seanime",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/mangafreak/manifest.json",
     "author": "pal",
+    "type": "manga-provider",
+    "language": "javascript",
+    "lang": "en",
     "icon": "https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/mangafreak.jpeg",
-    "website": "",
-    "lang": "en"
+    "website": ""
   },
   {
     "id": "scanita",
     "name": "Scanita",
-    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/scanita/manifest.json",
-    "language": "javascript",
-    "type": "extension",
     "description": "Scanita is a manga provider for Seanime",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/scanita/manifest.json",
     "author": "pal",
+    "type": "manga-provider",
+    "language": "javascript",
+    "lang": "it",
     "icon": "https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/scanita.png",
-    "website": "",
-    "lang": "it"
+    "website": ""
   },
   {
     "id": "LN-reader",
     "name": "Light Novel Reader",
-    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/manifest.json",
-    "language": "typescript",
-    "type": "plugin",
     "description": "Read light-novels from NovelBuddy inside Seanime.",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/manifest.json",
     "author": "Pal",
+    "type": "plugin",
+    "language": "typescript",
+    "lang": "EN",
     "icon": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/ln.png",
-    "website": "",
-    "lang": "EN"
+    "website": ""
   }
 ]
