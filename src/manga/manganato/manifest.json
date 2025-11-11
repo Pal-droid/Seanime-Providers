@@ -9,5 +9,5 @@
   "type": "manga-provider",
   "language": "javascript",
   "lang": "en",
-  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/manganato/provider.js"
+  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/development/src/manga/manganato/provider.js"
 }
