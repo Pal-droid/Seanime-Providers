@@ -7,8 +7,6 @@ class Provider {
         this.api = 'https://www.mangakakalove.com';
     }
 
-    api = '';
-
     getSettings() {
         return {
             supportsMultiLanguage: false,
@@ -37,7 +35,7 @@ class Provider {
             const body = await response.text();
             const mangas = [];
 
-            const regex = /<div class="story_item".*?<a href="(.*?)".*?<img src="(.*?)".*?<a href=".*?"[^>]*>(.*?)<\/a>/gs;
+            const regex = /<div class="story_item"[\s\S]*?<a href="(.*?)"[\s\S]*?<img src="(.*?)"[\s\S]*?<h3 class="story_name">[\s\S]*?<a[^>]*>(.*?)<\/a>/g;
 
             let match;
             while ((match = regex.exec(body)) !== null) {
@@ -84,7 +82,7 @@ class Provider {
 
             const chapters = [];
 
-            const regex = /<div class="row">\s*<span><a href="(.*?)"[^>]*>(.*?)<\/a><\/span>/gs;
+            const regex = /<div class="row">\s*<span><a href="(.*?)"[^>]*>(.*?)<\/a><\/span>/g;
 
             let match;
             while ((match = regex.exec(body)) !== null) {
