@@ -10,3 +10,4 @@
 
 | Name | Status | Notes |
 |------|--------|-------|
+| Anilist stories | Considering | Inspired by Dantotsu's Anilist stories |
