@@ -62,13 +62,15 @@
     /**
      * Searches for light novels on Anilist
      * @param {string} search - The search term
+     * @param {string} sort - The sort method (e.g., "TRENDING_DESC")
+     * @param {string} genre - The genre to filter by
      * @returns {Promise<Array>}
      */
-    async function searchAnilistLightNovels(search) {
+    async function searchAnilistLightNovels(search, sort, genre) {
         let query = `
-            query ($search: String) {
+            query ($search: String, $sort: [MediaSort], $genre: String) {
                 Page(page: 1, perPage: 20) {
-                   media(type: MANGA, format: NOVEL, search: $search) {
+                   media(type: MANGA, format: NOVEL, search: $search, sort: $sort, genre: $genre) {
                         id
                         title { romaji, english }
                          coverImage { extraLarge, large, color }
@@ -78,7 +80,7 @@
             }
         `;
         query = query.replace(/\s*\n\s*/g, ' ').trim(); // Minify
-        const data = await fetchAnilist(query, { search });
+        const data = await fetchAnilist(query, { search, sort: [sort], genre });
         return data?.Page?.media || [];
     }
 
