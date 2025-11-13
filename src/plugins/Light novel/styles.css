@@ -301,18 +301,22 @@
     box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.3);
 }
 
+/* --- ADDED --- */
 .novel-plugin-filter-container {
-    margin: -5px 0 20px 0;
     display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0 5px;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
 }
 
-.novel-plugin-filter-container label {
+.novel-plugin-filter-container .novel-plugin-select {
+    flex: 1;
+    padding: 0.75rem 1rem;
     font-size: 0.9rem;
-    color: var(--text-secondary);
+    border-radius: 8px;
+    padding-right: 2.5rem; /* Make room for arrow */
 }
+/* --- END ADDED --- */
+
 
 .novel-plugin-select {
     -webkit-appearance: none;
@@ -956,12 +960,14 @@
     color: var(--text-primary);
 }
 
+/* --- FIX for review text overflow --- */
 .novel-plugin-review-summary-text {
     font-size: 0.85rem;
     color: var(--text-secondary);
-    word-break: break-word;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal; /* CHANGED from nowrap */
+    overflow: visible; /* CHANGED from hidden */
+    text-overflow: clip; /* CHANGED from ellipsis */
+    word-break: break-word; /* ADDED */
 }
 
 
