@@ -565,7 +565,7 @@
 
 .novel-plugin-details-sidebar {
     flex: 1;
-    min-width: 200px;
+    min-width: 240px; /* Increased min-width for sidebar */
     /* --- NEW: Make sidebar sections distinct --- */
     display: flex;
     flex-direction: column;
@@ -623,6 +623,20 @@
 .novel-plugin-chapter-item:hover .novel-plugin-chapter-title {
     color: var(--text-primary);
 }
+
+/* Highlight for last read chapter */
+.novel-plugin-chapter-item.last-read {
+    border-left-color: var(--brand-color);
+    border-left-width: 3px;
+}
+.novel-plugin-chapter-item.last-read .novel-plugin-chapter-title {
+    color: var(--brand-color-light);
+}
+.novel-plugin-chapter-item.last-read .novel-plugin-chapter-title span {
+    color: var(--brand-color-light);
+    font-weight: 700;
+}
+
 
 .novel-plugin-result-card {
     display: flex;
@@ -692,14 +706,15 @@
 
 
 /* =========================================
---- NEW STYLES FOR METADATA ---
+--- NEW STYLES FOR METADATA (REPLACED) ---
 =========================================
 */
 
 /* --- Spoiler Tag Handling --- */
 .novel-plugin-spoiler-tag {
     background: var(--bg-tertiary);
-    color: var(--bg-tertiary);
+    color: var(--bg-tertiary); /* Hides text */
+    text-shadow: none;
     transition: background 0.2s, color 0.2s;
 }
 
@@ -710,7 +725,7 @@
 
 #novel-plugin-tags-container.show-spoilers .novel-plugin-spoiler-tag {
     background: #581c1c;
-    color: #ffc2c2;
+    color: #ffc2c2; /* Reveals text */
 }
 
 #novel-plugin-tags-container.show-spoilers .novel-plugin-spoiler-tag:hover {
@@ -763,83 +778,125 @@
     font-style: italic;
 }
 
-.novel-plugin-ranking {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    background: var(--bg-secondary);
-    padding: 0.5rem 0.75rem;
-    border-radius: 5px;
-    border: 1px solid var(--border-color);
-    margin-bottom: 0.5rem;
+/* --- UPDATED: Rankings (AniList Style) --- */
+.novel-plugin-ranking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }
 
-.novel-plugin-ranking span {
-    color: var(--brand-color-light);
-    margin-right: 0.5rem;
-}
-
-.novel-plugin-ext-link {
-    display: block;
+.novel-plugin-ranking-item {
+    display: flex;
+    align-items: baseline;
     font-size: 0.9rem;
-    font-weight: 500;
     color: var(--text-secondary);
-    background: var(--bg-secondary);
-    padding: 0.5rem 0.75rem;
-    border-radius: 5px;
-    border: 1px solid var(--border-color);
-    margin-bottom: 0.5rem;
-    text-decoration: none;
-    transition: all 0.2s;
+    font-weight: 600;
 }
 
-.novel-plugin-ext-link:hover {
-    border-color: var(--brand-color);
+.novel-plugin-ranking-hash {
     color: var(--brand-color-light);
-    background: var(--bg-tertiary);
+    font-weight: 700;
+    margin-right: 4px;
 }
 
-/* --- Character & Staff Grid --- */
+.novel-plugin-ranking-rank {
+    color: var(--text-primary);
+    font-weight: 700;
+    margin-right: 8px;
+}
+
+/* --- UPDATED: Meta / External Links --- */
+.novel-plugin-external-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.novel-plugin-ext-link-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 4px;
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.novel-plugin-ext-link-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border-left-color: var(--brand-color);
+    padding-left: 1.25rem; /* Slight slide effect */
+}
+
+.novel-plugin-ext-icon {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
+}
+.novel-plugin-ext-icon svg {
+    width: 16px;
+    height: 16px;
+    stroke: var(--text-secondary);
+}
+.novel-plugin-ext-link-btn:hover .novel-plugin-ext-icon svg {
+    stroke: var(--text-primary);
+}
+
+
+/* --- UPDATED: Character & Staff Grid --- */
 .novel-plugin-involved-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 1rem;
 }
 
 .novel-plugin-involved-card {
     display: flex;
-    align-items: center;
-    gap: 0.75rem;
+    align-items: stretch; /* Make items stretch to fill height */
+    gap: 0; /* Remove gap, image will touch info */
     background: var(--bg-secondary);
     border-radius: 8px;
     border: 1px solid var(--border-color);
-    padding: 0.75rem;
-    transition: background 0.2s;
+    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
     overflow: hidden;
+    height: 80px; /* Fixed height */
 }
 
 .novel-plugin-involved-card:hover {
     background: var(--bg-tertiary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
 .novel-plugin-involved-img {
-    width: 50px;
-    height: 50px;
+    width: 60px; /* Fixed width for the image */
+    height: 80px; /* Match card height */
     object-fit: cover;
-    border-radius: 50%;
     flex-shrink: 0;
     background: var(--bg-tertiary);
+    border-radius: 0; /* No radius */
 }
 
 .novel-plugin-involved-info {
+    flex: 1; /* Take remaining space */
+    padding: 0.75rem;
     min-width: 0; /* Prevents overflow */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 .novel-plugin-involved-name {
     font-size: 0.9rem;
     font-weight: 600;
     color: var(--text-primary);
-    margin: 0;
+    margin: 0 0 0.25rem 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -854,7 +911,7 @@
     text-overflow: ellipsis;
 }
 
-/* --- Reviews List --- */
+/* --- UPDATED: Reviews List --- */
 .novel-plugin-reviews-list {
     display: flex;
     flex-direction: column;
@@ -866,13 +923,31 @@
     border-radius: 8px;
     border: 1px solid var(--border-color);
     padding: 1rem;
+    transition: background 0.2s;
+}
+.novel-plugin-review-card:hover {
+    background: var(--bg-tertiary);
 }
 
 .novel-plugin-review-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.5rem;
+    gap: 0.75rem;
+}
+
+.novel-plugin-review-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--bg-tertiary);
+    flex-shrink: 0;
+}
+
+.novel-plugin-review-meta {
+    flex: 1;
+    min-width: 0;
 }
 
 .novel-plugin-review-user {
@@ -881,15 +956,22 @@
     color: var(--text-primary);
 }
 
-.novel-plugin-review-score {
+.novel-plugin-review-summary-text {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+
+.novel-plugin-review-score-badge {
+    flex-shrink: 0;
     font-size: 0.9rem;
     font-weight: 700;
     color: var(--brand-color-light);
-}
-
-.novel-plugin-review-summary {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    margin: 0;
-    line-height: 1.5;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
 }
