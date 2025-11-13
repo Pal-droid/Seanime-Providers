@@ -212,46 +212,65 @@
      */
     async function findNovelBuddyChapters(romajiTitle, englishTitle) {
         console.log(`[novel-plugin] Matching... looking for "${romajiTitle}"`);
-        let searchResults = await searchNovelBuddy(romajiTitle);
         
-        let bestMatch = null;
-        let highestSimilarity = 0.0;
-        if (searchResults && searchResults.length > 0) {
-            searchResults.forEach(item => {
+        // --- NEW LOGIC ---
+
+        // 1. Get results for Romaji title
+        const romajiResults = await searchNovelBuddy(romajiTitle);
+        let bestRomajiMatch = null;
+        let bestRomajiScore = 0.0;
+
+        if (romajiResults && romajiResults.length > 0) {
+            romajiResults.forEach(item => {
                 const similarity = getSimilarity(romajiTitle, item.title);
-                if (similarity > highestSimilarity) {
-        
-                    highestSimilarity = similarity;
-                    bestMatch = item;
+                if (similarity > bestRomajiScore) {
+                    bestRomajiScore = similarity;
+                    bestRomajiMatch = item;
                 }
             });
         }
-        if (highestSimilarity <= 0.7 && englishTitle && englishTitle.toLowerCase() !== romajiTitle.toLowerCase()) {
-            console.log(`[novel-plugin] No good match for Romaji title. Retrying with English: "${englishTitle}"`);
-            searchResults = await searchNovelBuddy(englishTitle);
+
+        // 2. Get results for English title (if it exists and is different)
+        let bestEnglishMatch = null;
+        let bestEnglishScore = 0.0;
+
+        if (englishTitle && englishTitle.toLowerCase() !== romajiTitle.toLowerCase()) {
+            console.log(`[novel-plugin] Also matching with English: "${englishTitle}"`);
+            const englishResults = await searchNovelBuddy(englishTitle);
             
-            bestMatch = null; 
-            highestSimilarity = 0.0;
-            if (searchResults && searchResults.length > 0) {
-                searchResults.forEach(item => {
+            if (englishResults && englishResults.length > 0) {
+                englishResults.forEach(item => {
                     const similarity = getSimilarity(englishTitle, item.title);
-                    if (similarity > highestSimilarity) {
-
-                        highestSimilarity = similarity;
-                        bestMatch = item;
+                    if (similarity > bestEnglishScore) {
+                        bestEnglishScore = similarity;
+                        bestEnglishMatch = item;
                     }
-
                 });
             }
         }
-        if (highestSimilarity > 0.7 && bestMatch) {
+
+        // 3. Compare the best scores and set the final match
+        let bestMatch = null;
+        let highestSimilarity = 0.0;
+
+        if (bestRomajiScore > bestEnglishScore) {
+            bestMatch = bestRomajiMatch;
+            highestSimilarity = bestRomajiScore;
+        } else {
+            bestMatch = bestEnglishMatch;
+            highestSimilarity = bestEnglishScore;
+        }
+
+        // 4. Check against the new 0.8 threshold
+        if (highestSimilarity > 0.8 && bestMatch) {
             console.log(`[novel-plugin] Found match: "${bestMatch.title}" with similarity ${highestSimilarity.toFixed(2)}`);
             const chapters = await getNovelBuddyDetails(bestMatch.url);
             return chapters;
         } else {
-            console.log(`[novel-plugin] No good match found. Best was "${bestMatch?.title}" (${highestSimilarity.toFixed(2)})`);
+            console.log(`[novel-plugin] No good match found. Best was "${bestMatch?.title}" (${highestSimilarity.toFixed(2)}). Threshold: 0.8`);
             return [];
         }
+        // --- END NEW LOGIC ---
     }
 
     // Expose the public functions to the global window object
