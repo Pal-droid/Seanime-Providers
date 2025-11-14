@@ -14,6 +14,14 @@ type AnilistMedia = {
     bannerImage?: string;
     averageScore?: number;
     startDate?: { year: number };
+    // --- NEWLY ADDED TYPES ---
+    tags?: Array<{ id: number; name: string; isMediaSpoiler: boolean; }>;
+    rankings?: Array<{ id: number; rank: number; type: string; context: string; allTime: boolean; }>;
+    externalLinks?: Array<{ id: number; url: string; site: string; icon?: string; }>;
+    characters?: { edges: Array<{ role: string; node: { id: number; name: { full: string }; image: { large: string }; }; }> };
+    staff?: { edges: Array<{ role: string; node: { id: number; name: { full: string }; image: { large: string }; }; }> };
+    recommendations?: { nodes: Array<{ mediaRecommendation: AnilistMedia } > };
+    reviews?: { nodes: Array<{ id: number; summary: string; score: number; user: { name: string; avatar: { large: string } }; }> };
 };
 
 // Updated to include image and chapter for manual match UI
@@ -69,10 +77,13 @@ function init() {
             }
             console.log("[novel-plugin] Injected script running.");
             const SCRIPT_ID = "${scriptId}";
-            const NOVELBUDDY_URL = "https://novelbuddy.com";
-            const ANILIST_API_URL = "https://graphql.anilist.co";
+            // const NOVELBUDDY_URL = "https://novelbuddy.com"; // <-- MOVED
+            // const ANILIST_API_URL = "https://graphql.anilist.co"; // <-- MOVED
+            
             // DOM IDs
             const STYLE_ID = "novel-plugin-styles";
+            const SCRIPT_QUERY_ID = "novel-plugin-queries";
+            const SCRIPT_SCRAPER_ID = "novel-plugin-scrapers"; // <-- ADDED
             const BACKDROP_ID = "novel-plugin-backdrop";
             const MODAL_ID = "novel-plugin-modal-content";
             const WRAPPER_ID = "novel-plugin-content-wrapper";
@@ -116,283 +127,23 @@ function init() {
                     '</div>'
                 );
             }
+
+            // --- NEW: SVG Icon Helper ---
+            function getIconSvg(name) {
+                const icons = {
+                    link: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path></svg>',
+                    twitter: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>'
+                };
+                return icons[name] || icons['link'];
+            }
         
             // ---------------------------------------------------------------------------
-            // 4. ANILIST API (GRAPHQL)
+            // 4. ANILIST API (GRAPHQL) - MOVED TO anilist-queries.js
             // ---------------------------------------------------------------------------
-
-            async function fetchAnilist(query, variables) {
-                try {
-                 
-                   const res = await fetch(ANILIST_API_URL, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            query: query,
-                            variables: variables,
-                        }),
-                    });
-                    if (!res.ok) {
-                        throw new Error(\`Network response was not ok: \${res.statusText}\`);
-                    }
-                    const json = await res.json();
-                    return json.data;
-                } catch (err) {
-                    console.error("[novel-plugin] Anilist API Error:", err);
-                    return null;
-                }
-            }
-
-            async function getTrendingLightNovels() {
-                const query = \`
-                    query {
-                        Page(page: 1, perPage: 20) {
-   
-                             media(type: MANGA, format: NOVEL, sort: TRENDING_DESC) {
-                                id
-                                title { romaji, english }
- 
-                                coverImage { extraLarge, large, color }
-                                bannerImage
-                                
-                                averageScore
-                            }
-                        }
-                    }
-                \`;
-                const data = await fetchAnilist(query);
-                return data?.Page?.media || [];
-            }
-
-            async function searchAnilistLightNovels(search) {
-                const query = \`
-                    query ($search: String) {
-                        Page(page: 1, perPage: 20) {
-      
-                           media(type: MANGA, format: NOVEL, search: $search) {
-                                id
-                                title { romaji, english }
-    
-                                 coverImage { extraLarge, large, color }
-                                averageScore
-                            }
-       
-                         }
-                    }
-                \`;
-                const data = await fetchAnilist(query, { search });
-                return data?.Page?.media || [];
-            }
-
-            async function getAnilistLightNovelDetails(id) {
-                const query = \`
-                    query ($id: Int) {
-                        Media(id: $id, type: MANGA, format: NOVEL) {
-             
-                            id
-                            title { romaji, english }
-                            description(asHtml: false)
-                        
-                            genres
-                            status
-                            coverImage { extraLarge, large, color }
-                            bannerImage
-       
-                             averageScore
-                            startDate { year }
-                        }
-                    }
-    
-                 \`;
-                const data = await fetchAnilist(query, { id });
-                return data?.Media || null;
-            }
-
+            
             // ---------------------------------------------------------------------------
-            // 5. NOVELBUDDY SCRAPERS (Matcher)
+            // 5. NOVELBUDDY SCRAPERS (Matcher) - MOVED TO novelbuddy-scrapers.js
             // ---------------------------------------------------------------------------
-        
-            async function searchNovelBuddy(query) {
-                
-                const url = \`\${NOVELBUDDY_URL}/search?q=\${encodeURIComponent(query)}\`;
-                try {
-                    const res = await fetch(url);
-                    const html = await res.text();
-                    const results = [];
-                    
-                    // --- DOMParser IMPLEMENTATION ---
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, "text/html");
-                    const items = doc.querySelectorAll('.book-item');
-                    items.forEach(item => {
-                        const titleElement = item.querySelector('h3 a');
-                        const title = titleElement?.title?.trim() || "Unknown Title";
-                        const novelUrl = titleElement?.getAttribute('href') || "#";
-                        let image = item.querySelector('.thumb img.lazy')?.getAttribute('data-src') || "";
-                        if (image.startsWith("//")) { 
-                            image = \`https:\${image}\`; 
-                        } else if (image.startsWith("/")) {
-                            image = \`\${NOVELBUDDY_URL}\${image}\`;
-                        }
-                        const latestChapter = item.querySelector('.latest-chapter')?.textContent?.trim() || "No Chapter";
-                      
-                        results.push({ 
-                            title: title, 
-                            url: novelUrl, 
-                            image: image, 
-                            latestChapter: latestChapter 
-                        });
-                    });
-                    // --- END DOMParser ---
-         
-                    return results;
-                } catch (err) {
-                    console.error("[novel-plugin] NovelSearch Error:", err);
-                    return [];
-                }
-         
-            }
-        
-            async function getNovelBuddyDetails(novelUrl) {
-                const url = \`\${NOVELBUDDY_URL}\${novelUrl}\`;
-                try {
-                    const res = await fetch(url);
-                    const html = await res.text();
-                    const bookIdMatch = html.match(/var bookId = (\\d+);/);
-                    if (!bookIdMatch || !bookIdMatch[1]) {
-                        throw new Error("Could not find bookId on novel page.");
-                    }
-                    const bookId = bookIdMatch[1];
-                    const chapterApiUrl = \`\${NOVELBUDDY_URL}/api/manga/\${bookId}/chapters?source=detail\`;
-                    const chapterRes = await fetch(chapterApiUrl);
-                    const chapterHtml = await chapterRes.text();
-                    const chapters = [];
-                    
-                    // --- DOMParser IMPLEMENTATION ---
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(chapterHtml, "text/html");
-                    const chapterItems = doc.querySelectorAll('ul.chapter-list li a');
-                    chapterItems.forEach(link => {
-                        const url = link.getAttribute('href');
-                        
-                        // --- FIX: Prioritize 'strong' tag, then fall back to 'title' attribute ---
-                        let title = link.querySelector('strong.chapter-title')?.textContent?.trim();
-                        if (!title || title.length === 0) {
-                            // Fallback to title attribute if strong tag is missing/empty
-                            title = link.getAttribute('title')?.trim() || "Unknown Chapter";
-                        }
-                        // --- END FIX ---
-                        
-                        if (url) {
-                            chapters.push({ url: url, title: title });
-                        }
-                    });
-                    // --- END DOMParser ---
-                    return chapters.reverse(); // Reverse to get CH 1 first
-                } catch (err) {
-                    console.error("[novel-plugin] NovelDetails Error:", err);
-                    return [];
-                }
-            }
-        
-            async function getNovelBuddyChapterContent(chapterUrl) {
-                const url = \`\${NOVELBUDDY_URL}\${chapterUrl}\`;
-                try {
-                    const res = await fetch(url);
-                    const html = await res.text();
-            
-                    // --- DOMParser IMPLEMENTATION ---
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, "text/html");
-                    const contentElement = doc.querySelector('.content-inner');
-            
-                    if (!contentElement) {
-                        throw new Error("Could not extract chapter content.");
-                    }
-            
-                    // 1. Remove specific unwanted elements (ads, scripts, etc.)
-                    contentElement.querySelectorAll('script').forEach(el => el.remove());
-                    contentElement.querySelectorAll('div[id^="pf-"]').forEach(el => el.remove());
-                    contentElement.querySelectorAll('div[style="text-align:center"]').forEach(el => el.remove());
-                    contentElement.querySelectorAll('ins').forEach(el => el.remove());
-                    contentElement.querySelectorAll('div[align="center"]').forEach(el => el.remove());
-            
-                    // 2. Remove empty <div> tags that sometimes break up the text
-                    contentElement.querySelectorAll('div').forEach(div => {
-                        if (div.innerHTML.trim() === '') {
-                            div.remove();
-                        }
-                    });
-            
-                    return contentElement.innerHTML;
-                    // --- END DOMParser ---
-            
-                } catch (err) {
-                    console.error("[novel-plugin] ChapterContent Error:", err);
-                    return "<p>Error loading chapter content.</p>";
-                }
-            }
-
-            function getSimilarity(s1, s2) {
-                let longer = s1.toLowerCase();
-                let shorter = s2.toLowerCase();
-                if (s1.length < s2.length) {
-                    longer = s2.toLowerCase();
-                    shorter = s1.toLowerCase();
-                }
-                let longerLength = longer.length;
-                if (longerLength == 0) {
-                    return 1.0;
-                }
-                return (longerLength - (longer.split('').filter((char, i) => char !== shorter[i])).length) / parseFloat(longerLength);
-            }
-
-            async function findNovelBuddyChapters(romajiTitle, englishTitle) {
-                console.log(\`[novel-plugin] Matching... looking for "\${romajiTitle}"\`);
-                let searchResults = await searchNovelBuddy(romajiTitle);
-                
-                let bestMatch = null;
-                let highestSimilarity = 0.0;
-                if (searchResults && searchResults.length > 0) {
-                    searchResults.forEach(item => {
-                        const similarity = getSimilarity(romajiTitle, item.title);
-                        if (similarity > highestSimilarity) {
-                
-                            highestSimilarity = similarity;
-                            bestMatch = item;
-                        }
-                    });
-                }
-                if (highestSimilarity <= 0.7 && englishTitle && englishTitle.toLowerCase() !== romajiTitle.toLowerCase()) {
-                    console.log(\`[novel-plugin] No good match for Romaji title. Retrying with English: "\${englishTitle}"\`);
-                    searchResults = await searchNovelBuddy(englishTitle);
-                    
-                    bestMatch = null; 
-                    highestSimilarity = 0.0;
-                    if (searchResults && searchResults.length > 0) {
-                        searchResults.forEach(item => {
-                            const similarity = getSimilarity(englishTitle, item.title);
-                            if (similarity > highestSimilarity) {
-    
-                                highestSimilarity = similarity;
-                                bestMatch = item;
-                            }
-        
-                        });
-                    }
-                }
-                if (highestSimilarity > 0.7 && bestMatch) {
-                    console.log(\`[novel-plugin] Found match: "\${bestMatch.title}" with similarity \${highestSimilarity.toFixed(2)}\`);
-                    const chapters = await getNovelBuddyDetails(bestMatch.url);
-                    return chapters;
-                } else {
-                    console.log(\`[novel-plugin] No good match found. Best was "\${bestMatch?.title}" (\${highestSimilarity.toFixed(2)})\`);
-                    return [];
-                }
-            }
 
             // ---------------------------------------------------------------------------
             // 6. NEW: STORAGE (localStorage)
@@ -442,7 +193,8 @@ function init() {
                 renderUI();
                 
                 try {
-                    const content = await getNovelBuddyChapterContent(chapterUrl);
+                    // --- CHANGED ---
+                    const content = await NovelBuddyScrapers.getNovelBuddyChapterContent(chapterUrl);
                     const numericIndex = parseInt(chapterIndex, 10);
             
                     currentChapterContent = content;
@@ -534,7 +286,8 @@ function init() {
             // --- Page: Discover ---
             async function renderDiscoverPage(wrapper) {
                 wrapper.innerHTML = \`<div class="novel-plugin-loader"></div>\`;
-                const media = await getTrendingLightNovels();
+                // --- CHANGED ---
+                const media = await AnilistQueries.getTrendingLightNovels();
                 wrapper.innerHTML = ""; 
                 
                 if (!media || media.length === 0) {
@@ -582,6 +335,14 @@ function init() {
 
             // --- Page: Search (Sync) ---
             function renderSearchPage(wrapper) {
+                // --- ADDED ---
+                const genres = [
+                    "Action", "Adventure", "Comedy", "Drama", "Ecchi", "Fantasy", "Hentai",
+                    "Horror", "Mahou Shoujo", "Mecha", "Music", "Mystery", "Psychological",
+                    "Romance", "Sci-Fi", "Slice of Life", "Sports", "Supernatural", "Thriller"
+                ];
+                // --- END ADDED ---
+
                 wrapper.innerHTML += \`
                     <h1 class="novel-plugin-title">Search</h1>
                     <p class="novel-plugin-subtitle">Search for light novels from Anilist</p>
@@ -590,6 +351,21 @@ function init() {
                         <input id="\${SEARCH_INPUT_ID}" class="novel-plugin-input" placeholder="e.g., Classroom of the Elite" />
                         <button id="novel-plugin-search-btn" class="novel-plugin-button">Search</button>
                     </div>
+
+                    <!-- --- ADDED --- -->
+                    <div class="novel-plugin-filter-container">
+                        <select id="novel-plugin-sort-select" class="novel-plugin-select">
+                            <option value="TRENDING_DESC">Sort by Trending</option>
+                            <option value="POPULARITY_DESC">Sort by Popularity</option>
+                            <option value="SCORE_DESC">Sort by Score</option>
+                            <option value="SEARCH_MATCH">Sort by Relevancy</option>
+                        </select>
+                        <select id="novel-plugin-genre-select" class="novel-plugin-select">
+                            <option value="">All Genres</option>
+                            \${genres.map(g => \`<option value="\${g}">\${g}</option>\`).join('')}
+                        </select>
+                    </div>
+                    <!-- --- END ADDED --- -->
      
                     <div id="novel-plugin-search-results" class="novel-plugin-grid">
                         <!-- Results will be injected here -->
@@ -598,14 +374,40 @@ function init() {
                 const searchBtn = wrapper.querySelector("#novel-plugin-search-btn");
                 const searchInput = wrapper.querySelector("#" + SEARCH_INPUT_ID);
                 const resultsContainer = wrapper.querySelector("#novel-plugin-search-results");
-                async function performSearch() {
+                
+                // --- ADDED ---
+                const sortSelect = wrapper.querySelector("#novel-plugin-sort-select");
+                const genreSelect = wrapper.querySelector("#novel-plugin-genre-select");
+                // --- END ADDED ---
+
+                async function performSearch(prefill = false) {
                     const query = searchInput.value;
-                    if (!query || query.trim() === "") return;
+                    // --- CHANGED ---
+                    const sort = sortSelect.value;
+                    const genre = genreSelect.value || null; // Send null if empty
+                    
+                    // --- CHANGED ---
+                    // If it's a prefill (no query), and no genre is selected, just load trending
+                    if (prefill && (!query || query.trim() === "") && !genre) {
+                         resultsContainer.innerHTML = \`<div class="novel-plugin-loader"></div>\`;
+                         const media = await AnilistQueries.getTrendingLightNovels();
+                         renderSearchResults(media);
+                         return;
+                    }
+
+                    // If user has typed, require a query
+                    if (!prefill && (!query || query.trim() === "")) return;
+                    // --- END CHANGED ---
                     
                     resultsContainer.innerHTML = \`<div class="novel-plugin-loader"></div>\`;
-                    const media = await searchAnilistLightNovels(query);
-                    resultsContainer.innerHTML = "";
-                    if (media.length === 0) {
+                    // --- CHANGED ---
+                    const media = await AnilistQueries.searchAnilistLightNovels(query, sort, genre);
+                    renderSearchResults(media);
+                }
+                
+                function renderSearchResults(media) {
+                     resultsContainer.innerHTML = "";
+                    if (!media || media.length === 0) {
                         resultsContainer.innerHTML = "<p>No results found.</p>";
                         return;
                     }
@@ -633,15 +435,23 @@ function init() {
                     });
                 }
                 
-                searchBtn.onclick = performSearch;
+                searchBtn.onclick = () => performSearch(false); // Button click is never a prefill
                 searchInput.onkeyup = (e) => {
                     if (e.key === 'Enter') {
-                        performSearch();
+                        performSearch(false);
                     }
                 };
+                // --- ADDED ---
+                sortSelect.onchange = () => performSearch(true); // Filter change respects prefill
+                genreSelect.onchange = () => performSearch(true); // Filter change respects prefill
+                
+                // --- NEW ---
+                performSearch(true); // Initial load
+                // --- END NEW ---
             }
             
             // --- Page: Details (Async) ---
+            // --- HEAVILY MODIFIED ---
             async function renderDetailsPage(wrapper) {
                 if (!currentNovel || !currentNovel.id) {
                     console.error("No novel ID, returning to discover.");
@@ -651,7 +461,8 @@ function init() {
                 }
                 
                 wrapper.innerHTML = \`<div class="novel-plugin-loader"></div>\`;
-                const media = await getAnilistLightNovelDetails(currentNovel.id);
+                // --- CHANGED ---
+                const media = await AnilistQueries.getAnilistLightNovelDetails(currentNovel.id);
                 wrapper.innerHTML = ""; 
                 
                 if (!media) {
@@ -664,53 +475,262 @@ function init() {
                 // NEW: Get last read chapter
                 const lastReadChapter = getLastReadChapter(currentNovel.id);
                 
-                const bannerImg = media.bannerImage || media.coverImage.extraLarge;
+                // --- Spoiler State ---
+                let showSpoilers = false;
                 
+                // --- Banner HTML (User's Request) ---
+                const bannerImg = media.bannerImage || media.coverImage.extraLarge;
+                // --- CHANGE: Added border-radius ---
                 let bannerHtml = \`
-                    <div class="novel-plugin-details-banner" style="background-image: linear-gradient(to top, #121212 15%, rgba(18, 18, 18, 0)), url('\${bannerImg}')">
+                    <div style="
+                        position: relative;
+                        width: 100%;
+                        min-height: 300px; /* User requested height */
+                        overflow: hidden;
+                        background-color: #121212; /* fallback */
+                        box-shadow: inset 0 0 0 1px #121212; /* hides tiny side specs */
+                        /* Copied from original CSS for layout */
+                        margin: -1.5rem -1.5rem 0 -1.5rem;
+                        max-width: 1000px;
+                        box-sizing: content-box;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        margin-top: -4.5rem; /* BUG 1 FIX from original */
+                        border-radius: 8px; /* --- ADDED --- */
+                    ">
+                        <div style="
+                            position: absolute;
+                            inset: 0; /* cover all sides */
+                            background:
+                                linear-gradient(to top, #121212 15%, rgba(18, 18, 18, 0)) no-repeat,
+                                url('\${bannerImg}') center 10% / cover no-repeat;
+                        "></div>
                     </div>
                 \`;
+
+                // --- Header HTML (Unchanged) ---
                 let headerHtml = \`
                     <div class="novel-plugin-details-header">
                         <img src="\${media.coverImage.extraLarge}" class="novel-plugin-details-cover" style="--cover-color: \${media.coverImage.color || '#8A2BE2'};">
                         <div class="novel-plugin-details-info">
-                     
-                           <h1 class="novel-plugin-title">\${media.title.romaji}</h1>
-                            <p class="novel-plugin-subtitle">\${media.title.english ||
-                            ''}</p>
+                            <h1 class="novel-plugin-title">\${media.title.romaji}</h1>
+                            <p class="novel-plugin-subtitle">\${media.title.english || ''}</p>
                             <div class="novel-plugin-tags">
-                                <span class="novel-plugin-tag score">\${media.averageScore ?
-                                media.averageScore + '%' : 'N/A'}</span>
-                                <span class="novel-plugin-tag">\${media.status ||
-                                ''}</span>
-                                <span class="novel-plugin-tag">\${media.startDate.year ||
-                                ''}</span>
+                                <span class="novel-plugin-tag score">\${media.averageScore ? media.averageScore + '%' : 'N/A'}</span>
+                                <span class="novel-plugin-tag">\${media.status || ''}</span>
+                                <span class="novel-plugin-tag">\${media.startDate.year || ''}</span>
                             </div>
                         </div>
                     </div>
                 \`;
+                
+                // --- Body HTML (HEAVILY MODIFIED) ---
+                
+                // Helper to generate tag list
+                function getTagsHtml(tags) {
+                    if (!tags || tags.length === 0) return '<p class="novel-plugin-sidebar-muted">No tags available.</p>';
+                    return tags.map(t => \`
+                        <span 
+                            class="novel-plugin-tag \${t.isMediaSpoiler ? 'novel-plugin-spoiler-tag' : ''}"
+                            data-spoiler="\${t.isMediaSpoiler}"
+                        >
+                            \${t.name}
+                        </span>
+                    \`).join('');
+                }
+                
+                // Helper to generate rankings
+                function getRankingsHtml(rankings) {
+                    if (!rankings || rankings.length === 0) return '<p class="novel-plugin-sidebar-muted">No rankings available.</p>';
+                    // Filter for 'allTime' rankings and 'RATED' or 'POPULAR'
+                    const ranked = rankings.filter(r => r.allTime && (r.type === 'RATED' || r.type === 'POPULAR'));
+                    // --- FIX: Replaced single quotes around 'all time' with double quotes ---
+                    if (ranked.length === 0) return '<p class="novel-plugin-sidebar-muted">No "all time" rankings available.</p>';
+                    
+                    return \`
+                        <div class="novel-plugin-ranking-list">
+                            \${ranked.map(r => \`
+                                <div class="novel-plugin-ranking-item">
+                                    <span class="novel-plugin-ranking-hash">#</span>
+                                    <span class="novel-plugin-ranking-rank">\${r.rank}</span>
+                                    \${r.context}
+                                </div>
+                            \`).join('')}
+                        </div>
+                    \`;
+                }
+                
+                // Helper for external links
+                function getLinksHtml(links) {
+                    if (!links || links.length === 0) return '<p class="novel-plugin-sidebar-muted">No links available.</p>';
+                    return \`
+                        <div class="novel-plugin-external-links">
+                            \${links.map(l => \`
+                                <a href="\${l.url}" target="_blank" rel="noopener noreferrer" class="novel-plugin-ext-link-btn">
+                                    <span class="novel-plugin-ext-icon">
+                                        \${getIconSvg(l.site.toLowerCase().includes('twitter') ? 'twitter' : 'link')}
+                                    </span>
+                                    \${l.site}
+                                </a>
+                            \`).join('')}
+                        </div>
+                    \`;
+                }
+                
+                // Helper for Character/Staff grids
+                function getInvolvedGridHtml(edges, type) {
+                    if (!edges || edges.length === 0) return '';
+                    return \`
+                        <h2 class="novel-plugin-section-title">\${type}</h2>
+                        <div class="novel-plugin-involved-grid">
+                            \${edges.map(edge => \`
+                                <div class="novel-plugin-involved-card">
+                                    <img src="\${edge.node.image.large}" class="novel-plugin-involved-img" loading="lazy">
+                                    <div class="novel-plugin-involved-info">
+                                        <div class="novel-plugin-involved-name">\${edge.node.name.full}</div>
+                                        <div class="novel-plugin-involved-role">\${edge.role}</div>
+                                    </div>
+                                </div>
+                            \`).join('')}
+                        </div>
+                    \`;
+                }
+
+                // Helper for Recommendations grid
+                function getRecsGridHtml(recs) {
+                    if (!recs || recs.length === 0) return '';
+                    return \`
+                        <h2 class="novel-plugin-section-title">Recommendations</h2>
+                        <div class="novel-plugin-grid">
+                            \${recs.map(r => {
+                                const recMedia = r.mediaRecommendation;
+                                if (!recMedia) return '';
+                                return \`
+                                <div class="novel-plugin-poster-card" data-id="\${recMedia.id}">
+                                    <img src="\${recMedia.coverImage.large}" class="novel-plugin-poster-img" alt="\${recMedia.title.romaji}" style="--cover-color: \${recMedia.coverImage.color || '#8A2BE2'};">
+                                    <p class="novel-plugin-poster-title" title="\${recMedia.title.romaji}">\${recMedia.title.romaji}</p>
+                                </div>
+                                \`;
+                            }).join('')}
+                        </div>
+                    \`;
+                }
+                
+                // Helper for Reviews
+                function getReviewsHtml(reviews) {
+                    if (!reviews || reviews.length === 0) return '';
+                    const defaultAvatar = 'https://s4.anilist.co/file/anilistcdn/user/avatar/large/default.png';
+                    return \`
+                        <h2 class="novel-plugin-section-title">Reviews</h2>
+                        <div class="novel-plugin-reviews-list">
+                            \${reviews.map(rev => \`
+                                <div class="novel-plugin-review-card">
+                                    <div class="novel-plugin-review-header">
+                                        <img src="\${rev.user.avatar ? rev.user.avatar.large : defaultAvatar}" class="novel-plugin-review-avatar" />
+                                        <div class="novel-plugin-review-meta">
+                                            <span class="novel-plugin-review-user">\${rev.user.name}</span>
+                                            <span class="novel-plugin-review-summary-text">\${rev.summary || 'No summary'}</span>
+                                        </div>
+                                        <div class="novel-plugin-review-score-badge">
+                                            \${rev.score}
+                                        </div>
+                                    </div>
+                                </div>
+                            \`).join('')}
+                        </div>
+                    \`;
+                }
+
                 let bodyHtml = \`
                     <div class="novel-plugin-details-body">
-                        <div class="novel-plugin-details-description">
-                            <h3>About</h3>
-                       
-                            <p>\${media.description ? media.description.replace(/<br>/g, ' ') : 'No description available.'}</p>
-                        </div>
-                        <div class="novel-plugin-details-sidebar">
-                            <h3>Genres</h3>
-          
-                            <div class="novel-plugin-tags">
-                                \${media.genres.map(g => \`<span class="novel-plugin-tag">\${g}</span>\`).join('')}
+                        <div class="novel-plugin-details-main">
+                            <div class="novel-plugin-details-description">
+                                <!-- --- CHANGE: Removed section header --- -->
+                                <h3>About</h3>
+                                <p id="novel-plugin-description-text">
+                                    \${media.description ? media.description.replace(/<br>/g, ' ') : 'No description available.'}
+                                </p>
                             </div>
-                  
+                            
+                            \${getInvolvedGridHtml(media.characters.edges, 'Characters')}
+                            \${getInvolvedGridHtml(media.staff.edges, 'Staff')}
+                            \${getRecsGridHtml(media.recommendations.nodes)}
+                            \${getReviewsHtml(media.reviews.nodes)}
+                        </div>
+                        
+                        <div class="novel-plugin-details-sidebar">
                             <div id="novel-plugin-chapter-button-container">
                                 <!-- Buttons added dynamically -->
                             </div>
+                            
+                            <div class="novel-plugin-details-sidebar-section">
+                                <h3>Rankings</h3>
+                                \${getRankingsHtml(media.rankings)}
+                            </div>
+                            
+                            <div class="novel-plugin-details-sidebar-section">
+                                <h3>External Links</h3>
+                                \${getLinksHtml(media.externalLinks)}
+                            </div>
+
+                            <div class="novel-plugin-details-sidebar-section">
+                                <h3>Genres</h3>
+                                <div class="novel-plugin-tags">
+                                    \${media.genres.map(g => \`<span class="novel-plugin-tag">\${g}</span>\`).join('')}
+                                </div>
+                            </div>
+                            
+                            <!-- --- CHANGE: Added section header here --- -->
+                            <div class="novel-plugin-details-sidebar-section">
+                                <div class="novel-plugin-section-header">
+                                    <h3>Tags</h3>
+                                    <button id="novel-plugin-spoiler-toggle" class="novel-plugin-spoiler-toggle">Show Spoilers</button>
+                                </div>
+                                <div class="novel-plugin-tags" id="novel-plugin-tags-container">
+                                    \${getTagsHtml(media.tags)}
+                                </div>
+                            </div>
                         </div>
- 
                     </div>
                 \`;
+                
                 wrapper.innerHTML = bannerHtml + headerHtml + bodyHtml;
+                
+                // --- Logic for new elements ---
+                
+                // Spoiler Toggle
+                const spoilerToggle = wrapper.querySelector('#novel-plugin-spoiler-toggle');
+                const tagsContainer = wrapper.querySelector('#novel-plugin-tags-container');
+                if (spoilerToggle && tagsContainer) {
+                    spoilerToggle.onclick = () => {
+                        showSpoilers = !showSpoilers;
+                        tagsContainer.classList.toggle('show-spoilers', showSpoilers);
+                        spoilerToggle.textContent = showSpoilers ? 'Hide Spoilers' : 'Show Spoilers';
+                    };
+                }
+                
+                // Recommendation Click Handlers
+                // Use querySelectorAll on the wrapper to scope the search
+                wrapper.querySelectorAll('.novel-plugin-poster-card[data-id]').forEach(el => {
+                    const elId = el.getAttribute('data-id');
+                    
+                    // Check if this card is part of the recommendations grid
+                    // This is a bit tricky, but we can check if its data-id is NOT the currentNovel.id
+                    // Note: This might re-bind the main 'discover' cards if they are still in the DOM,
+                    // but renderUI() clears the wrapper, so this should be fine.
+                    
+                    if (elId != currentNovel.id) { // Only bind clicks to *other* media
+                         el.onclick = () => {
+                            const id = el.getAttribute('data-id');
+                            currentNovel = { id: id }; // Just set the ID for now
+                            pageState = "details";
+                            renderUI();
+                        };
+                    }
+                });
+                
+                
+                // --- Original Chapter Button Logic ---
                 const chapterBtnContainer = wrapper.querySelector('#novel-plugin-chapter-button-container');
                 
                 // 1. Create a container for the auto-match results (loader first)
@@ -730,7 +750,8 @@ function init() {
                 chapterBtnContainer.appendChild(manualSearchBtn);
                 
                 // 3. Asynchronously find chapters and update auto-match container
-                const chapters = await findNovelBuddyChapters(media.title.romaji, media.title.english);
+                // --- CHANGED ---
+                const chapters = await NovelBuddyScrapers.findNovelBuddyChapters(media.title.romaji, media.title.english);
                 if (chapters && chapters.length > 0) {
                     currentNovelBuddyChapters = chapters;
                     
@@ -813,7 +834,8 @@ function init() {
                     if (!query || query.trim() === "") return;
                     
                     resultsContainer.innerHTML = \`<div class="novel-plugin-loader small"></div>\`;
-                    const results = await searchNovelBuddy(query);
+                    // --- CHANGED ---
+                    const results = await NovelBuddyScrapers.searchNovelBuddy(query);
                     resultsContainer.innerHTML = "";
                     if (results.length === 0) {
                         resultsContainer.innerHTML = "<p>No results found on NovelBuddy.</p>";
@@ -829,7 +851,7 @@ function init() {
                                 src="\${item.image || 'https://placehold.co/80x110/2A2A2A/4A4A4A?text=N/A'}" 
                                  class="novel-plugin-result-img"
                                 referrerpolicy="no-referrer"
-                                onerror="this.src='https://placehold.co/80x110/2A2A2A/4A4A4A?text=N/A'"
+                                 onerror="this.src='https://placehold.co/80x110/2A2A2A/4A4A4A?text=N/A'"
                             >
                             <div class="novel-plugin-result-stack">
                                 <p class="novel-plugin-result-title" title="\${item.title}">\${item.title}</p>
@@ -843,7 +865,8 @@ function init() {
                             isLoading = true; 
                             renderUI();
                             
-                            const chapters = await getNovelBuddyDetails(url);
+                            // --- CHANGED ---
+                            const chapters = await NovelBuddyScrapers.getNovelBuddyDetails(url);
                             currentNovelBuddyChapters = chapters; // Set the chapters
                             
                             isLoading = false;
@@ -991,7 +1014,7 @@ function init() {
             async function openNovelPage() {
                 if (mainLayout) mainLayout.style.display = "none";
                 const loadCss = new Promise(async (resolve, reject) => {
-                    const cssUrl = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/styles.css";
+                    const cssUrl = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/styles.css";
                     
                     try {
                         console.log(\`[novel-plugin] Attempting to fetch CSS from: \${cssUrl}\`);
@@ -1032,8 +1055,60 @@ function init() {
                         reject(err);
                     }
                 });
+
+                // --- ADDED THIS BLOCK ---
+                const loadQueries = new Promise(async (resolve, reject) => {
+                    // !!! IMPORTANT: You must host this file and update the URL !!!
+                    const jsUrl = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/anilist.js"; 
+                    
+                    try {
+                        console.log(\`[novel-plugin] Attempting to fetch JS from: \${jsUrl}\`);
+                        const res = await fetch(jsUrl);
+                        if (!res.ok) throw new Error(\`Fetch failed: \${res.status}\`);
+                        const jsText = await res.text();
+            
+                        const script = document.createElement("script");
+                        script.id = SCRIPT_QUERY_ID;
+                        script.textContent = jsText;
+                        document.head.appendChild(script);
+         
+                        console.log("[novel-plugin] External JS (Queries) fetched and injected.");
+                        resolve();
+                    } catch (err) {
+                        console.error("[novel-plugin] FAILED to fetch or inject JS (Queries):", err);
+                        reject(err);
+                    }
+                });
+
+                const loadScrapers = new Promise(async (resolve, reject) => {
+                    // !!! IMPORTANT: You must host this file and update the URL !!!
+                    const jsUrl = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/novelbuddy.js"; 
+                    
+                    try {
+                        console.log(\`[novel-plugin] Attempting to fetch JS from: \${jsUrl}\`);
+                        const res = await fetch(jsUrl);
+                        if (!res.ok) throw new Error(\`Fetch failed: \${res.status}\`);
+                        const jsText = await res.text();
+            
+                        const script = document.createElement("script");
+                        script.id = SCRIPT_SCRAPER_ID;
+                        script.textContent = jsText;
+                        document.head.appendChild(script);
+         
+                        console.log("[novel-plugin] External JS (Scrapers) fetched and injected.");
+                        resolve();
+                    } catch (err) {
+                        console.error("[novel-plugin] FAILED to fetch or inject JS (Scrapers):", err);
+                        reject(err);
+                    }
+                });
+                // --- END ADDED BLOCK ---
+
                 try {
                     await loadCss;
+                    await loadQueries; // <-- ADDED AWAIT
+                    await loadScrapers; // <-- ADDED AWAIT
+                    
                     const backdrop = document.createElement("div");
                     backdrop.id = BACKDROP_ID;
                     backdrop.innerHTML = getModalHtml();
@@ -1064,6 +1139,14 @@ function init() {
                 if (backdrop) backdrop.remove();
                 const style = document.getElementById(STYLE_ID);
                 if (style) style.remove();
+                
+                // --- ADDED THIS BLOCK ---
+                const queries = document.getElementById(SCRIPT_QUERY_ID);
+                if (queries) queries.remove();
+                const scrapers = document.getElementById(SCRIPT_SCRAPER_ID);
+                if (scrapers) scrapers.remove();
+                // --- END ADDED BLOCK ---
+
                 const self = document.querySelector(\`script[data-novel-plugin-id="\${SCRIPT_ID}"]\`);
                 if (self) self.remove();
                 console.log("[novel-plugin] Cleaned up and removed.");
@@ -1080,7 +1163,7 @@ function init() {
         // 2. Create the Tray Icon
         const tray = ctx.newTray({
             tooltipText: "Novel Reader",
-            iconUrl: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/novelbuddy.ico",
+            iconUrl: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/ln.png",
             withContent: false,
         });
 
