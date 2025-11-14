@@ -4,9 +4,9 @@
 
 | Name | Version | Manifest URL | Notes |
 |------|---------|--------------|-------|
-| Mangafreak | 1.0.3 | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/mangafreak/manifest.json) | Medium library, Fast provider, Fast chapter uploads |
-| Mangabuddy | 1.2.1 | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/mangabuddy/manifest.json) | Large library, has a lot of mirrors |
-| Scanita | 1.1.1 | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/scanita/manifest.json) | Italian-only provider, Large library |
+| [Mangafreak](https://mangafreak.me) | 1.0.3 | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/mangafreak/manifest.json) | Medium library, Fast provider, Fast chapter uploads |
+| [Mangabuddy](https://mangabuddy.com) | 1.2.1 | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/mangabuddy/manifest.json) | Large library, has a lot of mirrors |
+| [Scanita](https://scanita.org) | 1.1.1 | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/scanita/manifest.json) | Italian-only provider, Large library |
 
 **Other planned providers:**
 
