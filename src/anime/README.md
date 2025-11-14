@@ -10,4 +10,5 @@
 
 | Name | Status | Notes |
 |------|--------|-------|
-| Agefans | Work in progress | Chinese-only provider
+| [Agefans](https://m.agedm.io/#/) | Work in progress | Chinese-only provider |
+| [ToonItalia](https://toonitalia.xyz/) | Planned | Italian-only provider |
