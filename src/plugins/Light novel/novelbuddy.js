@@ -211,10 +211,9 @@
      * @returns {Promise<Array>}
      */
     async function findNovelBuddyChapters(romajiTitle, englishTitle) {
-        console.log(`[novel-plugin] Matching... looking for "${romajiTitle}"`);
+        // --- ADDED DEBUG LOGS ---
+        console.log(`[novel-plugin-matcher] START: Matching for "${romajiTitle}"`);
         
-        // --- NEW LOGIC ---
-
         // 1. Get results for Romaji title
         const romajiResults = await searchNovelBuddy(romajiTitle);
         let bestRomajiMatch = null;
@@ -229,13 +228,14 @@
                 }
             });
         }
+        console.log(`[novel-plugin-matcher] Romaji Best: "${bestRomajiMatch?.title}" (Score: ${bestRomajiScore.toFixed(2)})`);
 
         // 2. Get results for English title (if it exists and is different)
         let bestEnglishMatch = null;
         let bestEnglishScore = 0.0;
 
         if (englishTitle && englishTitle.toLowerCase() !== romajiTitle.toLowerCase()) {
-            console.log(`[novel-plugin] Also matching with English: "${englishTitle}"`);
+            console.log(`[novel-plugin-matcher] INFO: Also matching with English: "${englishTitle}"`);
             const englishResults = await searchNovelBuddy(englishTitle);
             
             if (englishResults && englishResults.length > 0) {
@@ -247,30 +247,36 @@
                     }
                 });
             }
+            console.log(`[novel-plugin-matcher] English Best: "${bestEnglishMatch?.title}" (Score: ${bestEnglishScore.toFixed(2)})`);
         }
 
         // 3. Compare the best scores and set the final match
         let bestMatch = null;
         let highestSimilarity = 0.0;
+        let matchSource = "N/A";
 
         if (bestRomajiScore > bestEnglishScore) {
             bestMatch = bestRomajiMatch;
             highestSimilarity = bestRomajiScore;
+            matchSource = "Romaji";
         } else {
             bestMatch = bestEnglishMatch;
             highestSimilarity = bestEnglishScore;
+            matchSource = "English";
         }
 
-        // 4. Check against the new 0.8 threshold
+        console.log(`[novel-plugin-matcher] Final Best: "${bestMatch?.title}" (Source: ${matchSource}, Score: ${highestSimilarity.toFixed(2)})`);
+
+        // 4. Check against the 0.8 threshold
         if (highestSimilarity > 0.8 && bestMatch) {
-            console.log(`[novel-plugin] Found match: "${bestMatch.title}" with similarity ${highestSimilarity.toFixed(2)}`);
+            console.log(`[novel-plugin-matcher] SUCCESS: Match found and accepted (Score > 0.8). Fetching details...`);
             const chapters = await getNovelBuddyDetails(bestMatch.url);
             return chapters;
         } else {
-            console.log(`[novel-plugin] No good match found. Best was "${bestMatch?.title}" (${highestSimilarity.toFixed(2)}). Threshold: 0.8`);
+            console.log(`[novel-plugin-matcher] FAILURE: No match found above 0.8 threshold. (Best was ${highestSimilarity.toFixed(2)})`);
             return [];
         }
-        // --- END NEW LOGIC ---
+        // --- END DEBUG LOGS ---
     }
 
     // Expose the public functions to the global window object
