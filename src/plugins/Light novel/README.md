@@ -4,7 +4,7 @@
 
 | Name | Notes |
 |------|-------|
-| Novelbuddy |
+| [Novelbuddy](https://novelbuddy.com) |
 
 **Other planned sources:**
 
