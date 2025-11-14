@@ -10,4 +10,4 @@
 
 | Name | Status | Notes |
 |------|--------|-------|
-| MAL | Planned |
+| [MyAnimeList](https://myanimelist.net/) | Planned |
