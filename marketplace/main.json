@@ -46,7 +46,7 @@
     "lang": "EN",
     "icon": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/ln.png",
     "website": ""
-  }
+  },
   {
     "id": "komiku",
     "name": "Komiku",
@@ -58,5 +58,5 @@
     "lang": "en",
     "icon": "https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/komiku.png",
     "website": ""
-  },
+  }
 ]
