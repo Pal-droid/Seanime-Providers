@@ -10,4 +10,4 @@
 
 | Name | Status | Notes |
 |------|--------|-------|
-| Anilist stories | Considering | Inspired by Dantotsu's Anilist stories |
+| Anilist stories | Considering | Inspired by [Dantotsu](https://discord.gg/MSJvfJzS7R)'s Anilist stories |
