@@ -10,9 +10,14 @@
 
 **Other planned providers:**
 
-| Name | Status | Notes |
-|------|--------|-------|
-| Bato | Work in progress | 
-| Manganato | Work in progress | Some mirrors might not be able to be added due to Cloudflared |
-| Comix | Planned | New website |
-| Allmanga | Considering | 
+| Name        | Status            | Notes |
+|-------------|--------------------|-------|
+| Bato        | Work in progress   | 
+| Manganato   | Work in progress   | Some mirrors might not be able to be added due to Cloudflared |
+| Comix       | Planned            | New website |
+| Allmanga    | Considering        | 
+| Komiku      | Planned            | Indonesian manga site |
+| Westmanga   | Planned            | Indonesian manga site |
+| Komik Cast  | Planned            | Indonesian manga site |
+| Komikindo   | Planned            | Indonesian manga site |
+| Kiryuu      | Planned            | Indonesian manga site |
