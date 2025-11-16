@@ -1,0 +1,13 @@
+{
+  "id": "komiku",
+  "name": "Komiku",
+  "description": "Komiku is a manga provider for Seanime",
+  "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/komiku/manifest.json",
+  "version": "1.0.0",
+  "author": "pal",
+  "icon": "",
+  "type": "manga-provider",
+  "language": "javascript",
+  "lang": "id",
+  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/komiku/provider.js"
+}
