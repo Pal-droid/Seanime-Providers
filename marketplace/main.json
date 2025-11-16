@@ -55,8 +55,20 @@
     "author": "Pal",
     "type": "manga-provider",
     "language": "javascript",
-    "lang": "en",
+    "lang": "id",
     "icon": "https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/komiku.png",
+    "website": ""
+  }
+  {
+    "id": "komikcast",
+    "name": "KomikCast",
+    "description": "KomikCast is a manga provider for Seanime",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/komikcast/manifest.json",
+    "author": "Pal",
+    "type": "manga-provider",
+    "language": "javascript",
+    "lang": "id",
+    "icon": "https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/komikcast.png",
     "website": ""
   }
 ]
