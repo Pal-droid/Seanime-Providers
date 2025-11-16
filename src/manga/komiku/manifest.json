@@ -5,7 +5,7 @@
   "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/komiku/manifest.json",
   "version": "1.0.0",
   "author": "pal",
-  "icon": "",
+  "icon": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/komiku.png",
   "type": "manga-provider",
   "language": "javascript",
   "lang": "id",
