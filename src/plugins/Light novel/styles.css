@@ -301,22 +301,18 @@
     box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.3);
 }
 
-/* --- ADDED --- */
 .novel-plugin-filter-container {
+    margin: -0.5rem 0 1.5rem 0; /* Adjusted margins */
     display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1.5rem;
+    align-items: center;
+    gap: 0.75rem; /* Adjusted gap */
+    padding: 0;
 }
 
-.novel-plugin-filter-container .novel-plugin-select {
-    flex: 1;
-    padding: 0.75rem 1rem;
+.novel-plugin-filter-container label {
     font-size: 0.9rem;
-    border-radius: 8px;
-    padding-right: 2.5rem; /* Make room for arrow */
+    color: var(--text-secondary);
 }
-/* --- END ADDED --- */
-
 
 .novel-plugin-select {
     -webkit-appearance: none;
@@ -325,20 +321,23 @@
     background-color: var(--bg-tertiary);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
-    border-radius: 5px;
-    padding: 8px 32px 8px 10px;
-    font-size: 0.9rem;
+    border-radius: 8px; /* Rounded corners */
+    padding: 0.75rem 2.5rem 0.75rem 1rem; /* Adjusted padding */
+    font-size: 0.9rem; /* Adjusted font size */
+    font-weight: 500;
     cursor: pointer;
     background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23AAA' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
     background-repeat: no-repeat;
-    background-position: right 10px center;
+    background-position: right 0.75rem center;
     background-size: 16px;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    flex-grow: 1; /* Make selects fill space */
 }
 
 .novel-plugin-select:focus {
     outline: none;
     border-color: var(--brand-color);
+    box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.3);
 }
 
 /* --- Discover: Hero --- */
@@ -960,14 +959,13 @@
     color: var(--text-primary);
 }
 
-/* --- FIX for review text overflow --- */
 .novel-plugin-review-summary-text {
     font-size: 0.85rem;
     color: var(--text-secondary);
-    white-space: normal; /* CHANGED from nowrap */
-    overflow: visible; /* CHANGED from hidden */
-    text-overflow: clip; /* CHANGED from ellipsis */
-    word-break: break-word; /* ADDED */
+    white-space: normal; /* --- FIX: Allow wrapping --- */
+    word-break: break-word; /* --- FIX: Allow wrapping --- */
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 
@@ -980,4 +978,94 @@
     border: 1px solid var(--border-color);
     padding: 0.25rem 0.6rem;
     border-radius: 6px;
+}
+
+
+/* =========================================
+--- NEW: MOBILE RESPONSIVE STYLES ---
+========================================= */
+
+@media (max-width: 768px) {
+
+    /* --- General Layout --- */
+    /* Reduce padding on main content and header for small screens */
+    .novel-plugin-page-content {
+        padding: 1rem;
+        padding-top: 4.5rem; /* Keep top padding for fixed buttons */
+    }
+    .novel-plugin-header {
+        padding: 1rem 1rem 0 1rem;
+        padding-top: 4.5rem;
+        justify-content: center; /* Center tabs on mobile */
+    }
+
+    /* --- Hero --- */
+    .novel-plugin-hero-content {
+        max-width: 100%; /* Use full width on mobile */
+    }
+    .novel-plugin-hero-title {
+        font-size: 1.5rem; /* Slightly smaller title */
+    }
+
+    /* --- Search Page --- */
+    .novel-plugin-filter-container {
+        flex-direction: column; /* Stack filters vertically */
+        gap: 0.75rem;
+    }
+
+    /* --- Details Page Banner/Header --- */
+    .novel-plugin-details-header {
+        flex-direction: column;   /* Stack cover image and info */
+        align-items: center;      /* Center them */
+        gap: 1rem;
+        margin-top: -100px; /* Adjust overlap for centered cover */
+        padding: 0 1rem; /* Reduce horizontal padding */
+    }
+    .novel-plugin-details-info {
+        padding-bottom: 0;
+        text-align: center; /* Center-align title/subtitle */
+    }
+
+    /* --- Details Page Body (Main + Sidebar) --- */
+    .novel-plugin-details-body {
+        /* Stack sidebar on top of main content */
+        flex-direction: column-reverse; 
+        gap: 2rem;
+    }
+    .novel-plugin-details-sidebar {
+        min-width: 100%; /* Take full width */
+        gap: 2rem; /* Add more space between sections */
+    }
+
+    /* --- Details Page Grids --- */
+    .novel-plugin-involved-grid {
+         /* Force one column for character/staff cards */
+        grid-template-columns: 1fr;
+    }
+    .novel-plugin-involved-card {
+        height: auto; /* Let height be flexible */
+    }
+    .novel-plugin-involved-img {
+        height: 80px; /* Keep image height fixed */
+    }
+
+    /* --- Poster Grid (Discover & Recommendations) --- */
+    .novel-plugin-grid {
+         /* Allow for 3 columns on most phones */
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 1rem;
+    }
+
+    /* --- Reader Page --- */
+    .novel-plugin-reader-header {
+        flex-wrap: wrap; /* Allow buttons to wrap */
+        gap: 0.5rem;
+    }
+    .novel-plugin-reader-header .novel-plugin-select {
+        flex-basis: 100%; /* Make select full width */
+        order: -1; /* Put select on top */
+    }
+    .novel-plugin-reader-container {
+        padding: 1rem;
+    }
 }
