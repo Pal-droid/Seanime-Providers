@@ -5,11 +5,11 @@
 | Name | Notes |
 |------|-------|
 | [Novelbuddy](https://novelbuddy.com) |
+| [Novelbin](https://novelbin.me) | 
 
 **Other planned sources:**
 
 | Name | Status | Notes |
 |------|--------|-------|
-| Novelbin | Planned |
 | FreeWebNovel | Planned |
 | Novelhall | Planned |
