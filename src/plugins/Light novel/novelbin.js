@@ -70,10 +70,8 @@
                     image = `${NOVELBIN_URL}${image}`;
                 }
 
-                // --- FIX: Use correct selector based on novelbin.txt ---
-                const latestChapterElement = item.querySelector('span.chr-text.chapter-title');
+                const latestChapterElement = item.querySelector('.col-xs-2.text-info a span.chapter-title');
                 const latestChapter = latestChapterElement?.textContent?.trim() || "No Chapter";
-                // --- END FIX ---
               
                 results.push({ 
                     title: title, 
@@ -96,18 +94,15 @@
      */
     async function getChapters(novelUrl) {
         try {
-            // --- FIX: Extract novel slug from URL. This is the correct ID. ---
             const novelSlugMatch = novelUrl.match(/novel-book\/(.*?)(?:\/|$)/);
             if (!novelSlugMatch || !novelSlugMatch[1]) {
                  throw new Error(`Could not extract novel-slug from URL: ${novelUrl}`);
             }
             const novelSlug = novelSlugMatch[1];
-            // --- END FIX ---
 
             const chapters = [];
             const parser = new DOMParser();
 
-            // --- UPDATED: Use the correct chapter API endpoint ---
             const chapterApiUrl = `${CORS_PROXY_URL}${NOVELBIN_URL}/ajax/chapter-archive?novelId=${novelSlug}`;
             const chapterRes = await fetch(chapterApiUrl);
             const chapterHtml = await chapterRes.text();
@@ -146,9 +141,7 @@
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, "text/html");
             
-            // --- FIX: Use the correct content selector ---
             const contentElement = doc.querySelector('#chr-content');
-            // --- END FIX ---
     
             if (!contentElement) {
                 throw new Error("Could not extract chapter content.");
