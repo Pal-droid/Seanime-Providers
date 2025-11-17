@@ -4,7 +4,6 @@
         return;
     }
 
-    // --- NEW: CORS Proxy ---
     const CORS_PROXY_URL = "https://corsproxy.io/?url=";
     const NOVELBIN_URL = "https://novelbin.me";
 
@@ -46,7 +45,6 @@
      * @returns {Promise<SearchResult[]>}
      */
     async function manualSearch(query) {
-        // --- UPDATED with CORS Proxy ---
         const url = `${CORS_PROXY_URL}${NOVELBIN_URL}/search?keyword=${encodeURIComponent(query)}`;
         try {
             const res = await fetch(url);
@@ -54,7 +52,6 @@
             const results = [];
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, "text/html");
-            // Based on novelbin.txt, the container is a div with class 'row'
             const items = doc.querySelectorAll('.list-novel .row'); 
             
             items.forEach(item => {
@@ -62,7 +59,6 @@
                 const title = titleElement?.title?.trim() || "Unknown Title";
                 let novelUrl = titleElement?.getAttribute('href') || "#";
                 
-                // Ensure URL is absolute (relative to the base domain, not the proxy)
                 if (novelUrl.startsWith("/")) {
                     novelUrl = `${NOVELBIN_URL}${novelUrl}`;
                 }
@@ -98,22 +94,21 @@
      */
     async function getChapters(novelUrl) {
         try {
-            // --- UPDATED with CORS Proxy ---
-            const res = await fetch(`${CORS_PROXY_URL}${novelUrl}`);
-            const html = await res.text();
+            // --- FIX: Extract novel slug from URL ---
+            const novelSlugMatch = novelUrl.match(/novel-book\/(.*?)(?:\/|$)/);
+            if (!novelSlugMatch || !novelSlugMatch[1]) {
+                 throw new Error(`Could not extract novel-slug from URL: ${novelUrl}`);
+            }
+            const novelSlug = novelSlugMatch[1];
+            // --- END FIX ---
+
+            // --- REMOVED: Unnecessary fetch of the novelUrl page ---
+            
             const chapters = [];
             const parser = new DOMParser();
-            const doc = parser.parseFromString(html, "text/html");
 
-            // Find the novel ID to fetch chapters
-            const novelIdMatch = html.match(/data-novel-id="(\d+)"/);
-            if (!novelIdMatch || !novelIdMatch[1]) {
-                throw new Error("Could not find novel-id on page.");
-            }
-            const novelId = novelIdMatch[1];
-            
-            // --- UPDATED with CORS Proxy ---
-            const chapterApiUrl = `${CORS_PROXY_URL}${NOVELBIN_URL}/api/novel/${novelId}/chapters`;
+            // --- FIX: Use the extracted slug ---
+            const chapterApiUrl = `${CORS_PROXY_URL}${NOVELBIN_URL}/api/novel/${novelSlug}/chapters`;
             const chapterRes = await fetch(chapterApiUrl);
             const chapterHtml = await chapterRes.text();
             const chapterDoc = parser.parseFromString(chapterHtml, "text/html");
@@ -132,8 +127,6 @@
                 }
             });
             
-            // NovelBin chapters are listed in correct order (1, 2, 3...)
-            // No reverse is needed
             return chapters;
         } catch (err) {
             console.error("[novel-plugin] NovelBin Details Error:", err);
@@ -148,19 +141,16 @@
      */
     async function getChapterContent(chapterUrl) {
         try {
-            // --- UPDATED with CORS Proxy ---
             const res = await fetch(`${CORS_PROXY_URL}${chapterUrl}`);
             const html = await res.text();
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, "text/html");
-            // Based on novelbin.txt, content is in 'novel-chapter-content'
             const contentElement = doc.querySelector('#novel-chapter-content');
     
             if (!contentElement) {
                 throw new Error("Could not extract chapter content.");
             }
     
-            // Remove ads and unwanted elements
             contentElement.querySelectorAll('script, div[id^="pf-"], ins, .ads, .ads-middle').forEach(el => el.remove());
     
             return contentElement.innerHTML;
@@ -174,7 +164,7 @@
      * Tries to find the best match on NovelBin for an Anilist title
      * @param {string} romajiTitle 
      * @param {string} englishTitle 
-     * @returns {Promise<{ chapters: Chapter[], match: SearchResult, similarity: number } | null>}
+     * @returns {Promise<{ match: SearchResult, similarity: number } | null>}
      */
     async function autoMatch(romajiTitle, englishTitle) {
         console.log(`[novel-plugin-matcher] (NovelBin) START: Matching for "${romajiTitle}"`);
