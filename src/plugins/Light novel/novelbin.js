@@ -4,6 +4,8 @@
         return;
     }
 
+    // --- NEW: CORS Proxy ---
+    const CORS_PROXY_URL = "https://corsproxy.io/?url=";
     const NOVELBIN_URL = "https://novelbin.me";
 
     // --- Private Utility Functions ---
@@ -44,7 +46,8 @@
      * @returns {Promise<SearchResult[]>}
      */
     async function manualSearch(query) {
-        const url = `${NOVELBIN_URL}/search?keyword=${encodeURIComponent(query)}`;
+        // --- UPDATED with CORS Proxy ---
+        const url = `${CORS_PROXY_URL}${NOVELBIN_URL}/search?keyword=${encodeURIComponent(query)}`;
         try {
             const res = await fetch(url);
             const html = await res.text();
@@ -59,7 +62,7 @@
                 const title = titleElement?.title?.trim() || "Unknown Title";
                 let novelUrl = titleElement?.getAttribute('href') || "#";
                 
-                // Ensure URL is absolute
+                // Ensure URL is absolute (relative to the base domain, not the proxy)
                 if (novelUrl.startsWith("/")) {
                     novelUrl = `${NOVELBIN_URL}${novelUrl}`;
                 }
@@ -95,7 +98,8 @@
      */
     async function getChapters(novelUrl) {
         try {
-            const res = await fetch(novelUrl);
+            // --- UPDATED with CORS Proxy ---
+            const res = await fetch(`${CORS_PROXY_URL}${novelUrl}`);
             const html = await res.text();
             const chapters = [];
             const parser = new DOMParser();
@@ -108,8 +112,8 @@
             }
             const novelId = novelIdMatch[1];
             
-            // Fetch chapters from their API
-            const chapterApiUrl = `${NOVELBIN_URL}/api/novel/${novelId}/chapters`;
+            // --- UPDATED with CORS Proxy ---
+            const chapterApiUrl = `${CORS_PROXY_URL}${NOVELBIN_URL}/api/novel/${novelId}/chapters`;
             const chapterRes = await fetch(chapterApiUrl);
             const chapterHtml = await chapterRes.text();
             const chapterDoc = parser.parseFromString(chapterHtml, "text/html");
@@ -144,7 +148,8 @@
      */
     async function getChapterContent(chapterUrl) {
         try {
-            const res = await fetch(chapterUrl);
+            // --- UPDATED with CORS Proxy ---
+            const res = await fetch(`${CORS_PROXY_URL}${chapterUrl}`);
             const html = await res.text();
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, "text/html");
