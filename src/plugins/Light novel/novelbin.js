@@ -52,10 +52,13 @@
             const results = [];
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, "text/html");
-            const items = doc.querySelectorAll('.list-novel .row'); 
             
-            items.forEach(item => {
-                const titleElement = item.querySelector('h3.novel-title a');
+            const titleElements = doc.querySelectorAll('.list-novel h3.novel-title a'); 
+            
+            titleElements.forEach(titleElement => {
+                const item = titleElement.closest('.row'); // Find the parent .row
+                if (!item) return; // Skip if no parent row is found
+
                 const title = titleElement?.title?.trim() || "Unknown Title";
                 let novelUrl = titleElement?.getAttribute('href') || "#";
                 
@@ -94,6 +97,7 @@
      */
     async function getChapters(novelUrl) {
         try {
+            // --- Extract novel slug from URL
             const novelSlugMatch = novelUrl.match(/novel-book\/(.*?)(?:\/|$)/);
             if (!novelSlugMatch || !novelSlugMatch[1]) {
                  throw new Error(`Could not extract novel-slug from URL: ${novelUrl}`);
