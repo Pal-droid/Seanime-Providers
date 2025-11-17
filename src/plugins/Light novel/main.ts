@@ -1,48 +1,6 @@
 /// <reference path="./core.d.ts" />
 
 // ---------------------------------------------------------------------------
-// TYPE DEFINITIONS (These are for reference, not used by the injected script)
-// ---------------------------------------------------------------------------
-
-type AnilistMedia = {
-    id: number;
-    title: { romaji: string; english: string; };
-    coverImage: { extraLarge: string; large: string; color: string; };
-    description?: string;
-    genres?: string[];
-    status?: string;
-    bannerImage?: string;
-    averageScore?: number;
-    startDate?: { year: number };
-    // --- NEWLY ADDED TYPES ---
-    tags?: Array<{ id: number; name: string; isMediaSpoiler: boolean; }>;
-    rankings?: Array<{ id: number; rank: number; type: string; context: string; allTime: boolean; }>;
-    externalLinks?: Array<{ id: number; url: string; site: string; icon?: string; }>;
-    characters?: { edges: Array<{ role: string; node: { id: number; name: { full: string }; image: { large: string }; }; }> };
-    staff?: { edges: Array<{ role: string; node: { id: number; name: { full: string }; image: { large: string }; }; }> };
-    recommendations?: { nodes: Array<{ mediaRecommendation: AnilistMedia } > };
-    reviews?: { nodes: Array<{ id: number; summary: string; score: number; user: { name: string; avatar: { large: string } }; }> };
-};
-
-// Updated to include image and chapter for manual match UI
-type NovelBuddySearchResult = {
-    title: string;
-    url: string;
-    image?: string;
-    latestChapter?: string;
-};
-
-type NovelBuddyDetails = {
-    title: string;
-    image: string;
-    author: string;
-    status: string;
-    genres: string[];
-    description: string;
-    chapters: Array<{ title: string, url: string }>;
-};
-
-// ---------------------------------------------------------------------------
 // MAIN ENTRYPOINT
 // ---------------------------------------------------------------------------
 
@@ -52,7 +10,7 @@ function init() {
         console.log("[novel-plugin] $ui.register() called.");
 
         // ---------------------------------------------------------------------------
-        // INJECTED SCRIPT BUILDER (MOVED INSIDE REGISTER)
+        // INJECTED SCRIPT BUILDER 
         // ---------------------------------------------------------------------------
 
         /**
@@ -77,19 +35,35 @@ function init() {
             }
             console.log("[novel-plugin] Injected script running.");
             const SCRIPT_ID = "${scriptId}";
-            // const NOVELBUDDY_URL = "https://novelbuddy.com"; // <-- MOVED
-            // const ANILIST_API_URL = "https://graphql.anilist.co"; // <-- MOVED
             
             // DOM IDs
             const STYLE_ID = "novel-plugin-styles";
             const SCRIPT_QUERY_ID = "novel-plugin-queries";
-            const SCRIPT_SCRAPER_ID = "novel-plugin-scrapers"; // <-- ADDED
+            const SCRIPT_SCRAPER_ID_NOVELBUDDY = "novel-plugin-scrapers-novelbuddy";
+            const SCRIPT_SCRAPER_ID_NOVELBIN = "novel-plugin-scrapers-novelbin"; // NEW
             const BACKDROP_ID = "novel-plugin-backdrop";
             const MODAL_ID = "novel-plugin-modal-content";
             const WRAPPER_ID = "novel-plugin-content-wrapper";
             const CLOSE_BTN_ID = "novel-plugin-btn-close";
             const SEARCH_INPUT_ID = "novel-plugin-search-input";
             const APP_LAYOUT_SELECTOR = ".UI-AppLayout__root";
+
+            // --- Centralized constants ---
+            const GENRES = [
+                "Action", "Adventure", "Comedy", "Drama", "Ecchi", "Fantasy", "Hentai",
+                "Horror", "Mahou Shoujo", "Mecha", "Music", "Mystery", "Psychological",
+                "Romance", "Sci-Fi", "Slice of Life", "Sports", "Supernatural", "Thriller"
+            ];
+            const DEFAULT_ANILIST_AVATAR = 'https://s4.anilist.co/file/anilistcdn/user/avatar/large/default.png';
+
+            // --- NEW: Source Management ---
+            const sourceRegistry = new Map();
+            window.novelPluginRegistry = {
+                registerSource: (source) => {
+                    console.log(\`[novel-plugin] Registered source: \${source.name}\`);
+                    sourceRegistry.set(source.id, source);
+                }
+            };
         
             // ---------------------------------------------------------------------------
             // 2. PLUGIN STATE
@@ -99,8 +73,11 @@ function init() {
             let isLoading = false;
             let currentNovel = null; // Holds full Anilist media object
             let currentChapterContent = null;
-            let currentNovelBuddyChapters = []; // Holds { title, url }
-            let currentChapterIndex = -1; // NEW: Track current chapter index
+            
+            // --- NEW: Multi-Source State ---
+            let currentNovelSourceId = null; // e.g., "novelbuddy"
+            let currentNovelChapters = []; // Chapters for the *active* source
+            let allAvailableMatches = new Map(); // Stores all valid matches, e.g., { "novelbuddy": { match, similarity } }
             
             const mainLayout = document.querySelector(APP_LAYOUT_SELECTOR);
             // ---------------------------------------------------------------------------
@@ -108,27 +85,21 @@ function init() {
             // ---------------------------------------------------------------------------
             
             function getModalHtml() {
-                // New modal with tabs for navigation
                 return (
-    
                     '<div id="' + MODAL_ID + '">' +
-                    '    <button id="' + CLOSE_BTN_ID + '"></button>' + // X is now added via CSS
+                    '    <button id="' + CLOSE_BTN_ID + '"></button>' +
                     '    <div class="novel-plugin-header">' +
-               
                     '       <div class="novel-plugin-tabs">' +
                     '           <button class="novel-plugin-tab" id="novel-plugin-tab-discover" data-page="discover">Discover</button>' +
                     '           <button class="novel-plugin-tab" id="novel-plugin-tab-search" data-page="search">Search</button>' +
-                
                     '       </div>' +
                     '    </div>' +
-                    '    <div id="' + WRAPPER_ID + '">' +
-                    '        ' + // Content will 
-                    '    </div>' +
+                    '    <div id="' + WRAPPER_ID + '"></div>' +
                     '</div>'
                 );
             }
 
-            // --- NEW: SVG Icon Helper ---
+            // --- SVG Icon Helper ---
             function getIconSvg(name) {
                 const icons = {
                     link: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"></path></svg>',
@@ -138,24 +109,22 @@ function init() {
             }
         
             // ---------------------------------------------------------------------------
-            // 4. ANILIST API (GRAPHQL) - MOVED TO anilist-queries.js
+            // 4. STORAGE (localStorage)
             // ---------------------------------------------------------------------------
             
-            // ---------------------------------------------------------------------------
-            // 5. NOVELBUDDY SCRAPERS (Matcher) - MOVED TO novelbuddy-scrapers.js
-            // ---------------------------------------------------------------------------
-
-            // ---------------------------------------------------------------------------
-            // 6. NEW: STORAGE (localStorage)
-            // ---------------------------------------------------------------------------
-            
-            /** Gets the storage key for a given Anilist ID */
-            function getStorageKey(anilistId) {
+            /** Gets the storage key for a given Anilist ID AND source ID */
+            function getStorageKey(anilistId, sourceId) {
+                // Return a combined key if sourceId is provided
+                if (anilistId && sourceId) {
+                    return \`novel_plugin_last_read_\${anilistId}_\${sourceId}\`;
+                }
+                // Fallback for old keys (or if sourceId is null)
                 return \`novel_plugin_last_read_\${anilistId}\`;
             }
 
             /** Saves the last read chapter details to localStorage */
-            function saveLastReadChapter(anilistId, chapterUrl, chapterTitle, chapterIndex) {
+            function saveLastReadChapter(anilistId, sourceId, chapterUrl, chapterTitle, chapterIndex) {
+                if (!anilistId || !sourceId) return;
                 try {
                     const data = {
                         chapterUrl,
@@ -163,17 +132,34 @@ function init() {
                         chapterIndex: parseInt(chapterIndex, 10),
                         timestamp: Date.now()
                     };
-                    localStorage.setItem(getStorageKey(anilistId), JSON.stringify(data));
+                    localStorage.setItem(getStorageKey(anilistId, sourceId), JSON.stringify(data));
                 } catch (e) {
                     console.error("[novel-plugin] Error saving to localStorage", e);
                 }
             }
 
             /** Loads the last read chapter details from localStorage */
-            function getLastReadChapter(anilistId) {
+            function getLastReadChapter(anilistId, sourceId) {
+                if (!anilistId || !sourceId) return null;
                 try {
-                    const data = localStorage.getItem(getStorageKey(anilistId));
-                    return data ? JSON.parse(data) : null;
+                    // First try the new key
+                    let data = localStorage.getItem(getStorageKey(anilistId, sourceId));
+                    if (data) {
+                        return JSON.parse(data);
+                    }
+                    
+                    // --- MIGRATION: Try to load from old key ---
+                    data = localStorage.getItem(getStorageKey(anilistId, null));
+                    if (data) {
+                        console.log(\`[novel-plugin] Migrating old save data for novel \${anilistId}\`);
+                        // Save it to the new key format and remove the old one
+                        const parsedData = JSON.parse(data);
+                        saveLastReadChapter(anilistId, sourceId, parsedData.chapterUrl, parsedData.chapterTitle, parsedData.chapterIndex);
+                        localStorage.removeItem(getStorageKey(anilistId, null)); // Remove old key
+                        return parsedData;
+                    }
+                    
+                    return null; // No save data found
                 } catch (e) {
                     console.error("[novel-plugin] Error loading from localStorage", e);
                     return null;
@@ -181,58 +167,85 @@ function init() {
             }
             
             // ---------------------------------------------------------------------------
-            // 7. NEW: READER LOGIC
+            // 5. READER LOGIC (Controller)
             // ---------------------------------------------------------------------------
             
             /**
              * Central function to load a chapter, save progress, and open the reader.
              */
             async function loadAndReadChapter(chapterUrl, chapterIndex) {
+                const source = sourceRegistry.get(currentNovelSourceId);
+                if (!source) {
+                    console.error("No active source to load chapter content!");
+                    return;
+                }
+
                 isLoading = true;
-                pageState = "reader"; // Set page state *before* renderUI to show loader on correct page
+                pageState = "reader";
                 renderUI();
                 
                 try {
-                    // --- CHANGED ---
-                    const content = await NovelBuddyScrapers.getNovelBuddyChapterContent(chapterUrl);
+                    const content = await source.getChapterContent(chapterUrl);
                     const numericIndex = parseInt(chapterIndex, 10);
             
                     currentChapterContent = content;
                     currentChapterIndex = numericIndex;
             
                     // Save progress
-                    if (currentNovel && currentNovelBuddyChapters[numericIndex]) {
-                        const chapterTitle = currentNovelBuddyChapters[numericIndex].title;
-                        saveLastReadChapter(currentNovel.id, chapterUrl, chapterTitle, numericIndex);
+                    if (currentNovel && currentNovelChapters[numericIndex]) {
+                        const chapterTitle = currentNovelChapters[numericIndex].title;
+                        saveLastReadChapter(currentNovel.id, currentNovelSourceId, chapterUrl, chapterTitle, numericIndex);
                     }
             
                     isLoading = false;
                     renderUI(); // Re-render now with the content
                     
-                    // Scroll to top of content
                     const contentWrapper = document.getElementById(WRAPPER_ID);
                     if (contentWrapper) contentWrapper.scrollTop = 0;
                     
                 } catch (err) {
                     console.error("[novel-plugin] Error loading chapter:", err);
                     isLoading = false;
-                    pageState = "chapters"; // Go back to chapters list on error
+                    pageState = "chapters"; 
                     renderUI();
-                    // Maybe show a toast/error message here
                 }
+            }
+
+            // --- Function to load chapters for the active source ---
+            async function loadChaptersForActiveSource() {
+                const source = sourceRegistry.get(currentNovelSourceId);
+                const matchData = allAvailableMatches.get(currentNovelSourceId);
+                
+                if (!source || !matchData) {
+                    console.error("Cannot load chapters: No valid source or match selected.");
+                    currentNovelChapters = []; // Ensure chapters are cleared
+                    return [];
+                }
+
+                // Check if chapters are already fetched for this source
+                if (matchData.chapters) {
+                    currentNovelChapters = matchData.chapters; // Update state
+                    return matchData.chapters;
+                }
+                
+                // Fetch chapters if not already cached
+                console.log(\`[novel-plugin] Fetching chapters for source: \${source.name}\`);
+                const chapters = await source.getChapters(matchData.match.url);
+                allAvailableMatches.get(currentNovelSourceId).chapters = chapters; // Cache them
+                currentNovelChapters = chapters; // Update state
+                return chapters;
             }
 
 
             // ---------------------------------------------------------------------------
-            // 8. UI RENDERING
+            // 6. UI RENDERING (Views)
             // ---------------------------------------------------------------------------
         
+            /** Main UI router */
             function renderUI() {
                 const wrapper = document.getElementById(WRAPPER_ID);
                 if (!wrapper) return;
                 
-                // --- Back Button Logic ---
-                // We need to know the page *before* clearing innerHTML
                 const showBackButton = (pageState !== "discover" && pageState !== "search");
                 
                 wrapper.innerHTML = ""; // Clear content
@@ -246,7 +259,6 @@ function init() {
                     return;
                 }
                 
-                // --- Back Button ---
                 if (showBackButton) {
                     const backBtn = document.createElement("button");
                     backBtn.className = "novel-plugin-back-btn";
@@ -260,7 +272,6 @@ function init() {
                         } else if (pageState === "manual-match") {
                             pageState = "details";
                         } else if (pageState === "details") {
-                            // Go back to the tab we started from
                             pageState = activeTabState;
                         }
                         console.log("[novel-plugin] New state:", pageState);
@@ -269,7 +280,6 @@ function init() {
                     wrapper.appendChild(backBtn);
                 }
                 
-                // --- Page Content Container ---
                 const contentContainer = document.createElement("div");
                 contentContainer.className = "novel-plugin-page-content";
                 wrapper.appendChild(contentContainer);
@@ -286,7 +296,6 @@ function init() {
             // --- Page: Discover ---
             async function renderDiscoverPage(wrapper) {
                 wrapper.innerHTML = \`<div class="novel-plugin-loader"></div>\`;
-                // --- CHANGED ---
                 const media = await AnilistQueries.getTrendingLightNovels();
                 wrapper.innerHTML = ""; 
                 
@@ -301,7 +310,6 @@ function init() {
                     <div class="novel-plugin-hero" style="background-image: linear-gradient(to top, #121212 10%, rgba(18, 18, 18, 0)), url('\${bannerImg}')">
                         <div class="novel-plugin-hero-content">
                             <h1 class="novel-plugin-hero-title">\${heroMedia.title.romaji}</h1>
-       
                              <p class="novel-plugin-hero-score">\${heroMedia.averageScore ?
                             heroMedia.averageScore + '%' : ''} Liked</p>
                             <button class="novel-plugin-button" data-id="\${heroMedia.id}">View Details</button>
@@ -314,7 +322,6 @@ function init() {
                     gridHtml += \`
                         <div class="novel-plugin-poster-card" data-id="\${item.id}">
                             <img src="\${item.coverImage.large}" class="novel-plugin-poster-img" alt="\${item.title.romaji}" style="--cover-color: \${item.coverImage.color || '#8A2BE2'};">
-               
                              <p class="novel-plugin-poster-title" title="\${item.title.romaji}">\${item.title.romaji}</p>
                         </div>
                     \`;
@@ -325,24 +332,19 @@ function init() {
                 wrapper.querySelectorAll('.novel-plugin-poster-card, .novel-plugin-button').forEach(el => {
                     el.onclick = () => {
                         const id = el.getAttribute('data-id');
-                        currentNovel = { id: id }; // Just set the ID for now
-          
+                        currentNovel = { id: id };
+                        // NEW: Reset states
+                        currentNovelSourceId = null;
+                        currentNovelChapters = [];
+                        allAvailableMatches.clear();
                         pageState = "details";
                         renderUI();
                     };
                 });
             }
 
-            // --- Page: Search (Sync) ---
+            // --- Page: Search ---
             function renderSearchPage(wrapper) {
-                // --- ADDED ---
-                const genres = [
-                    "Action", "Adventure", "Comedy", "Drama", "Ecchi", "Fantasy", "Hentai",
-                    "Horror", "Mahou Shoujo", "Mecha", "Music", "Mystery", "Psychological",
-                    "Romance", "Sci-Fi", "Slice of Life", "Sports", "Supernatural", "Thriller"
-                ];
-                // --- END ADDED ---
-
                 wrapper.innerHTML += \`
                     <h1 class="novel-plugin-title">Search</h1>
                     <p class="novel-plugin-subtitle">Search for light novels from Anilist</p>
@@ -352,7 +354,6 @@ function init() {
                         <button id="novel-plugin-search-btn" class="novel-plugin-button">Search</button>
                     </div>
 
-                    <!-- --- ADDED --- -->
                     <div class="novel-plugin-filter-container">
                         <select id="novel-plugin-sort-select" class="novel-plugin-select">
                             <option value="TRENDING_DESC">Sort by Trending</option>
@@ -362,10 +363,9 @@ function init() {
                         </select>
                         <select id="novel-plugin-genre-select" class="novel-plugin-select">
                             <option value="">All Genres</option>
-                            \${genres.map(g => \`<option value="\${g}">\${g}</option>\`).join('')}
+                            \${GENRES.map(g => \`<option value="\${g}">\${g}</option>\`).join('')}
                         </select>
                     </div>
-                    <!-- --- END ADDED --- -->
      
                     <div id="novel-plugin-search-results" class="novel-plugin-grid">
                         <!-- Results will be injected here -->
@@ -374,20 +374,14 @@ function init() {
                 const searchBtn = wrapper.querySelector("#novel-plugin-search-btn");
                 const searchInput = wrapper.querySelector("#" + SEARCH_INPUT_ID);
                 const resultsContainer = wrapper.querySelector("#novel-plugin-search-results");
-                
-                // --- ADDED ---
                 const sortSelect = wrapper.querySelector("#novel-plugin-sort-select");
                 const genreSelect = wrapper.querySelector("#novel-plugin-genre-select");
-                // --- END ADDED ---
 
                 async function performSearch(prefill = false) {
                     const query = searchInput.value;
-                    // --- CHANGED ---
                     const sort = sortSelect.value;
-                    const genre = genreSelect.value || null; // Send null if empty
+                    const genre = genreSelect.value || null; 
                     
-                    // --- CHANGED ---
-                    // If it's a prefill (no query), and no genre is selected, just load trending
                     if (prefill && (!query || query.trim() === "") && !genre) {
                          resultsContainer.innerHTML = \`<div class="novel-plugin-loader"></div>\`;
                          const media = await AnilistQueries.getTrendingLightNovels();
@@ -395,12 +389,9 @@ function init() {
                          return;
                     }
 
-                    // If user has typed, require a query
                     if (!prefill && (!query || query.trim() === "")) return;
-                    // --- END CHANGED ---
                     
                     resultsContainer.innerHTML = \`<div class="novel-plugin-loader"></div>\`;
-                    // --- CHANGED ---
                     const media = await AnilistQueries.searchAnilistLightNovels(query, sort, genre);
                     renderSearchResults(media);
                 }
@@ -417,7 +408,6 @@ function init() {
                         gridHtml += \`
                             <div class="novel-plugin-poster-card" data-id="\${item.id}">
                                 <img src="\${item.coverImage.large}" class="novel-plugin-poster-img" alt="\${item.title.romaji}" style="--cover-color: \${item.coverImage.color || '#8A2BE2'};">
-   
                                  <p class="novel-plugin-poster-title" title="\${item.title.romaji}">\${item.title.romaji}</p>
                             </div>
                         \`;
@@ -428,6 +418,10 @@ function init() {
                         el.onclick = () => {
                             const id = el.getAttribute('data-id');
                             currentNovel = { id: id };
+                            // NEW: Reset states
+                            currentNovelSourceId = null;
+                            currentNovelChapters = [];
+                            allAvailableMatches.clear();
                             pageState = "details";
                             renderUI();
                         };
@@ -435,23 +429,19 @@ function init() {
                     });
                 }
                 
-                searchBtn.onclick = () => performSearch(false); // Button click is never a prefill
+                searchBtn.onclick = () => performSearch(false);
                 searchInput.onkeyup = (e) => {
                     if (e.key === 'Enter') {
                         performSearch(false);
                     }
                 };
-                // --- ADDED ---
-                sortSelect.onchange = () => performSearch(true); // Filter change respects prefill
-                genreSelect.onchange = () => performSearch(true); // Filter change respects prefill
+                sortSelect.onchange = () => performSearch(true); 
+                genreSelect.onchange = () => performSearch(true); 
                 
-                // --- NEW ---
                 performSearch(true); // Initial load
-                // --- END NEW ---
             }
             
-            // --- Page: Details (Async) ---
-            // --- HEAVILY MODIFIED ---
+            // --- Page: Details ---
             async function renderDetailsPage(wrapper) {
                 if (!currentNovel || !currentNovel.id) {
                     console.error("No novel ID, returning to discover.");
@@ -461,7 +451,6 @@ function init() {
                 }
                 
                 wrapper.innerHTML = \`<div class="novel-plugin-loader"></div>\`;
-                // --- CHANGED ---
                 const media = await AnilistQueries.getAnilistLightNovelDetails(currentNovel.id);
                 wrapper.innerHTML = ""; 
                 
@@ -470,37 +459,31 @@ function init() {
                     return;
                 }
                 
-                currentNovel = media; // Store full media object
-                
-                // NEW: Get last read chapter
-                const lastReadChapter = getLastReadChapter(currentNovel.id);
-                
-                // --- Spoiler State ---
+                currentNovel = media; 
+                let lastReadChapter = null;
                 let showSpoilers = false;
                 
-                // --- Banner HTML (User's Request) ---
+                // --- Banner HTML ---
                 const bannerImg = media.bannerImage || media.coverImage.extraLarge;
-                // --- CHANGE: Added border-radius ---
                 let bannerHtml = \`
                     <div style="
                         position: relative;
                         width: 100%;
-                        min-height: 300px; /* User requested height */
+                        min-height: 300px;
                         overflow: hidden;
-                        background-color: #121212; /* fallback */
-                        box-shadow: inset 0 0 0 1px #121212; /* hides tiny side specs */
-                        /* Copied from original CSS for layout */
+                        background-color: #121212;
+                        box-shadow: inset 0 0 0 1px #121212;
                         margin: -1.5rem -1.5rem 0 -1.5rem;
                         max-width: 1000px;
                         box-sizing: content-box;
                         left: 50%;
                         transform: translateX(-50%);
-                        margin-top: -4.5rem; /* BUG 1 FIX from original */
-                        border-radius: 8px; /* --- ADDED --- */
+                        margin-top: -4.5rem;
+                        border-radius: 8px;
                     ">
                         <div style="
                             position: absolute;
-                            inset: 0; /* cover all sides */
+                            inset: 0;
                             background:
                                 linear-gradient(to top, #121212 15%, rgba(18, 18, 18, 0)) no-repeat,
                                 url('\${bannerImg}') center 10% / cover no-repeat;
@@ -508,7 +491,7 @@ function init() {
                     </div>
                 \`;
 
-                // --- Header HTML (Unchanged) ---
+                // --- Header HTML ---
                 let headerHtml = \`
                     <div class="novel-plugin-details-header">
                         <img src="\${media.coverImage.extraLarge}" class="novel-plugin-details-cover" style="--cover-color: \${media.coverImage.color || '#8A2BE2'};">
@@ -524,9 +507,8 @@ function init() {
                     </div>
                 \`;
                 
-                // --- Body HTML (HEAVILY MODIFIED) ---
+                // --- Body HTML (with inner helpers) ---
                 
-                // Helper to generate tag list
                 function getTagsHtml(tags) {
                     if (!tags || tags.length === 0) return '<p class="novel-plugin-sidebar-muted">No tags available.</p>';
                     return tags.map(t => \`
@@ -539,12 +521,9 @@ function init() {
                     \`).join('');
                 }
                 
-                // Helper to generate rankings
                 function getRankingsHtml(rankings) {
                     if (!rankings || rankings.length === 0) return '<p class="novel-plugin-sidebar-muted">No rankings available.</p>';
-                    // Filter for 'allTime' rankings and 'RATED' or 'POPULAR'
                     const ranked = rankings.filter(r => r.allTime && (r.type === 'RATED' || r.type === 'POPULAR'));
-                    // --- FIX: Replaced single quotes around 'all time' with double quotes ---
                     if (ranked.length === 0) return '<p class="novel-plugin-sidebar-muted">No "all time" rankings available.</p>';
                     
                     return \`
@@ -560,7 +539,6 @@ function init() {
                     \`;
                 }
                 
-                // Helper for external links
                 function getLinksHtml(links) {
                     if (!links || links.length === 0) return '<p class="novel-plugin-sidebar-muted">No links available.</p>';
                     return \`
@@ -577,7 +555,6 @@ function init() {
                     \`;
                 }
                 
-                // Helper for Character/Staff grids
                 function getInvolvedGridHtml(edges, type) {
                     if (!edges || edges.length === 0) return '';
                     return \`
@@ -596,7 +573,6 @@ function init() {
                     \`;
                 }
 
-                // Helper for Recommendations grid
                 function getRecsGridHtml(recs) {
                     if (!recs || recs.length === 0) return '';
                     return \`
@@ -616,17 +592,15 @@ function init() {
                     \`;
                 }
                 
-                // Helper for Reviews
                 function getReviewsHtml(reviews) {
                     if (!reviews || reviews.length === 0) return '';
-                    const defaultAvatar = 'https://s4.anilist.co/file/anilistcdn/user/avatar/large/default.png';
                     return \`
                         <h2 class="novel-plugin-section-title">Reviews</h2>
                         <div class="novel-plugin-reviews-list">
                             \${reviews.map(rev => \`
                                 <div class="novel-plugin-review-card">
                                     <div class="novel-plugin-review-header">
-                                        <img src="\${rev.user.avatar ? rev.user.avatar.large : defaultAvatar}" class="novel-plugin-review-avatar" />
+                                        <img src="\${rev.user.avatar ? rev.user.avatar.large : DEFAULT_ANILIST_AVATAR}" class="novel-plugin-review-avatar" />
                                         <div class="novel-plugin-review-meta">
                                             <span class="novel-plugin-review-user">\${rev.user.name}</span>
                                             <span class="novel-plugin-review-summary-text">\${rev.summary || 'No summary'}</span>
@@ -645,7 +619,6 @@ function init() {
                     <div class="novel-plugin-details-body">
                         <div class="novel-plugin-details-main">
                             <div class="novel-plugin-details-description">
-                                <!-- --- CHANGE: Removed section header --- -->
                                 <h3>About</h3>
                                 <p id="novel-plugin-description-text">
                                     \${media.description ? media.description.replace(/<br>/g, ' ') : 'No description available.'}
@@ -680,7 +653,6 @@ function init() {
                                 </div>
                             </div>
                             
-                            <!-- --- CHANGE: Added section header here --- -->
                             <div class="novel-plugin-details-sidebar-section">
                                 <div class="novel-plugin-section-header">
                                     <h3>Tags</h3>
@@ -696,9 +668,8 @@ function init() {
                 
                 wrapper.innerHTML = bannerHtml + headerHtml + bodyHtml;
                 
-                // --- Logic for new elements ---
+                // --- Event Handlers & Async Logic ---
                 
-                // Spoiler Toggle
                 const spoilerToggle = wrapper.querySelector('#novel-plugin-spoiler-toggle');
                 const tagsContainer = wrapper.querySelector('#novel-plugin-tags-container');
                 if (spoilerToggle && tagsContainer) {
@@ -709,36 +680,83 @@ function init() {
                     };
                 }
                 
-                // Recommendation Click Handlers
-                // Use querySelectorAll on the wrapper to scope the search
                 wrapper.querySelectorAll('.novel-plugin-poster-card[data-id]').forEach(el => {
                     const elId = el.getAttribute('data-id');
-                    
-                    // Check if this card is part of the recommendations grid
-                    // This is a bit tricky, but we can check if its data-id is NOT the currentNovel.id
-                    // Note: This might re-bind the main 'discover' cards if they are still in the DOM,
-                    // but renderUI() clears the wrapper, so this should be fine.
-                    
-                    if (elId != currentNovel.id) { // Only bind clicks to *other* media
+                    if (elId != currentNovel.id) {
                          el.onclick = () => {
                             const id = el.getAttribute('data-id');
-                            currentNovel = { id: id }; // Just set the ID for now
+                            currentNovel = { id: id }; 
+                            // NEW: Reset states
+                            currentNovelSourceId = null;
+                            currentNovelChapters = [];
+                            allAvailableMatches.clear();
                             pageState = "details";
                             renderUI();
                         };
                     }
                 });
                 
-                
-                // --- Original Chapter Button Logic ---
                 const chapterBtnContainer = wrapper.querySelector('#novel-plugin-chapter-button-container');
-                
-                // 1. Create a container for the auto-match results (loader first)
                 const autoMatchContainer = document.createElement('div');
+                autoMatchContainer.id = "novel-plugin-auto-match-container";
                 autoMatchContainer.innerHTML = \`<div class="novel-plugin-loader small"></div>\`;
                 chapterBtnContainer.appendChild(autoMatchContainer);
 
-                // 2. Add Manual Search Button
+                // --- Multi-Provider Auto-Match ---
+                
+                // 1. Run autoMatch for all registered sources in parallel
+                const matchPromises = [];
+                sourceRegistry.forEach(source => {
+                    matchPromises.push(source.autoMatch(media.title.romaji, media.title.english));
+                });
+
+                const allResults = await Promise.allSettled(matchPromises);
+                
+                // 2. Find the best match
+                let bestMatch = null;
+                allAvailableMatches.clear();
+                
+                allResults.forEach((result, index) => {
+                    const sourceId = [...sourceRegistry.keys()][index];
+                    // Check if the promise was successful AND returned a result
+                    if (result.status === 'fulfilled' && result.value) {
+                        allAvailableMatches.set(sourceId, { ...result.value, chapters: null }); // Store match, reset chapters
+                        
+                        if (!bestMatch || result.value.similarity > bestMatch.similarity) {
+                            bestMatch = { ...result.value, sourceId: sourceId };
+                        }
+                    } else if (result.status === 'rejected') {
+                        console.error(\`[novel-plugin] Source '\${sourceId}' failed to match:\`, result.reason);
+                    }
+                });
+                
+                // 3. Render the result
+                if (bestMatch) {
+                    console.log(\`[novel-plugin] Auto-match selected: "\${bestMatch.sourceId}" with score \${bestMatch.similarity.toFixed(2)}\`);
+                    currentNovelSourceId = bestMatch.sourceId; // Set the active source
+                    
+                    // Now, asynchronously load chapters for this best match
+                    loadChaptersForActiveSource().then(chapters => {
+                        // Re-validate last read chapter
+                        lastReadChapter = getLastReadChapter(currentNovel.id, currentNovelSourceId);
+                        if (lastReadChapter && chapters.length > 0) {
+                            const savedIndex = lastReadChapter.chapterIndex;
+                            const savedTitle = lastReadChapter.chapterTitle;
+                            if (savedIndex >= chapters.length || chapters[savedIndex].title !== savedTitle) {
+                                console.warn(\`[novel-plugin] Stale chapter data for \${currentNovelSourceId}. Clearing.\`);
+                                localStorage.removeItem(getStorageKey(currentNovel.id, currentNovelSourceId)); 
+                                lastReadChapter = null; 
+                            }
+                        }
+                        // Now render the buttons
+                        renderChapterButtons(autoMatchContainer);
+                    });
+                    
+                } else {
+                    autoMatchContainer.innerHTML = \`<p class="novel-plugin-error-text">No automatic match found on any provider.</p>\`;
+                }
+
+                // Add Manual Search Button
                 const manualSearchBtn = document.createElement('button');
                 manualSearchBtn.className = 'novel-plugin-button secondary';
                 manualSearchBtn.id = 'novel-plugin-manual-match-btn';
@@ -748,81 +766,120 @@ function init() {
                     renderUI();
                 };
                 chapterBtnContainer.appendChild(manualSearchBtn);
+            }
+            
+            /** Helper to render chapter buttons (called after match) */
+            function renderChapterButtons(container) {
+                let readNowHtml = '';
+                lastReadChapter = getLastReadChapter(currentNovel.id, currentNovelSourceId); // Re-get
                 
-                // 3. Asynchronously find chapters and update auto-match container
-                // --- CHANGED ---
-                const chapters = await NovelBuddyScrapers.findNovelBuddyChapters(media.title.romaji, media.title.english);
-                if (chapters && chapters.length > 0) {
-                    currentNovelBuddyChapters = chapters;
-                    
-                    // --- NEW "Read Now" / "Continue" Button ---
-                    let readNowHtml = '';
-                    if (lastReadChapter && lastReadChapter.chapterUrl) {
-                        // Found last read chapter
-                        readNowHtml = \`
-                            <button class="novel-plugin-button" id="novel-plugin-continue-btn">
-                                Continue: \${lastReadChapter.chapterTitle}
-                            </button>
-                        \`;
-                    } else {
-                        // No last read chapter, show "Start Reading"
-                        readNowHtml = \`
-                            <button class="novel-plugin-button" id="novel-plugin-start-btn">
-                                Start Reading (Ch 1)
-                            </button>
-                        \`;
-                    }
-                    
-                    autoMatchContainer.innerHTML = \`
-                        \${readNowHtml}
-                        <button class="novel-plugin-button secondary" id="novel-plugin-view-all-btn">
-                            View All Chapters (\${chapters.length})
+                if (lastReadChapter && lastReadChapter.chapterUrl) {
+                    readNowHtml = \`
+                        <button class="novel-plugin-button" id="novel-plugin-continue-btn">
+                            Continue: \${lastReadChapter.chapterTitle}
                         </button>
                     \`;
-                    
-                    // Add click handlers
-                    const continueBtn = autoMatchContainer.querySelector('#novel-plugin-continue-btn');
-                    if (continueBtn) {
-                        continueBtn.onclick = () => {
-                            loadAndReadChapter(lastReadChapter.chapterUrl, lastReadChapter.chapterIndex);
-                        };
-                    }
-                    
-                    const startBtn = autoMatchContainer.querySelector('#novel-plugin-start-btn');
-                    if (startBtn) {
-                        startBtn.onclick = () => {
-                            loadAndReadChapter(chapters[0].url, 0); // Load first chapter
-                        };
-                    }
-                    
-                    autoMatchContainer.querySelector('#novel-plugin-view-all-btn').onclick = () => {
-                        pageState = "chapters";
-                        renderUI();
-                    };
-                    
                 } else {
-                    autoMatchContainer.innerHTML = \`<p class="novel-plugin-error-text">No automatic match found.</p>\`;
+                    readNowHtml = \`
+                        <button class="novel-plugin-button" id="novel-plugin-start-btn">
+                            Start Reading (Ch 1)
+                        </button>
+                    \`;
+                }
+
+                // --- Source Selector Dropdown ---
+                let sourceSelectorHtml = '';
+                if (allAvailableMatches.size > 1) {
+                    sourceSelectorHtml = \`
+                        <div class="novel-plugin-filter-container" style="margin-bottom: 0.5rem;">
+                            <label for="novel-plugin-source-select">Source:</label>
+                            <select id="novel-plugin-source-select" class="novel-plugin-select">
+                                \${[...allAvailableMatches.keys()].map(sourceId => {
+                                    const source = sourceRegistry.get(sourceId);
+                                    const match = allAvailableMatches.get(sourceId);
+                                    return \`<option value="\${sourceId}" \${sourceId === currentNovelSourceId ? 'selected' : ''}>
+                                        \${source.name} (\${match.similarity.toFixed(2)})
+                                    </option>\`
+                                }).join('')}
+                            </select>
+                        </div>
+                    \`;
+                } else if (allAvailableMatches.size === 1) {
+                     sourceSelectorHtml = \`
+                        <div class="novel-plugin-filter-container" style="margin-bottom: 0.5rem;">
+                             <label>Source:</label>
+                             <span class="novel-plugin-tag">\${sourceRegistry.get(currentNovelSourceId).name}</span>
+                        </div>
+                     \`;
+                }
+
+                container.innerHTML = \`
+                    \${sourceSelectorHtml}
+                    \${readNowHtml}
+                    <button class="novel-plugin-button secondary" id="novel-plugin-view-all-btn">
+                        View All Chapters (\${currentNovelChapters.length})
+                    </button>
+                \`;
+
+                // --- Add Event Handlers ---
+                
+                const continueBtn = container.querySelector('#novel-plugin-continue-btn');
+                if (continueBtn) {
+                    continueBtn.onclick = () => {
+                        loadAndReadChapter(lastReadChapter.chapterUrl, lastReadChapter.chapterIndex);
+                    };
+                }
+                
+                const startBtn = container.querySelector('#novel-plugin-start-btn');
+                if (startBtn) {
+                    startBtn.onclick = () => {
+                        if (currentNovelChapters.length > 0) {
+                            loadAndReadChapter(currentNovelChapters[0].url, 0);
+                        }
+                    };
+                }
+                
+                container.querySelector('#novel-plugin-view-all-btn').onclick = () => {
+                    pageState = "chapters";
+                    renderUI();
+                };
+
+                const sourceSelect = container.querySelector('#novel-plugin-source-select');
+                if (sourceSelect) {
+                    sourceSelect.onchange = async (e) => {
+                        currentNovelSourceId = e.target.value;
+                        console.log(\`[novel-plugin] Source changed to: \${currentNovelSourceId}\`);
+                        
+                        // Show loader while we get new chapters
+                        container.innerHTML = \`<div class="novel-plugin-loader small"></div>\`;
+                        
+                        // Load chapters for the new source
+                        await loadChaptersForActiveSource();
+                        
+                        // Re-render buttons with new chapter data
+                        renderChapterButtons(container);
+                    };
                 }
             }
             
             // --- Page: Manual Match ---
             function renderManualMatchPage(wrapper) {
-                if (!currentNovel) { pageState = "discover";
-                renderUI(); return; }
+                if (!currentNovel) { 
+                    pageState = "discover";
+                    renderUI(); 
+                    return; 
+                }
                 
-                const prefill = currentNovel.title.romaji ||
-                '';
+                const prefill = currentNovel.title.romaji || '';
                 wrapper.innerHTML += \`
                     <h1 class="novel-plugin-title">Manual Match</h1>
-                    <p class="novel-plugin-subtitle">Search NovelBuddy for "\${currentNovel.title.romaji}"</p>
+                    <p class="novel-plugin-subtitle">Search all providers for "\${currentNovel.title.romaji}"</p>
                     <div class="novel-plugin-input-container">
                         <input id="\${SEARCH_INPUT_ID}" class="novel-plugin-input" value="\${prefill.replace(/"/g, '&quot;')}"/>
-  
                         <button id="novel-plugin-manual-search-btn" class="novel-plugin-button">Search</button>
                     </div>
                     <div id="novel-plugin-manual-results" class="novel-plugin-manual-list">
                         <!-- Results will be injected here -->
-    
                     </div>
                 \`;
                 const searchBtn = wrapper.querySelector("#novel-plugin-manual-search-btn");
@@ -834,52 +891,84 @@ function init() {
                     if (!query || query.trim() === "") return;
                     
                     resultsContainer.innerHTML = \`<div class="novel-plugin-loader small"></div>\`;
-                    // --- CHANGED ---
-                    const results = await NovelBuddyScrapers.searchNovelBuddy(query);
-                    resultsContainer.innerHTML = "";
-                    if (results.length === 0) {
-                        resultsContainer.innerHTML = "<p>No results found on NovelBuddy.</p>";
-                        return;
-                    }
                     
-                    results.forEach(item => {
-                        const itemEl = document.createElement('div');
-                        
-                        itemEl.className = 'novel-plugin-result-card';
-                        itemEl.innerHTML = \`
-                            <img 
-                                src="\${item.image || 'https://placehold.co/80x110/2A2A2A/4A4A4A?text=N/A'}" 
-                                 class="novel-plugin-result-img"
-                                referrerpolicy="no-referrer"
-                                 onerror="this.src='https://placehold.co/80x110/2A2A2A/4A4A4A?text=N/A'"
-                            >
-                            <div class="novel-plugin-result-stack">
-                                <p class="novel-plugin-result-title" title="\${item.title}">\${item.title}</p>
-                                 <p class="novel-plugin-result-chapter">\${item.latestChapter ||
-                                'Unknown'}</p>
-                            </div>
-                            <button class="novel-plugin-view-btn select-btn" data-url="\${item.url}">Select</button>
-                        \`;
-                        itemEl.querySelector('.select-btn').onclick = async (e) => {
-                            const url = e.currentTarget.getAttribute("data-url");
-                            isLoading = true; 
-                            renderUI();
-                            
-                            // --- CHANGED ---
-                            const chapters = await NovelBuddyScrapers.getNovelBuddyDetails(url);
-                            currentNovelBuddyChapters = chapters; // Set the chapters
-                            
-                            isLoading = false;
-                            if (chapters.length === 0) {
-                                pageState = "manual-match";
-                                renderUI();
-                            } else {
-                                pageState = "chapters"; // Go to chapter list
-                                renderUI();
-                            }
-                        };
-                        resultsContainer.appendChild(itemEl);
+                    // --- Search all providers ---
+                    const searchPromises = [];
+                    sourceRegistry.forEach((source, sourceId) => {
+                        searchPromises.push(
+                            source.manualSearch(query).then(results => ({ sourceId, sourceName: source.name, results }))
+                        );
                     });
+                    
+                    // Use allSettled to prevent one failure from killing all results
+                    const allResults = await Promise.allSettled(searchPromises);
+                    resultsContainer.innerHTML = "";
+                    
+                    let totalResults = 0;
+                    allResults.forEach(promiseResult => {
+                        if (promiseResult.status === 'rejected') {
+                             console.error("[novel-plugin] Manual search failed for a provider:", promiseResult.reason);
+                             return; // Skip this provider
+                        }
+                        
+                        const { sourceId, sourceName, results } = promiseResult.value;
+                        totalResults += results.length;
+
+                        results.forEach(item => {
+                            const itemEl = document.createElement('div');
+                            itemEl.className = 'novel-plugin-result-card';
+                            itemEl.innerHTML = \`
+                                <span class="novel-plugin-provider-tag" data-provider="\${sourceId}">\${sourceName}</span>
+                                <img 
+                                    src="\${item.image || 'https://placehold.co/80x110/2A2A2A/4A4A4A?text=N/A'}" 
+                                     class="novel-plugin-result-img"
+                                    referrerpolicy="no-referrer"
+                                     onerror="this.src='https://placehold.co/80x110/2A2A2A/4A4A4A?text=N/A'"
+                                >
+                                <div class="novel-plugin-result-stack">
+                                    <p class="novel-plugin-result-title" title="\${item.title}">\${item.title}</p>
+                                     <p class="novel-plugin-result-chapter">\${item.latestChapter || 'Unknown'}</p>
+                                </div>
+                                <button class="novel-plugin-view-btn select-btn" data-url="\${item.url}" data-source-id="\${sourceId}">Select</button>
+                            \`;
+                            itemEl.querySelector('.select-btn').onclick = async (e) => {
+                                const url = e.currentTarget.getAttribute("data-url");
+                                const newSourceId = e.currentTarget.getAttribute("data-source-id");
+                                
+                                isLoading = true; 
+                                renderUI();
+                                
+                                const source = sourceRegistry.get(newSourceId);
+                                const chapters = await source.getChapters(url);
+                                
+                                // Set the state
+                                currentNovelSourceId = newSourceId;
+                                currentNovelChapters = chapters;
+                                
+                                // Manually create a "match" record for the chapter list
+                                allAvailableMatches.clear();
+                                allAvailableMatches.set(newSourceId, {
+                                    match: { url: url, title: item.title, image: item.image },
+                                    similarity: 1.0, // Manual match is always 1.0
+                                    chapters: chapters
+                                });
+                                
+                                isLoading = false;
+                                if (chapters.length === 0) {
+                                    pageState = "manual-match";
+                                    renderUI();
+                                } else {
+                                    pageState = "chapters"; 
+                                    renderUI();
+                                }
+                            };
+                            resultsContainer.appendChild(itemEl);
+                        });
+                    });
+
+                    if (totalResults === 0) {
+                        resultsContainer.innerHTML = "<p>No results found on any provider.</p>";
+                    }
                 }
 
                 searchBtn.onclick = performManualSearch;
@@ -888,28 +977,41 @@ function init() {
                         performManualSearch();
                     }
                 };
-                // Perform an initial search immediately
                 performManualSearch();
             }
 
-            // --- Page: Chapters (Sync) ---
-            function renderChapterListPage(wrapper) {
-                if (!currentNovel) { pageState = "discover";
-                renderUI(); return; }
+            // --- Page: Chapters ---
+            async function renderChapterListPage(wrapper) {
+                if (!currentNovel) { 
+                    pageState = "discover";
+                    renderUI(); 
+                    return; 
+                }
+
+                // Ensure chapters are loaded
+                if (currentNovelChapters.length === 0) {
+                    // This can happen if user reloads on this page.
+                    // Let's try to load them.
+                    isLoading = true;
+                    renderUI();
+                    await loadChaptersForActiveSource();
+                    isLoading = false;
+                    renderUI(); // Re-render now that we have chapters
+                    return;
+                }
+                
                 let chaptersHtml = \`
                     <h2 class="novel-plugin-title">\${currentNovel.title.romaji}</h2>
-                    <p class="novel-plugin-subtitle">Chapters</p>
+                    <p class="novel-plugin-subtitle">Chapters (\${sourceRegistry.get(currentNovelSourceId).name})</p>
                     <div class="novel-plugin-chapter-list">
-                
                 \`;
                 
-                if (currentNovelBuddyChapters.length === 0) {
-                     chaptersHtml += "<p>No chapters found.</p>";
+                if (currentNovelChapters.length === 0) {
+                     chaptersHtml += "<p>No chapters found for this provider.</p>";
                 } else {
-                    // NEW: Get last read chapter to highlight it
-                    const lastReadChapter = getLastReadChapter(currentNovel.id);
+                    const lastReadChapter = getLastReadChapter(currentNovel.id, currentNovelSourceId);
                     
-                    currentNovelBuddyChapters.forEach((chapter, index) => {
+                    currentNovelChapters.forEach((chapter, index) => {
                         const isLastRead = lastReadChapter && lastReadChapter.chapterIndex === index;
                         chaptersHtml += \`
                             <div class="novel-plugin-chapter-item \${isLastRead ? 'last-read' : ''}">
@@ -924,7 +1026,6 @@ function init() {
                 chaptersHtml += '</div>';
                 wrapper.innerHTML += chaptersHtml;
                 
-                // NEW: Attach click handler to load chapter
                 wrapper.querySelectorAll(".read-btn").forEach(btn => {
                     btn.onclick = (e) => {
                         const url = e.currentTarget.getAttribute("data-url");
@@ -934,6 +1035,7 @@ function init() {
                 });
             }
             
+            // --- Page: Reader ---
             function renderReaderPage(wrapper) {
                 if (!currentNovel || currentChapterContent === null) {
                     pageState = "chapters";
@@ -941,11 +1043,9 @@ function init() {
                     return;
                 }
                 
-                // --- Reader Navigation Header ---
                 const readerHeader = document.createElement('div');
                 readerHeader.className = 'novel-plugin-reader-header';
                 
-                // Prev Button
                 const prevBtn = document.createElement('button');
                 prevBtn.className = 'novel-plugin-button';
                 prevBtn.textContent = '‹ Prev';
@@ -953,26 +1053,24 @@ function init() {
                 prevBtn.onclick = () => {
                     if (currentChapterIndex > 0) {
                         const newIndex = currentChapterIndex - 1;
-                        loadAndReadChapter(currentNovelBuddyChapters[newIndex].url, newIndex);
+                        loadAndReadChapter(currentNovelChapters[newIndex].url, newIndex);
                     }
                 };
                 
-                // Next Button
                 const nextBtn = document.createElement('button');
                 nextBtn.className = 'novel-plugin-button';
                 nextBtn.textContent = 'Next ›';
-                nextBtn.disabled = currentChapterIndex >= currentNovelBuddyChapters.length - 1;
+                nextBtn.disabled = currentChapterIndex >= currentNovelChapters.length - 1;
                 nextBtn.onclick = () => {
-                    if (currentChapterIndex < currentNovelBuddyChapters.length - 1) {
+                    if (currentChapterIndex < currentNovelChapters.length - 1) {
                         const newIndex = currentChapterIndex + 1;
-                        loadAndReadChapter(currentNovelBuddyChapters[newIndex].url, newIndex);
+                        loadAndReadChapter(currentNovelChapters[newIndex].url, newIndex);
                     }
                 };
                 
-                // Chapter Select
                 const chapterSelect = document.createElement('select');
                 chapterSelect.className = 'novel-plugin-select';
-                currentNovelBuddyChapters.forEach((chapter, index) => {
+                currentNovelChapters.forEach((chapter, index) => {
                     const option = document.createElement('option');
                     option.value = index;
                     option.textContent = chapter.title;
@@ -982,133 +1080,79 @@ function init() {
                     chapterSelect.appendChild(option);
                 });
                 chapterSelect.onchange = (e) => {
-                    // FIX: Parse value to integer for correct comparison and indexing
                     const newIndex = parseInt(e.target.value, 10);
                     if (newIndex !== currentChapterIndex) {
-                        loadAndReadChapter(currentNovelBuddyChapters[newIndex].url, newIndex);
+                        loadAndReadChapter(currentNovelChapters[newIndex].url, newIndex);
                     }
                 };
                 
                 readerHeader.appendChild(prevBtn);
                 readerHeader.appendChild(chapterSelect);
                 readerHeader.appendChild(nextBtn);
-                wrapper.appendChild(readerHeader); // Add the header
-                // --- END: Reader Navigation Header ---
-                
+                wrapper.appendChild(readerHeader);
                 
                 const readerContainer = document.createElement('div');
                 readerContainer.className = 'novel-plugin-reader-container';
                 
                 const readerContent = document.createElement('div');
                 readerContent.className = 'novel-plugin-reader-content';
-                readerContent.innerHTML = currentChapterContent; // Set innerHTML here
+                readerContent.innerHTML = currentChapterContent;
                 
                 readerContainer.appendChild(readerContent);
-                wrapper.appendChild(readerContainer); // Add the content
+                wrapper.appendChild(readerContainer);
             }
         
             // ---------------------------------------------------------------------------
-            // 9. MODAL LIFECYCLE
+            // 7. MODAL LIFECYCLE
             // ---------------------------------------------------------------------------
         
+            function loadAsset(url, id, type, logName) {
+                return new Promise(async (resolve, reject) => {
+                    try {
+                        console.log(\`[novel-plugin] Attempting to fetch \${logName} from: \${url}\`);
+                        const res = await fetch(url);
+                        if (!res.ok) throw new Error(\`Fetch failed: \${res.status}\`);
+                        const textContent = await res.text();
+            
+                        const el = document.createElement(type);
+                        el.id = id;
+                        el.textContent = textContent;
+                        
+                        if (type === 'style') {
+                            el.textContent += \`
+                                .novel-plugin-reader-header { display: flex; gap: 8px; align-items: center; }
+                                .novel-plugin-reader-header .novel-plugin-select { flex-grow: 1; }
+                                .novel-plugin-back-btn { width: auto; height: auto; padding: 4px 12px; border-radius: 9999px; }
+                            \`;
+                        }
+
+                        document.head.appendChild(el);
+                        console.log(\`[novel-plugin] External \${logName} fetched and injected.\`);
+                        resolve();
+                    } catch (err) {
+                        console.error(\`[novel-plugin] FAILED to fetch or inject \${logName}: \${err.message}\`, err);
+                        reject(err);
+                    }
+                });
+            }
+
             async function openNovelPage() {
                 if (mainLayout) mainLayout.style.display = "none";
-                const loadCss = new Promise(async (resolve, reject) => {
-                    const cssUrl = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/styles.css";
-                    
-                    try {
-                        console.log(\`[novel-plugin] Attempting to fetch CSS from: \${cssUrl}\`);
-                        const res = await fetch(cssUrl);
-                        if (!res.ok) throw new Error(\`Fetch failed: \${res.status}\`);
-                        const cssText = await res.text();
-            
-                        const style = document.createElement("style");
-                        style.id = STYLE_ID;
-                        style.textContent = cssText;
-                        
-                        // --- FIX: Add new CSS rules for reader header layout ---
-                        style.textContent += \`
-                            .novel-plugin-reader-header { 
-                                display: flex; 
-                                gap: 8px; 
-                                align-items: center; 
-                            }
-                            .novel-plugin-reader-header .novel-plugin-select { 
-                                flex-grow: 1; 
-                            }
-                            /* --- NEW FIX: Fix back button --- */
-                            .novel-plugin-back-btn {
-                                width: auto;
-                                height: auto;
-                                padding: 4px 12px;
-                                border-radius: 9999px;
-                            }
-                        \`;
-                        // --- END FIX ---
-                        
-                        document.head.appendChild(style);
-         
-                        console.log("[novel-plugin] External CSS fetched and injected.");
-                        resolve();
-                    } catch (err) {
-                        console.error("[novel-plugin] FAILED to fetch or inject CSS:", err);
-                        reject(err);
-                    }
-                });
-
-                // --- ADDED THIS BLOCK ---
-                const loadQueries = new Promise(async (resolve, reject) => {
-                    // !!! IMPORTANT: You must host this file and update the URL !!!
-                    const jsUrl = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/anilist.js"; 
-                    
-                    try {
-                        console.log(\`[novel-plugin] Attempting to fetch JS from: \${jsUrl}\`);
-                        const res = await fetch(jsUrl);
-                        if (!res.ok) throw new Error(\`Fetch failed: \${res.status}\`);
-                        const jsText = await res.text();
-            
-                        const script = document.createElement("script");
-                        script.id = SCRIPT_QUERY_ID;
-                        script.textContent = jsText;
-                        document.head.appendChild(script);
-         
-                        console.log("[novel-plugin] External JS (Queries) fetched and injected.");
-                        resolve();
-                    } catch (err) {
-                        console.error("[novel-plugin] FAILED to fetch or inject JS (Queries):", err);
-                        reject(err);
-                    }
-                });
-
-                const loadScrapers = new Promise(async (resolve, reject) => {
-                    // !!! IMPORTANT: You must host this file and update the URL !!!
-                    const jsUrl = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/novelbuddy.js"; 
-                    
-                    try {
-                        console.log(\`[novel-plugin] Attempting to fetch JS from: \${jsUrl}\`);
-                        const res = await fetch(jsUrl);
-                        if (!res.ok) throw new Error(\`Fetch failed: \${res.status}\`);
-                        const jsText = await res.text();
-            
-                        const script = document.createElement("script");
-                        script.id = SCRIPT_SCRAPER_ID;
-                        script.textContent = jsText;
-                        document.head.appendChild(script);
-         
-                        console.log("[novel-plugin] External JS (Scrapers) fetched and injected.");
-                        resolve();
-                    } catch (err) {
-                        console.error("[novel-plugin] FAILED to fetch or inject JS (Scrapers):", err);
-                        reject(err);
-                    }
-                });
-                // --- END ADDED BLOCK ---
-
+                
+                const cssUrl = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/styles.css";
+                const queriesUrl = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/anilist.js";
+                const scrapersUrlNovelBuddy = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/novelbuddy.js";
+                const scrapersUrlNovelBin = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/novelbin.js";
+                
                 try {
-                    await loadCss;
-                    await loadQueries; // <-- ADDED AWAIT
-                    await loadScrapers; // <-- ADDED AWAIT
+                    await Promise.all([
+                        loadAsset(cssUrl, STYLE_ID, 'style', 'CSS'),
+                        loadAsset(queriesUrl, SCRIPT_QUERY_ID, 'script', 'JS (Queries)'),
+                        loadAsset(scrapersUrlNovelBuddy, SCRIPT_SCRAPER_ID_NOVELBUDDY, 'script', 'JS (NovelBuddy)'),
+                        loadAsset(scrapersUrlNovelBin, SCRIPT_SCRAPER_ID_NOVELBIN, 'script', 'JS (NovelBin)') 
+                    ]);
                     
+                    // All assets are loaded, now build the UI
                     const backdrop = document.createElement("div");
                     backdrop.id = BACKDROP_ID;
                     backdrop.innerHTML = getModalHtml();
@@ -1128,32 +1172,33 @@ function init() {
                     
                     renderUI(); // Initial render
                 } catch (err) {
-                    console.error("[novel-plugin] Could not start modal.", err.message, err.stack);
-                    closeNovelPage(); 
+                    console.error("[novel-plugin] Could not start modal due to asset load failure.", err.message, err.stack);
+                    closeNovelPage(); // Clean up partial loads
                 }
             }
             
             function closeNovelPage() {
                 if (mainLayout) mainLayout.style.display = "flex";
-                const backdrop = document.getElementById(BACKDROP_ID);
-                if (backdrop) backdrop.remove();
-                const style = document.getElementById(STYLE_ID);
-                if (style) style.remove();
                 
-                // --- ADDED THIS BLOCK ---
-                const queries = document.getElementById(SCRIPT_QUERY_ID);
-                if (queries) queries.remove();
-                const scrapers = document.getElementById(SCRIPT_SCRAPER_ID);
-                if (scrapers) scrapers.remove();
-                // --- END ADDED BLOCK ---
+                const removeEl = (id) => {
+                    const el = document.getElementById(id);
+                    if (el) el.remove();
+                };
 
+                removeEl(BACKDROP_ID);
+                removeEl(STYLE_ID);
+                removeEl(SCRIPT_QUERY_ID);
+                removeEl(SCRIPT_SCRAPER_ID_NOVELBUDDY);
+                removeEl(SCRIPT_SCRAPER_ID_NOVELBIN); 
+                
                 const self = document.querySelector(\`script[data-novel-plugin-id="\${SCRIPT_ID}"]\`);
                 if (self) self.remove();
+                
                 console.log("[novel-plugin] Cleaned up and removed.");
             }
             
             // ---------------------------------------------------------------------------
-            // 10. START PLUGIN
+            // 8. START PLUGIN
             // ---------------------------------------------------------------------------
             await openNovelPage();
         })();
