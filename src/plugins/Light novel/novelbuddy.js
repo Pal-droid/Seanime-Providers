@@ -1,91 +1,58 @@
 (function() {
     // Check if script is already loaded
-    if (window.NovelBuddyScrapers) {
+    if (window.NovelBuddySource) {
         return;
     }
 
     const NOVELBUDDY_URL = "https://novelbuddy.com";
 
-    /**
-     * Calculates the Levenshtein distance between two strings.
-     * @param {string} a 
-     * @param {string} b 
-     * @returns {number}
-     */
+    // --- Private Utility Functions ---
+
     function getLevenshteinDistance(a, b) {
         if (a.length === 0) return b.length;
         if (b.length === 0) return a.length;
-
         const matrix = [];
-
-        // increment along the first column of each row
-        for (let i = 0; i <= b.length; i++) {
-            matrix[i] = [i];
-        }
-
-        // increment each column in the first row
-        for (let j = 0; j <= a.length; j++) {
-            matrix[0][j] = j;
-        }
-
-        // Fill in the rest of the matrix
+        for (let i = 0; i <= b.length; i++) { matrix[i] = [i]; }
+        for (let j = 0; j <= a.length; j++) { matrix[0][j] = j; }
         for (let i = 1; i <= b.length; i++) {
             for (let j = 1; j <= a.length; j++) {
                 if (b.charAt(i - 1) == a.charAt(j - 1)) {
                     matrix[i][j] = matrix[i - 1][j - 1];
                 } else {
-                    matrix[i][j] = Math.min(
-                        matrix[i - 1][j - 1] + 1, // substitution
-                        matrix[i][j - 1] + 1,     // insertion
-                        matrix[i - 1][j] + 1      // deletion
-                    );
+                    matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
                 }
             }
         }
-
         return matrix[b.length][a.length];
     }
 
-    /**
-     * Calculates a normalized similarity score (0-1) based on Levenshtein distance.
-     * @param {string} s1 
-     * @param {string} s2 
-     * @returns {number}
-     */
     function getSimilarity(s1, s2) {
         let longer = s1.toLowerCase();
         let shorter = s2.toLowerCase();
-        if (s1.length < s2.length) {
-            longer = s2.toLowerCase();
-            shorter = s1.toLowerCase();
-        }
+        if (s1.length < s2.length) { longer = s2.toLowerCase(); shorter = s1.toLowerCase(); }
         let longerLength = longer.length;
-        if (longerLength == 0) {
-            return 1.0;
-        }
-        // Calculate distance
+        if (longerLength == 0) { return 1.0; }
         const distance = getLevenshteinDistance(longer, shorter);
-        // Return normalized similarity
         return (longerLength - distance) / parseFloat(longerLength);
     }
 
+    // --- Interface Implementation ---
 
     /**
      * Searches NovelBuddy for a query
      * @param {string} query 
-     * @returns {Promise<Array>}
+     * @returns {Promise<SearchResult[]>}
      */
-    async function searchNovelBuddy(query) {
+    async function manualSearch(query) {
         const url = `${NOVELBUDDY_URL}/search?q=${encodeURIComponent(query)}`;
         try {
             const res = await fetch(url);
             const html = await res.text();
             const results = [];
-            
-            // --- DOMParser IMPLEMENTATION ---
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, "text/html");
             const items = doc.querySelectorAll('.book-item');
+            
             items.forEach(item => {
                 const titleElement = item.querySelector('h3 a');
                 const title = titleElement?.title?.trim() || "Unknown Title";
@@ -105,11 +72,9 @@
                     latestChapter: latestChapter 
                 });
             });
-            // --- END DOMParser ---
- 
             return results;
         } catch (err) {
-            console.error("[novel-plugin] NovelSearch Error:", err);
+            console.error("[novel-plugin] NovelBuddy Search Error:", err);
             return [];
         }
     }
@@ -117,9 +82,9 @@
     /**
      * Gets all chapter URLs and titles for a novel
      * @param {string} novelUrl 
-     * @returns {Promise<Array>}
+     * @returns {Promise<Chapter[]>}
      */
-    async function getNovelBuddyDetails(novelUrl) {
+    async function getChapters(novelUrl) {
         const url = `${NOVELBUDDY_URL}${novelUrl}`;
         try {
             const res = await fetch(url);
@@ -134,29 +99,22 @@
             const chapterHtml = await chapterRes.text();
             const chapters = [];
             
-            // --- DOMParser IMPLEMENTATION ---
             const parser = new DOMParser();
             const doc = parser.parseFromString(chapterHtml, "text/html");
             const chapterItems = doc.querySelectorAll('ul.chapter-list li a');
             chapterItems.forEach(link => {
                 const url = link.getAttribute('href');
-                
-                // --- FIX: Prioritize 'strong' tag, then fall back to 'title' attribute ---
                 let title = link.querySelector('strong.chapter-title')?.textContent?.trim();
                 if (!title || title.length === 0) {
-                    // Fallback to title attribute if strong tag is missing/empty
                     title = link.getAttribute('title')?.trim() || "Unknown Chapter";
                 }
-                // --- END FIX ---
-                
                 if (url) {
                     chapters.push({ url: url, title: title });
                 }
             });
-            // --- END DOMParser ---
             return chapters.reverse(); // Reverse to get CH 1 first
         } catch (err) {
-            console.error("[novel-plugin] NovelDetails Error:", err);
+            console.error("[novel-plugin] NovelBuddy Details Error:", err);
             return [];
         }
     }
@@ -166,13 +124,11 @@
      * @param {string} chapterUrl 
      * @returns {Promise<string>}
      */
-    async function getNovelBuddyChapterContent(chapterUrl) {
+    async function getChapterContent(chapterUrl) {
         const url = `${NOVELBUDDY_URL}${chapterUrl}`;
         try {
             const res = await fetch(url);
             const html = await res.text();
-    
-            // --- DOMParser IMPLEMENTATION ---
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, "text/html");
             const contentElement = doc.querySelector('.content-inner');
@@ -181,25 +137,14 @@
                 throw new Error("Could not extract chapter content.");
             }
     
-            // 1. Remove specific unwanted elements (ads, scripts, etc.)
-            contentElement.querySelectorAll('script').forEach(el => el.remove());
-            contentElement.querySelectorAll('div[id^="pf-"]').forEach(el => el.remove());
-            contentElement.querySelectorAll('div[style="text-align:center"]').forEach(el => el.remove());
-            contentElement.querySelectorAll('ins').forEach(el => el.remove());
-            contentElement.querySelectorAll('div[align="center"]').forEach(el => el.remove());
-    
-            // 2. Remove empty <div> tags that sometimes break up the text
+            contentElement.querySelectorAll('script, div[id^="pf-"], div[style="text-align:center"], ins, div[align="center"]').forEach(el => el.remove());
             contentElement.querySelectorAll('div').forEach(div => {
-                if (div.innerHTML.trim() === '') {
-                    div.remove();
-                }
+                if (div.innerHTML.trim() === '') div.remove();
             });
     
             return contentElement.innerHTML;
-            // --- END DOMParser ---
-    
         } catch (err) {
-            console.error("[novel-plugin] ChapterContent Error:", err);
+            console.error("[novel-plugin] NovelBuddy ChapterContent Error:", err);
             return "<p>Error loading chapter content.</p>";
         }
     }
@@ -208,85 +153,89 @@
      * Tries to find the best match on NovelBuddy for an Anilist title
      * @param {string} romajiTitle 
      * @param {string} englishTitle 
-     * @returns {Promise<Array>}
+     * @returns {Promise<{ match: SearchResult, similarity: number } | null>}
      */
-    async function findNovelBuddyChapters(romajiTitle, englishTitle) {
-        // --- ADDED DEBUG LOGS ---
-        console.log(`[novel-plugin-matcher] START: Matching for "${romajiTitle}"`);
+    async function autoMatch(romajiTitle, englishTitle) {
+        // --- THIS IS THE CORRECT, REFFACTORED FUNCTION ---
+        console.log(`[novel-plugin-matcher] (NovelBuddy) START: Matching for "${romajiTitle}"`);
         
         // 1. Get results for Romaji title
-        const romajiResults = await searchNovelBuddy(romajiTitle);
+        const romajiResults = await manualSearch(romajiTitle);
         let bestRomajiMatch = null;
         let bestRomajiScore = 0.0;
-
         if (romajiResults && romajiResults.length > 0) {
             romajiResults.forEach(item => {
                 const similarity = getSimilarity(romajiTitle, item.title);
+                console.log(`[novel-plugin-matcher] (NovelBuddy) Romaji Compare: "${romajiTitle}" vs "${item.title}" (Score: ${similarity.toFixed(2)})`);
                 if (similarity > bestRomajiScore) {
                     bestRomajiScore = similarity;
                     bestRomajiMatch = item;
                 }
             });
         }
-        console.log(`[novel-plugin-matcher] Romaji Best: "${bestRomajiMatch?.title}" (Score: ${bestRomajiScore.toFixed(2)})`);
+        console.log(`[novel-plugin-matcher] (NovelBuddy) Romaji Best: "${bestRomajiMatch?.title}" (Score: ${bestRomajiScore.toFixed(2)})`);
 
-        // 2. Get results for English title (if it exists and is different)
+        // 2. Get results for English title
         let bestEnglishMatch = null;
         let bestEnglishScore = 0.0;
-
         if (englishTitle && englishTitle.toLowerCase() !== romajiTitle.toLowerCase()) {
-            console.log(`[novel-plugin-matcher] INFO: Also matching with English: "${englishTitle}"`);
-            const englishResults = await searchNovelBuddy(englishTitle);
-            
+            console.log(`[novel-plugin-matcher] (NovelBuddy) INFO: Also matching with English: "${englishTitle}"`);
+            const englishResults = await manualSearch(englishTitle);
             if (englishResults && englishResults.length > 0) {
                 englishResults.forEach(item => {
                     const similarity = getSimilarity(englishTitle, item.title);
+                    console.log(`[novel-plugin-matcher] (NovelBuddy) English Compare: "${englishTitle}" vs "${item.title}" (Score: ${similarity.toFixed(2)})`);
                     if (similarity > bestEnglishScore) {
                         bestEnglishScore = similarity;
                         bestEnglishMatch = item;
                     }
                 });
             }
-            console.log(`[novel-plugin-matcher] English Best: "${bestEnglishMatch?.title}" (Score: ${bestEnglishScore.toFixed(2)})`);
+            console.log(`[novel-plugin-matcher] (NovelBuddy) English Best: "${bestEnglishMatch?.title}" (Score: ${bestEnglishScore.toFixed(2)})`);
         }
 
-        // 3. Compare the best scores and set the final match
+        // 3. Compare the best scores
         let bestMatch = null;
         let highestSimilarity = 0.0;
-        let matchSource = "N/A";
-
         if (bestRomajiScore > bestEnglishScore) {
             bestMatch = bestRomajiMatch;
             highestSimilarity = bestRomajiScore;
-            matchSource = "Romaji";
         } else {
             bestMatch = bestEnglishMatch;
             highestSimilarity = bestEnglishScore;
-            matchSource = "English";
         }
 
-        console.log(`[novel-plugin-matcher] Final Best: "${bestMatch?.title}" (Source: ${matchSource}, Score: ${highestSimilarity.toFixed(2)})`);
+        console.log(`[novel-plugin-matcher] (NovelBuddy) Final Best: "${bestMatch?.title}" (Score: ${highestSimilarity.toFixed(2)})`);
 
         // 4. Check against the 0.8 threshold
         if (highestSimilarity > 0.8 && bestMatch) {
-            console.log(`[novel-plugin-matcher] SUCCESS: Match found and accepted (Score > 0.8). Fetching details...`);
-            const chapters = await getNovelBuddyDetails(bestMatch.url);
-            return chapters;
+            console.log(`[novel-plugin-matcher] (NovelBuddy) SUCCESS: Match found (Score > 0.8).`);
+            return {
+                match: bestMatch,
+                similarity: highestSimilarity
+            };
         } else {
-            console.log(`[novel-plugin-matcher] FAILURE: No match found above 0.8 threshold. (Best was ${highestSimilarity.toFixed(2)})`);
-            return [];
+            console.log(`[novel-plugin-matcher] (NovelBuddy) FAILURE: No match found above 0.8 threshold.`);
+            return null;
         }
-        // --- END DEBUG LOGS ---
     }
 
-    // Expose the public functions to the global window object
-    window.NovelBuddyScrapers = {
-        searchNovelBuddy,
-        getNovelBuddyDetails,
-        getNovelBuddyChapterContent,
-        findNovelBuddyChapters
+    // --- Create and Register The Source ---
+
+    const novelBuddySource = {
+        id: "novelbuddy",
+        name: "NovelBuddy",
+        autoMatch,
+        manualSearch,
+        getChapters,
+        getChapterContent
     };
 
-    console.log('[novel-plugin] NovelBuddyScrapers loaded.');
+    if (window.novelPluginRegistry) {
+        window.novelPluginRegistry.registerSource(novelBuddySource);
+        console.log('[novel-plugin] NovelBuddySource registered.');
+    } else {
+        console.error('[novel-plugin] NovelBuddySource: Registry not found!');
+    }
 
 })();
