@@ -1023,6 +1023,7 @@
     }
     .novel-plugin-details-info {
         padding-bottom: 0;
+        flex-grow: 1; 
         text-align: center; /* Center-align title/subtitle */
     }
 
@@ -1036,7 +1037,7 @@
         min-width: 100%; /* Take full width */
         gap: 2rem; /* Add more space between sections */
     }
-    
+
     /* --- Details Page Grids --- */
     .novel-plugin-involved-grid {
          /* Force one column for character/staff cards */
@@ -1069,5 +1070,3 @@
         padding: 1rem;
     }
 }
-
-
