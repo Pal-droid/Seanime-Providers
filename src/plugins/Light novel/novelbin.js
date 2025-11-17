@@ -70,8 +70,10 @@
                     image = `${NOVELBIN_URL}${image}`;
                 }
 
-                const latestChapterElement = item.querySelector('span.chapter-title');
+                // --- FIX: Use correct selector based on novelbin.txt ---
+                const latestChapterElement = item.querySelector('span.chr-text.chapter-title');
                 const latestChapter = latestChapterElement?.textContent?.trim() || "No Chapter";
+                // --- END FIX ---
               
                 results.push({ 
                     title: title, 
@@ -94,7 +96,7 @@
      */
     async function getChapters(novelUrl) {
         try {
-            // --- FIX: Extract novel slug from URL ---
+            // --- FIX: Extract novel slug from URL. This is the correct ID. ---
             const novelSlugMatch = novelUrl.match(/novel-book\/(.*?)(?:\/|$)/);
             if (!novelSlugMatch || !novelSlugMatch[1]) {
                  throw new Error(`Could not extract novel-slug from URL: ${novelUrl}`);
@@ -102,13 +104,11 @@
             const novelSlug = novelSlugMatch[1];
             // --- END FIX ---
 
-            // --- REMOVED: Unnecessary fetch of the novelUrl page ---
-            
             const chapters = [];
             const parser = new DOMParser();
 
-            // --- FIX: Use the extracted slug ---
-            const chapterApiUrl = `${CORS_PROXY_URL}${NOVELBIN_URL}/api/novel/${novelSlug}/chapters`;
+            // --- Use the extracted slug as the "novelId" ---
+            const chapterApiUrl = `${CORS_PROXY_URL}${NOVELBIN_URL}/ajax/chapter-archive?novelId=${novelSlug}`;
             const chapterRes = await fetch(chapterApiUrl);
             const chapterHtml = await chapterRes.text();
             const chapterDoc = parser.parseFromString(chapterHtml, "text/html");
