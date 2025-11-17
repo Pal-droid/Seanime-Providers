@@ -107,7 +107,7 @@
             const chapters = [];
             const parser = new DOMParser();
 
-            // --- Use the extracted slug as the "novelId" ---
+            // --- UPDATED: Use the correct chapter API endpoint ---
             const chapterApiUrl = `${CORS_PROXY_URL}${NOVELBIN_URL}/ajax/chapter-archive?novelId=${novelSlug}`;
             const chapterRes = await fetch(chapterApiUrl);
             const chapterHtml = await chapterRes.text();
