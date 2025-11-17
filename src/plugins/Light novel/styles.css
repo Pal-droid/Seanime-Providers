@@ -1023,6 +1023,7 @@
     }
     .novel-plugin-details-info {
         padding-bottom: 0;
+        flex-grow: 1; 
         text-align: center; /* Center-align title/subtitle */
     }
 
