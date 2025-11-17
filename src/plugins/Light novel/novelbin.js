@@ -145,7 +145,10 @@
             const html = await res.text();
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, "text/html");
-            const contentElement = doc.querySelector('#novel-chapter-content');
+            
+            // --- FIX: Use the correct content selector ---
+            const contentElement = doc.querySelector('#chr-content');
+            // --- END FIX ---
     
             if (!contentElement) {
                 throw new Error("Could not extract chapter content.");
