@@ -1,30 +1,27 @@
 /**
- * Seanime Extension for Comick
- * Implements MangaProvider interface for 'https://comick.io'.
+ * Seanime Extension for Comix
+ * Implements MangaProvider interface for 'https://comix.to'.
  */
 class Provider {
 
     constructor() {
-        this.api = 'https://api.comick.io';
+        this.api = 'https://comix.to';
+        this.apiUrl = 'https://comix.to/api/v2';
     }
-
-    api = ''; 
 
     getSettings() {
         return {
-            supportsMultiLanguage: true, // Comick supports multiple languages
-            supportsMultiScanlator: true, // Comick lists scanlators
+            supportsMultiScanlator: true, // API returns scanlator info
         };
     }
 
     /**
      * Searches for manga based on a query.
-     * Uses the JSON API structure provided.
+     * Uses the API to find manga and constructs a composite ID containing the hash_id and slug.
      */
     async search(opts) {
         const queryParam = opts.query;
-        // Endpoint derived from standard API patterns for this structure
-        const url = `${this.api}/v1.0/search?q=${encodeURIComponent(queryParam)}`;
+        const url = `${this.apiUrl}/manga?keyword=${encodeURIComponent(queryParam)}&order[relevance]=desc`;
 
         try {
             const response = await fetch(url);
@@ -33,31 +30,24 @@ class Provider {
             
             const data = await response.json();
             
-            // Verify structure matches comix.txt: { result: { items: [...] } } or direct array
-            // Common API behavior for this structure:
-            const items = data.result?.items || [];
-            
+            // Check if result items exist
+            if (!data.result || !data.result.items) return [];
+
+            const items = data.result.items;
             let mangas = [];
 
-            items.forEach((element) => {
-                // "what we need is: hash id, and slug."
-                const id = element.hash_id; // Using hash_id as the primary ID
-                const title = element.title;
-                const slug = element.slug;
-                
-                // The provided text snippet did not contain an image/cover field.
-                // Leaving empty to strictly follow provided info.
-                const image = ''; 
+            items.forEach((item) => {
+                // We need both hash_id and slug for subsequent requests.
+                // Storing them as a composite ID: "hash_id|slug"
+                const compositeId = `${item.hash_id}|${item.slug}`;
 
-                if (id && title) {
-                    mangas.push({
-                        id: id,
-                        title: title,
-                        synopsis: element.synopsis,
-                        year: undefined,
-                        image: image, 
-                    });
-                }
+                mangas.push({
+                    id: compositeId,
+                    title: item.title,
+                    synonyms: item.alt_titles,
+                    year: undefined,
+                    image: item.cover || '', 
+                });
             });
 
             return mangas;
@@ -69,63 +59,48 @@ class Provider {
     }
 
     /**
-     * Finds and parses all chapters for a given manga ID (hash_id).
+     * Finds and parses all chapters for a given manga ID.
+     * Manga ID is expected to be "hash_id|slug".
      */
     async findChapters(mangaId) {
-        // Endpoint for fetching chapters using the manga hash_id
-        const url = `${this.api}/comic/${mangaId}/chapters?lang=en`;
+        // Deconstruct the composite ID
+        const [hashId, slug] = mangaId.split('|');
+
+        if (!hashId || !slug) return [];
+
+        const url = `${this.apiUrl}/manga/${hashId}/chapters?order[number]=desc&limit=100`;
 
         try {
             const response = await fetch(url);
-            if (!response.ok) return [];
-
             const data = await response.json();
-            
-            // Structure from comix.txt: { result: { items: [...] } }
-            // Note: API might return data directly or wrapped in result.items
-            // We check both to be safe given the snippet.
-            let items = [];
-            if (data.chapters) {
-                items = data.chapters;
-            } else if (data.result && data.result.items) {
-                items = data.result.items;
-            } else if (Array.isArray(data)) {
-                items = data;
-            }
+
+            if (!data.result || !data.result.items) return [];
 
             let chapters = [];
 
-            items.forEach((element) => {
-                // "we scrape chapter id and chapter number"
-                const id = element.chapter_id; // Check if this is string or int
-                const chapterNumber = element.number || element.chap;
-                const title = element.title || element.name || `Chapter ${chapterNumber}`;
-                const scanlator = element.scanlation_group?.name;
+            data.result.items.forEach((item) => {
+                // Construct a composite Chapter ID containing all info needed for the page URL
+                // Format: "hash_id|slug|chapter_id|number"
+                const compositeChapterId = `${hashId}|${slug}|${item.chapter_id}|${item.number}`;
 
-                if (id) {
-                    chapters.push({
-                        id: String(id), // Ensure ID is string for compatibility
-                        url: `${this.api}/chapter/${element.hid || id}`, // Web URL or API specific
-                        title: title,
-                        chapter: String(chapterNumber),
-                        index: 0, // Will sort and assign later
-                        scanlator: scanlator
-                    });
-                }
+                chapters.push({
+                    id: compositeChapterId,
+                    url: `${this.api}/title/${hashId}-${slug}/${item.chapter_id}-chapter-${item.number}`, // Web URL representation
+                    title: item.name || `Chapter ${item.number}`,
+                    chapter: item.number.toString(),
+                    index: 0, // Will be set by sorting below
+                    scanlator: item.scanlation_group ? item.scanlation_group.name : undefined,
+                    language: item.language
+                });
             });
 
-            // Remove duplicates based on ID
-            const uniqueChapters = Array.from(new Set(chapters.map(c => c.id)))
-                .map(id => chapters.find(c => c.id === id));
+            chapters.sort((a, b) => parseFloat(b.chapter) - parseFloat(a.chapter));
 
-            // Sort by chapter number descending (usually better for manga apps)
-            uniqueChapters.sort((a, b) => parseFloat(b.chapter) - parseFloat(a.chapter));
-
-            uniqueChapters.forEach((chapter, i) => {
+            chapters.forEach((chapter, i) => {
                 chapter.index = i;
             });
 
-            return uniqueChapters;
+            return chapters;
         }
         catch (e) {
             console.error(e);
@@ -135,45 +110,52 @@ class Provider {
 
     /**
      * Finds and parses the image pages for a given chapter ID.
+     * Chapter ID is expected to be "hash_id|slug|chapter_id|number".
      */
     async findChapterPages(chapterId) {
-        // Endpoint to get chapter images. 
-        // Uses the chapter ID (often the 'hid' in real API, but we use chapterId from previous step)
-        const url = `${this.api}/chapter/${chapterId}`;
+        // Deconstruct the composite ID
+        const parts = chapterId.split('|');
+        if (parts.length < 4) return [];
+
+        const [hashId, slug, specificChapterId, number] = parts;
+
+        // Construct the web page URL to scrape
+        // URL: https://comix.to/title/{hash_id}-{slug}/{chapter_id}-chapter-{number}
+        const url = `${this.api}/title/${hashId}-${slug}/${specificChapterId}-chapter-${number}`;
 
         try {
             const response = await fetch(url);
-            if (!response.ok) return [];
+            const body = await response.text();
+            
+            // We don't need to parse the full DOM. The images are in a JSON string inside a script.
+            // Regex to find "\"images\":[\"url1\", \"url2\"]" pattern
+            const regex = /\\"images\\":(\[.*?\])/;
+            const match = body.match(regex);
 
-            const data = await response.json();
-            
-            // Parsing logic based on standard structure for this provider type
-            // usually data.chapter.images which is an array
-            const chapterData = data.chapter || data;
-            const images = chapterData.images || [];
-            
+            if (!match || !match[1]) return [];
+
+            // Parse the JSON array string
+            // The match[1] will be something like: ["https://...", "https://..."] (escaped in source, but regex capture might need unescaping depending on raw extraction)
+            // Since we are matching raw text, we parse the JSON content.
+            let imagesData = [];
+            try {
+                // We need to parse the JSON string. 
+                imagesData = JSON.parse(match[1]);
+            } catch (jsonError) {
+                // Fallback: if parsing fails, the string might contain escaped quotes like [\ "url\" ]. 
+                // This simple cleaner handles standard JSON string arrays.
+                const cleanString = match[1].replace(/\\"/g, '"');
+                imagesData = JSON.parse(cleanString);
+            }
+
             let pages = [];
 
-            images.forEach((img, index) => {
-                // Construct direct URL
-                // NOTE: 'no weserv image proxying' requested.
-                // Images are typically on 'https://meo.comick.pictures' or similar CDN.
-                // The API often provides the 'url' field directly or a filename.
-                
-                let imgUrl = img.url;
-                
-                // Fallback if the API only gives a filename (common in this provider)
-                if (!imgUrl || !imgUrl.startsWith('http')) {
-                     // Default CDN for this provider if not absolute URL
-                    imgUrl = `https://meo.comick.pictures/${imgUrl || img.b2key}`;
-                }
-
+            imagesData.forEach((imgUrl, index) => {
                 pages.push({
                     url: imgUrl,
                     index: index,
                     headers: {
-                        // No specific referer usually needed for direct CDN, but good practice
-                        'Referer': 'https://comick.io/' 
+                        'Referer': url,
                     },
                 });
             });
