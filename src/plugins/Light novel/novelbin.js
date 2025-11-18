@@ -4,8 +4,9 @@
         return;
     }
 
-    const CORS_PROXY_URL = "https://corsproxy.io/?url=";
     const NOVELBIN_URL = "https://novelbin.me";
+    // ADDED: CORS Proxy
+    const CORS_PROXY_URL = "https://corsproxy.io/?url=";
 
     // --- Private Utility Functions ---
 
@@ -48,25 +49,23 @@
         const url = `${CORS_PROXY_URL}${NOVELBIN_URL}/search?keyword=${encodeURIComponent(query)}`;
         try {
             const res = await fetch(url);
+            if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
             const html = await res.text();
             const results = [];
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, "text/html");
             
+            // Select only title links, then find their parent row
             const titleElements = doc.querySelectorAll('.list-novel h3.novel-title a'); 
             
             titleElements.forEach(titleElement => {
                 const item = titleElement.closest('.row'); // Find the parent .row
-                if (!item) return; // Skip if no parent row is found
+                if (!item) return; 
 
                 const title = titleElement?.title?.trim() || "Unknown Title";
                 let novelUrl = titleElement?.getAttribute('href') || "#";
                 
-                if (novelUrl.startsWith("/")) {
-                    novelUrl = `${NOVELBIN_URL}${novelUrl}`;
-                }
-
-                let image = item.querySelector('img.cover')?.getAttribute('src') || "";
+                let image = item.querySelector('.cover')?.getAttribute('src') || "";
                 if (image.startsWith("//")) { 
                     image = `https:${image}`; 
                 } else if (image.startsWith("/")) {
@@ -97,36 +96,33 @@
      */
     async function getChapters(novelUrl) {
         try {
-            // --- Extract novel slug from URL
-            const novelSlugMatch = novelUrl.match(/novel-book\/(.*?)(?:\/|$)/);
-            if (!novelSlugMatch || !novelSlugMatch[1]) {
-                 throw new Error(`Could not extract novel-slug from URL: ${novelUrl}`);
+            // Extract the novel slug from the URL
+            const urlSlugMatch = novelUrl.match(/novel-book\/(.+)/);
+            if (!urlSlugMatch || !urlSlugMatch[1]) {
+                 throw new Error(`Could not extract novel slug from URL: ${novelUrl}`);
             }
-            const novelSlug = novelSlugMatch[1];
+            const novelSlug = urlSlugMatch[1];
+            
+            // Use the correct API endpoint
+            const chapterApiUrl = `${CORS_PROXY_URL}${NOVELBIN_URL}/api/novel/${novelSlug}/chapters`;
 
+            const chapterRes = await fetch(chapterApiUrl);
+            if (!chapterRes.ok) throw new Error(`Chapter API failed: ${chapterRes.status}`);
+            const html = await chapterRes.text();
+            
             const chapters = [];
             const parser = new DOMParser();
-
-            const chapterApiUrl = `${CORS_PROXY_URL}${NOVELBIN_URL}/ajax/chapter-archive?novelId=${novelSlug}`;
-            const chapterRes = await fetch(chapterApiUrl);
-            const chapterHtml = await chapterRes.text();
-            const chapterDoc = parser.parseFromString(chapterHtml, "text/html");
-
-            const chapterItems = chapterDoc.querySelectorAll('ul.list-chapter li a');
+            const doc = parser.parseFromString(html, "text/html");
+            const chapterItems = doc.querySelectorAll('ul.list-chapter li a');
+            
             chapterItems.forEach(link => {
-                let url = link.getAttribute('href');
-                if (url && url.startsWith("/")) {
-                    url = `${NOVELBIN_URL}${url}`;
-                }
-                
-                let title = link.getAttribute('title')?.trim() || "Unknown Chapter";
-                
+                const url = link.getAttribute('href');
+                const title = link.getAttribute('title')?.trim() || "Unknown Chapter";
                 if (url) {
                     chapters.push({ url: url, title: title });
                 }
             });
-            
-            return chapters;
+            return chapters; // API returns them in correct order, no reverse needed
         } catch (err) {
             console.error("[novel-plugin] NovelBin Details Error:", err);
             return [];
@@ -141,6 +137,7 @@
     async function getChapterContent(chapterUrl) {
         try {
             const res = await fetch(`${CORS_PROXY_URL}${chapterUrl}`);
+            if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
             const html = await res.text();
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, "text/html");
@@ -151,9 +148,32 @@
                 throw new Error("Could not extract chapter content.");
             }
     
-            contentElement.querySelectorAll('script, div[id^="pf-"], ins, .ads, .ads-middle').forEach(el => el.remove());
+            // --- NEW ROBUST CLEANING ---
+            
+            // 1. Remove known ad divs and scripts first
+            contentElement.querySelectorAll('script, div[id^="pf-"], div[style*="text-align:center"], ins, div[align="center"]').forEach(el => el.remove());
+            
+            // 2. Iterate through all paragraphs and filter out junk
+            const paragraphs = contentElement.querySelectorAll('p');
+            let cleanHtml = '';
+            
+            paragraphs.forEach(p => {
+                const pText = p.textContent || '';
+                const pHTML = p.innerHTML.trim();
+                
+                // Check for ad-related text
+                const isAdText = pText.includes('Remove Ads From $1');
+                // Check for empty paragraphs or paragraphs with only a space
+                const isEmpty = pHTML === '' || pHTML === '&nbsp;';
+                
+                // Only keep paragraphs that are NOT ads and NOT empty
+                if (!isAdText && !isEmpty) {
+                    cleanHtml += p.outerHTML; // Add the clean <p>...</p> tag
+                }
+            });
+            // --- END NEW CLEANING ---
     
-            return contentElement.innerHTML;
+            return cleanHtml;
         } catch (err) {
             console.error("[novel-plugin] NovelBin ChapterContent Error:", err);
             return "<p>Error loading chapter content.</p>";
@@ -249,3 +269,5 @@
     }
 
 })();
+
+
