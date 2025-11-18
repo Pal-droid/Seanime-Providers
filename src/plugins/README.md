@@ -11,3 +11,4 @@
 | Name | Status | Notes |
 |------|--------|-------|
 | Anilist stories | Considering | Inspired by [Dantotsu](https://discord.gg/MSJvfJzS7R)'s Anilist stories |
+| Top anime / manga leaderboard | Considering |
