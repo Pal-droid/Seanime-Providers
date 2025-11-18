@@ -8,6 +8,6 @@
   "icon": "",
   "type": "manga-provider",
   "language": "javascript",
-  "lang": "id",
+  "lang": "en",
   "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/manga/comix/provider.js"
 }
