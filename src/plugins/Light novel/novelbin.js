@@ -103,7 +103,7 @@
             }
             const novelSlug = urlSlugMatch[1];
             
-            // Use the correct API endpoint
+            // Use the correct API endpoint provided by user
             const chapterApiUrl = `${CORS_PROXY_URL}${NOVELBIN_URL}/ajax/chapter-archive?novelId=${novelSlug}`;
 
             const chapterRes = await fetch(chapterApiUrl);
