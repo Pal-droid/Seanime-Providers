@@ -161,13 +161,16 @@
                 let pText = p.textContent || '';
                 
                 // --- FIX: Remove unwanted pattern ---
-                pText = pText.replace(/△▼△▼△▼△/g, ''); 
+                // Remove the specific triangle pattern
+                pText = pText.replace(/△▼△▼△▼△/g, '');
+                 // Also remove the repeated "※" pattern you mentioned
+                pText = pText.replace(/[※\s]{2,}/g, ''); 
                 // --- END FIX ---
 
                 const pHTML = p.innerHTML.trim();
                 
                 // Check for ad-related text
-                const isAdText = pText.includes('Remove Ads From $1');
+                const isAdText = pText.includes('Remove Ads From $1') || pText.includes('Buy no ads experience for 1$');
                 // Check for empty paragraphs or paragraphs with only a space
                 const isEmpty = pHTML === '' || pHTML === '&nbsp;' || pText.trim() === '';
                 
