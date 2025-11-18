@@ -1085,6 +1085,8 @@
     .novel-plugin-details-info {
         padding-bottom: 0;
         text-align: center; /* Center-align title/subtitle */
+        width: 100%; /* --- FIX: Make info box full width --- */
+        flex-grow: 0; /* --- FIX: Disable desktop flex-grow --- */
     }
 
     /* --- Details Page Body (Main + Sidebar) --- */
