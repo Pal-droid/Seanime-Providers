@@ -158,16 +158,25 @@
             let cleanHtml = '';
             
             paragraphs.forEach(p => {
-                const pText = p.textContent || '';
+                let pText = p.textContent || '';
+                
+                // --- FIX: Remove unwanted pattern ---
+                pText = pText.replace(/△▼△▼△▼△/g, ''); 
+                // --- END FIX ---
+
                 const pHTML = p.innerHTML.trim();
                 
                 // Check for ad-related text
                 const isAdText = pText.includes('Remove Ads From $1');
                 // Check for empty paragraphs or paragraphs with only a space
-                const isEmpty = pHTML === '' || pHTML === '&nbsp;';
+                const isEmpty = pHTML === '' || pHTML === '&nbsp;' || pText.trim() === '';
                 
                 // Only keep paragraphs that are NOT ads and NOT empty
                 if (!isAdText && !isEmpty) {
+                     // Update the paragraph content if we stripped text
+                    if (p.textContent !== pText) {
+                        p.textContent = pText;
+                    }
                     cleanHtml += p.outerHTML; // Add the clean <p>...</p> tag
                 }
             });
@@ -269,5 +278,3 @@
     }
 
 })();
-
-
