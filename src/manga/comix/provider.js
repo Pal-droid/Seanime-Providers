@@ -21,6 +21,7 @@ class Provider {
      */
     async search(opts) {
         const queryParam = opts.query;
+        // Assumed search endpoint based on standard V2 API patterns for this site structure
         const url = `${this.apiUrl}/manga?keyword=${encodeURIComponent(queryParam)}&order[relevance]=desc`;
 
         try {
@@ -41,12 +42,18 @@ class Provider {
                 // Storing them as a composite ID: "hash_id|slug"
                 const compositeId = `${item.hash_id}|${item.slug}`;
 
+                // Extract image from poster object
+                let imageUrl = '';
+                if (item.poster) {
+                    imageUrl = item.poster.medium || item.poster.large || item.poster.small || '';
+                }
+
                 mangas.push({
                     id: compositeId,
                     title: item.title,
                     synonyms: item.alt_titles,
-                    year: undefined,
-                    image: item.cover || '', 
+                    year: undefined, 
+                    image: imageUrl, 
                 });
             });
 
@@ -68,6 +75,7 @@ class Provider {
 
         if (!hashId || !slug) return [];
 
+        // Endpoint: https://comix.to/api/v2/manga/{hash_id}/chapters
         const url = `${this.apiUrl}/manga/${hashId}/chapters?order[number]=desc&limit=100`;
 
         try {
