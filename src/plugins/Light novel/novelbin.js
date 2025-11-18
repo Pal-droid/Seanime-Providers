@@ -104,7 +104,7 @@
             const novelSlug = urlSlugMatch[1];
             
             // Use the correct API endpoint
-            const chapterApiUrl = `${CORS_PROXY_URL}${NOVELBIN_URL}/api/novel/${novelSlug}/chapters`;
+            const chapterApiUrl = `${CORS_PROXY_URL}${NOVELBIN_URL}/ajax/chapter-archive?novelId=${novelSlug}`;
 
             const chapterRes = await fetch(chapterApiUrl);
             if (!chapterRes.ok) throw new Error(`Chapter API failed: ${chapterRes.status}`);
