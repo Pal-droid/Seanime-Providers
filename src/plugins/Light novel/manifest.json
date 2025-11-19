@@ -3,7 +3,7 @@
   "name": "Light Novel Reader",
   "version": "1.3.2",
   "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/manifest.json",
-  "description": "Read light‑novels from NovelBuddy inside Seanime.",
+  "description": "A simple plugin for reading Light Novels inside Seanime.",
   "author": "Pal",
   "icon": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/ln.png",
   "language": "typescript",
