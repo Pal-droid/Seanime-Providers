@@ -3,11 +3,29 @@
  */
 class Provider {
 
-    constructor() {
-        this.api = '{{domain}}';
+    /**
+     * @param {Object} config - User configuration from manifest.json
+     */
+    constructor(config) {
+        this.api = 'https://www.mangakakalove.com';
+
+        // Remove trailing slash if present to accept both formats safely
+        if (this.api.endsWith('/')) {
+            this.api = this.api.slice(0, -1);
+        }
     }
 
     api = '';
+
+    /**
+     * Helper to get consistent headers for all requests
+     */
+    getHeaders() {
+        return {
+            'Referer': `${this.api}/`, // Always send domain with trailing slash
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
+        };
+    }
 
     getSettings() {
         return {
@@ -20,11 +38,18 @@ class Provider {
      * Searches for manga based on a query.
      */
     async search(opts) {
-        const queryParam = opts.query.trim().replace(/\s+/g, '_');
+        const queryParam = opts.query
+            .trim()
+            .replace(/_/g, ' ')             // Treat existing underscores as spaces
+            .replace(/[^a-zA-Z0-9\s]/g, '') // Remove non-alphanumeric chars
+            .replace(/\s+/g, '%20');        // Replace spaces with '%20'
+            
         const url = `${this.api}/search/story/${queryParam}`;
 
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                headers: this.getHeaders()
+            });
 
             if (!response.ok) return [];
 
@@ -39,21 +64,39 @@ class Provider {
                 const titleElement = element.find('h3.story_name a').first();
                 const imageElement = element.find('img').first();
 
-                // Defensive check to ensure elements exist
                 if (titleElement.length === 0) return;
 
                 const title = titleElement.text().trim();
                 let href = titleElement.attrs()['href'];
                 
-                // Handle trailing slashes in URL to ensure ID is extracted correctly
                 if (href.endsWith('/')) {
                     href = href.slice(0, -1);
                 }
                 const mangaId = href.split('/').pop();
                 
                 let thumbnailUrl = '';
+                
+                // 1. Try standard extraction (Prioritize 'src' based on your snippet)
                 if (imageElement.length > 0) {
-                    thumbnailUrl = imageElement.attrs()['src'];
+                    const attrs = imageElement.attrs();
+                    // We check src first because your snippet shows the data is there
+                    thumbnailUrl = attrs['src'];
+                    
+                    // Fallbacks for lazy loading if src is empty or placeholder
+                    if (!thumbnailUrl || thumbnailUrl.includes('404-avatar')) {
+                        thumbnailUrl = attrs['data-src'] || attrs['data-original'];
+                    }
+                }
+
+                // 2. Fallback: Regex extraction on the raw HTML of the item
+                // This bypasses the parser if malformed attributes (like unclosed alt tags) confused it
+                if (!thumbnailUrl) {
+                    const html = element.html() || '';
+                    // Look for src="http..." pattern specifically
+                    const srcMatch = html.match(/src\s*=\s*["']([^"']+)["']/i);
+                    if (srcMatch) {
+                        thumbnailUrl = srcMatch[1];
+                    }
                 }
 
                 mangas.push({
@@ -62,6 +105,7 @@ class Provider {
                     synonyms: undefined,
                     year: undefined,
                     image: thumbnailUrl,
+                    headers: this.getHeaders() // Use this.getHeaders() directly for each item
                 });
             });
 
@@ -79,8 +123,11 @@ class Provider {
         const url = `${this.api}/manga/${mangaId}`;
 
         try {
-            const response = await fetch(url);
-            if (!response.ok) return []; // Safety check for response
+            const response = await fetch(url, {
+                headers: this.getHeaders()
+            });
+
+            if (!response.ok) return [];
 
             const body = await response.text();
             const doc = LoadDoc(body);
@@ -92,16 +139,12 @@ class Provider {
                 return match ? match[1] : '0';
             };
 
-            // Use a more specific selector to avoid stray 'row' divs
             doc('div.chapter-list div.row').each((index, element) => {
                 const linkElements = element.find('span a');
                 
-                // Check length before proceeding to avoid panic
                 if (linkElements.length === 0) return;
 
-                // Iterate safely instead of assuming .first() works on potential empty set
                 linkElements.each((i, link) => {
-                    // We only want the first link in the row, effectively acting as .first()
                     if (i > 0) return;
 
                     if (link.attrs && link.attrs()['href']) {
@@ -142,11 +185,13 @@ class Provider {
      * Finds and parses the image pages for a given chapter ID.
      */
     async findChapterPages(chapterId) {
-        // chapterId is the relative path: manga/{mangaId}/{chapterId}
         const url = `${this.api}/${chapterId}`;
 
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                headers: this.getHeaders()
+            });
+            
             const body = await response.text();
             
             let pages = [];
@@ -162,8 +207,6 @@ class Provider {
                     const baseUrl = cdns[0]; 
 
                     chapterImages.forEach((imgData, index) => {
-                        // Prevent double slashes (e.g. host.com/ + /path -> host.com//path)
-                        // Some CDNs reject double slashes.
                         let fullUrl;
                         if (baseUrl.endsWith('/') && imgData.startsWith('/')) {
                             fullUrl = baseUrl + imgData.substring(1);
@@ -176,10 +219,7 @@ class Provider {
                         pages.push({
                             url: fullUrl,
                             index: index,
-                            headers: {
-                                'Referer': 'https://www.mangakakalove.com/',
-                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36' 
-                            },
+                            headers: this.getHeaders()
                         });
                     });
                 }
