@@ -1,6 +1,5 @@
 /**
- * Seanime Extension for MangaKakalove
- * Implements MangaProvider interface for 'https://www.mangakakalove.com'.
+ * Seanime Extension for MangaKakalove and mirrors
  */
 class Provider {
 
@@ -21,7 +20,6 @@ class Provider {
      * Searches for manga based on a query.
      */
     async search(opts) {
-        // MangaKakalove uses path-based search where spaces are usually replaced by underscores
         const queryParam = opts.query.trim().replace(/\s+/g, '_');
         const url = `${this.api}/search/story/${queryParam}`;
 
@@ -41,13 +39,22 @@ class Provider {
                 const titleElement = element.find('h3.story_name a').first();
                 const imageElement = element.find('img').first();
 
+                // Defensive check to ensure elements exist
+                if (titleElement.length === 0) return;
+
                 const title = titleElement.text().trim();
-                const href = titleElement.attrs()['href'];
+                let href = titleElement.attrs()['href'];
                 
-                // Extract ID from URL (e.g., https://www.mangakakalove.com/manga/nisekoi -> nisekoi)
+                // Handle trailing slashes in URL to ensure ID is extracted correctly
+                if (href.endsWith('/')) {
+                    href = href.slice(0, -1);
+                }
                 const mangaId = href.split('/').pop();
                 
-                const thumbnailUrl = imageElement.attrs()['src'];
+                let thumbnailUrl = '';
+                if (imageElement.length > 0) {
+                    thumbnailUrl = imageElement.attrs()['src'];
+                }
 
                 mangas.push({
                     id: mangaId,
@@ -73,49 +80,53 @@ class Provider {
 
         try {
             const response = await fetch(url);
+            if (!response.ok) return []; // Safety check for response
+
             const body = await response.text();
             const doc = LoadDoc(body);
 
             let chapters = [];
 
-            // Helper to extract numbers from titles
             const extractChapterNumber = (text) => {
                 const match = text.match(/Chapter\s+(\d+(\.\d+)?)/i);
                 return match ? match[1] : '0';
             };
 
-            // The site lists chapters in div.row elements
-            doc('div.row').each((index, element) => {
-                const linkElement = element.find('span a').first();
+            // Use a more specific selector to avoid stray 'row' divs
+            doc('div.chapter-list div.row').each((index, element) => {
+                const linkElements = element.find('span a');
                 
-                if (linkElement && linkElement.attrs && linkElement.attrs()['href']) {
-                    const fullUrl = linkElement.attrs()['href'];
-                    const title = linkElement.text().trim();
-                    
-                    // We construct the ID as the path relative to the API to make findChapterPages easier
-                    // e.g., https://www.mangakakalove.com/manga/nisekoi/chapter-229-7 
-                    // -> manga/nisekoi/chapter-229-7
-                    const urlObj = new URL(fullUrl);
-                    const chapterId = urlObj.pathname.substring(1); // Remove leading slash
+                // Check length before proceeding to avoid panic
+                if (linkElements.length === 0) return;
 
-                    chapters.push({
-                        id: chapterId,
-                        url: fullUrl,
-                        title: title,
-                        chapter: extractChapterNumber(title),
-                        index: 0,
-                    });
-                }
+                // Iterate safely instead of assuming .first() works on potential empty set
+                linkElements.each((i, link) => {
+                    // We only want the first link in the row, effectively acting as .first()
+                    if (i > 0) return;
+
+                    if (link.attrs && link.attrs()['href']) {
+                        const fullUrl = link.attrs()['href'];
+                        const title = link.text().trim();
+                        
+                        const urlObj = new URL(fullUrl);
+                        const chapterId = urlObj.pathname.substring(1); 
+
+                        chapters.push({
+                            id: chapterId,
+                            url: fullUrl,
+                            title: title,
+                            chapter: extractChapterNumber(title),
+                            index: 0,
+                        });
+                    }
+                });
             });
 
-            // Remove duplicates
             const uniqueChapters = Array.from(new Set(chapters.map(c => c.id)))
                 .map(id => chapters.find(c => c.id === id));
 
-            // Sort by chapter number (ascending)
             uniqueChapters.sort((a, b) => parseFloat(a.chapter) - parseFloat(b.chapter));
 
-            // Re-index
             uniqueChapters.forEach((chapter, i) => {
                 chapter.index = i;
             });
@@ -140,30 +151,34 @@ class Provider {
             
             let pages = [];
 
-            // The images are defined in JS variables inside the HTML
-            // var cdns = ["..."];
-            // var chapterImages = ["path/1.webp", ...];
-
             const cdnMatch = body.match(/var\s+cdns\s*=\s*(\[[^\]]+\])/);
             const imagesMatch = body.match(/var\s+chapterImages\s*=\s*(\[[^\]]+\])/);
 
             if (cdnMatch && imagesMatch) {
-                // Parse the JSON arrays
                 const cdns = JSON.parse(cdnMatch[1]);
                 const chapterImages = JSON.parse(imagesMatch[1]);
 
                 if (Array.isArray(cdns) && cdns.length > 0 && Array.isArray(chapterImages)) {
-                    const baseUrl = cdns[0]; // Usually use the first CDN
+                    const baseUrl = cdns[0]; 
 
                     chapterImages.forEach((imgData, index) => {
-                        // Construct full URL
-                        const fullUrl = baseUrl + imgData;
+                        // Prevent double slashes (e.g. host.com/ + /path -> host.com//path)
+                        // Some CDNs reject double slashes.
+                        let fullUrl;
+                        if (baseUrl.endsWith('/') && imgData.startsWith('/')) {
+                            fullUrl = baseUrl + imgData.substring(1);
+                        } else if (!baseUrl.endsWith('/') && !imgData.startsWith('/')) {
+                            fullUrl = baseUrl + '/' + imgData;
+                        } else {
+                            fullUrl = baseUrl + imgData;
+                        }
 
                         pages.push({
                             url: fullUrl,
                             index: index,
                             headers: {
-                                'Referer': url,
+                                'Referer': 'https://www.mangakakalove.com/',
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36' 
                             },
                         });
                     });
