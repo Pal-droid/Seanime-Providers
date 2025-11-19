@@ -4,7 +4,7 @@
 class Provider {
 
     constructor() {
-        this.api = 'https://www.mangakakalove.com';
+        this.api = '{{domain}}';
     }
 
     api = '';
