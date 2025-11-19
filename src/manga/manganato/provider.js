@@ -1,11 +1,14 @@
 /**
- * Seanime Extension for MangaKakaLove.
+ * Seanime Extension for MangaKakalove
+ * Implements MangaProvider interface for 'https://www.mangakakalove.com'.
  */
 class Provider {
 
     constructor() {
         this.api = 'https://www.mangakakalove.com';
     }
+
+    api = '';
 
     getSettings() {
         return {
@@ -15,142 +18,161 @@ class Provider {
     }
 
     /**
-     * Search manga using a query.
-     * Uses regex to extract title, id, and thumbnail from search results.
-     * Adds Referer header to avoid 403 and proxies thumbnails through weserv.nl.
+     * Searches for manga based on a query.
      */
     async search(opts) {
-        const queryParam = opts.query;
-        const url = `${this.api}/search/story/${encodeURIComponent(queryParam)}`;
+        // MangaKakalove uses path-based search where spaces are usually replaced by underscores
+        const queryParam = opts.query.trim().replace(/\s+/g, '_');
+        const url = `${this.api}/search/story/${queryParam}`;
 
         try {
-            const response = await fetch(url, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                    'Referer': this.api,
-                }
-            });
+            const response = await fetch(url);
+
             if (!response.ok) return [];
 
             const body = await response.text();
-            const mangas = [];
+            const doc = LoadDoc(body);
 
-            const regex = /<div class="story_item"[\s\S]*?<a href="(.*?)"[\s\S]*?<img src="(.*?)"[\s\S]*?<h3 class="story_name">[\s\S]*?<a[^>]*>(.*?)<\/a>/g;
+            let mangas = [];
 
-            let match;
-            while ((match = regex.exec(body)) !== null) {
-                const mangaUrl = match[1].trim();
-                const imageUrl = match[2].trim();
-                const title = match[3].trim();
+            const items = doc('div.story_item');
 
-                const mangaId = mangaUrl.split('/manga/')[1];
+            items.each((index, element) => {
+                const titleElement = element.find('h3.story_name a').first();
+                const imageElement = element.find('img').first();
 
-                // Proxy thumbnail via weserv
-                const strippedUrl = imageUrl.replace(/^https?:\/\//, '');
-                const proxiedThumbnailUrl = `https://images.weserv.nl/?url=${strippedUrl}`;
+                const title = titleElement.text().trim();
+                const href = titleElement.attrs()['href'];
+                
+                // Extract ID from URL (e.g., https://www.mangakakalove.com/manga/nisekoi -> nisekoi)
+                const mangaId = href.split('/').pop();
+                
+                const thumbnailUrl = imageElement.attrs()['src'];
 
                 mangas.push({
                     id: mangaId,
                     title: title,
                     synonyms: undefined,
                     year: undefined,
-                    image: proxiedThumbnailUrl,
+                    image: thumbnailUrl,
                 });
-            }
+            });
 
             return mangas;
         } catch (e) {
+            console.error(e);
             return [];
         }
     }
 
     /**
      * Finds and parses all chapters for a given manga ID.
-     * Chapters appear newest to oldest, so we reverse the list for ascending order.
      */
     async findChapters(mangaId) {
         const url = `${this.api}/manga/${mangaId}`;
 
         try {
-            const response = await fetch(url, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                    'Referer': this.api,
+            const response = await fetch(url);
+            const body = await response.text();
+            const doc = LoadDoc(body);
+
+            let chapters = [];
+
+            // Helper to extract numbers from titles
+            const extractChapterNumber = (text) => {
+                const match = text.match(/Chapter\s+(\d+(\.\d+)?)/i);
+                return match ? match[1] : '0';
+            };
+
+            // The site lists chapters in div.row elements
+            doc('div.row').each((index, element) => {
+                const linkElement = element.find('span a').first();
+                
+                if (linkElement && linkElement.attrs && linkElement.attrs()['href']) {
+                    const fullUrl = linkElement.attrs()['href'];
+                    const title = linkElement.text().trim();
+                    
+                    // We construct the ID as the path relative to the API to make findChapterPages easier
+                    // e.g., https://www.mangakakalove.com/manga/nisekoi/chapter-229-7 
+                    // -> manga/nisekoi/chapter-229-7
+                    const urlObj = new URL(fullUrl);
+                    const chapterId = urlObj.pathname.substring(1); // Remove leading slash
+
+                    chapters.push({
+                        id: chapterId,
+                        url: fullUrl,
+                        title: title,
+                        chapter: extractChapterNumber(title),
+                        index: 0,
+                    });
                 }
             });
-            const body = await response.text();
 
-            const chapters = [];
-
-            const regex = /<div class="row">\s*<span><a href="(.*?)"[^>]*>(.*?)<\/a><\/span>/g;
-
-            let match;
-            while ((match = regex.exec(body)) !== null) {
-                const chapterUrl = match[1].trim();
-                const title = match[2].trim();
-                const chapterId = chapterUrl.split('/').pop();
-
-                const chapMatch = title.match(/Chapter\s+([\d.]+)/i);
-                const chapterNumber = chapMatch ? chapMatch[1] : '0';
-
-                chapters.push({
-                    id: chapterId,
-                    url: chapterUrl,
-                    title: title,
-                    chapter: chapterNumber,
-                    index: 0,
-                });
-            }
+            // Remove duplicates
+            const uniqueChapters = Array.from(new Set(chapters.map(c => c.id)))
+                .map(id => chapters.find(c => c.id === id));
 
             // Sort by chapter number (ascending)
-            chapters.reverse().forEach((chapter, i) => {
+            uniqueChapters.sort((a, b) => parseFloat(a.chapter) - parseFloat(b.chapter));
+
+            // Re-index
+            uniqueChapters.forEach((chapter, i) => {
                 chapter.index = i;
             });
 
-            return chapters;
+            return uniqueChapters;
         } catch (e) {
+            console.error(e);
             return [];
         }
     }
 
     /**
-     * Finds and parses image URLs for a given chapter ID.
-     * Extracts from `chapterImages` JS array using regex.
+     * Finds and parses the image pages for a given chapter ID.
      */
     async findChapterPages(chapterId) {
-        const url = `${this.api}/manga/${chapterId}`;
-        const referer = this.api;
+        // chapterId is the relative path: manga/{mangaId}/{chapterId}
+        const url = `${this.api}/${chapterId}`;
 
         try {
-            const response = await fetch(url, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                    'Referer': referer,
-                }
-            });
+            const response = await fetch(url);
             const body = await response.text();
+            
+            let pages = [];
 
-            const cdnMatch = body.match(/var cdns = \["(.*?)"/);
-            const cdn = cdnMatch ? cdnMatch[1].replace(/\\\//g, '/') : '';
+            // The images are defined in JS variables inside the HTML
+            // var cdns = ["..."];
+            // var chapterImages = ["path/1.webp", ...];
 
-            const imgArrayMatch = body.match(/var chapterImages = \[(.*?)\]/);
-            if (!imgArrayMatch) return [];
+            const cdnMatch = body.match(/var\s+cdns\s*=\s*(\[[^\]]+\])/);
+            const imagesMatch = body.match(/var\s+chapterImages\s*=\s*(\[[^\]]+\])/);
 
-            const imagePaths = imgArrayMatch[1]
-                .split(',')
-                .map(s => s.replace(/["'\\\s]/g, '').trim())
-                .filter(Boolean);
+            if (cdnMatch && imagesMatch) {
+                // Parse the JSON arrays
+                const cdns = JSON.parse(cdnMatch[1]);
+                const chapterImages = JSON.parse(imagesMatch[1]);
 
-            const pages = imagePaths.map((path, index) => ({
-                url: `${cdn}${path}`,
-                index: index,
-                headers: {
-                    'Referer': referer,
-                },
-            }));
+                if (Array.isArray(cdns) && cdns.length > 0 && Array.isArray(chapterImages)) {
+                    const baseUrl = cdns[0]; // Usually use the first CDN
+
+                    chapterImages.forEach((imgData, index) => {
+                        // Construct full URL
+                        const fullUrl = baseUrl + imgData;
+
+                        pages.push({
+                            url: fullUrl,
+                            index: index,
+                            headers: {
+                                'Referer': url,
+                            },
+                        });
+                    });
+                }
+            }
 
             return pages;
         } catch (e) {
+            console.error(e);
             return [];
         }
     }
