@@ -444,7 +444,8 @@
     content: 'View';
     position: absolute;
     top: 38%;
-    left: 50%;
+    /* FIX: User requested 55% adjustment for centering */
+    left: 55%;
     transform: translate(-50%, -50%) scale(0.9);
     color: white;
     font-size: 0.9rem;
@@ -1078,24 +1079,19 @@
     .novel-plugin-details-header {
         flex-direction: column;   /* Stack cover image and info */
         align-items: center;      /* Center them */
-        left: 55%;
         gap: 1rem;
         margin-top: -100px; /* Adjust overlap for centered cover */
         padding: 0 1rem; /* Reduce horizontal padding */
     }
     
+    /* FIX: Explicitly center the cover image using standard margins (Reverted previous hack) */
     .novel-plugin-details-cover {
         display: block;
-        position: relative;
-        transform: translateX(-50%);
-        margin-bottom: 1rem;
+        margin: 0 auto 1rem auto;
     }
     
-    /* FIX: Ensure hover scale doesn't break the centering transform on mobile */
-    .novel-plugin-details-cover:hover {
-        transform: translateX(-50%) scale(1.05);
-    }
-
+    /* FIX: Removed specific hover transform hack for mobile as it is no longer needed */
+    
     .novel-plugin-details-info {
         padding-bottom: 0;
         text-align: center; /* Center-align title/subtitle */
