@@ -1,3 +1,8 @@
+/* -------------------------------------------------------------
+   LIGHT NOVEL PLUGIN STYLES
+   -------------------------------------------------------------
+*/
+
 /* --- Base --- */
 #novel-plugin-backdrop {
     display: block;
@@ -7,10 +12,12 @@
     width: 100vw;
     height: 100vh;
     background: var(--bg-primary);
-    z-index: 2147483646;
+    z-index: 2147483646; /* High z-index to sit on top of Seanime */
     overflow-y: auto;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: #e1e1e1;
+
+    /* --- CSS Variables for Theming --- */
     --bg-primary: #000000;
     --bg-secondary: #111111;
     --bg-tertiary: #1D1D1D;
@@ -19,7 +26,8 @@
     --brand-color: #8A2BE2;
     --brand-color-light: #ab6afb;
     --border-color: #222222;
-    /* --- NEW: Provider Colors --- */
+
+    /* --- Provider Colors --- */
     --provider-novelbuddy: #8A2BE2;
     --provider-novelbin: #E4A11B;
 }
@@ -28,1107 +36,441 @@
 #novel-plugin-modal-content {
     width: 100vw;
     max-width: 100%;
-    height: 100vh;
-    background: var(--bg-primary);
-    border-radius: 0;
-    padding: 0;
-    position: relative;
-    box-shadow: none;
-    border: none;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
-    opacity: 0;
-    transform: scale(0.98);
-    animation: fadeInScale 0.25s ease-out forwards;
-}
-
-@keyframes fadeInScale {
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-#novel-plugin-btn-close {
-    position: fixed;
-    top: 1.5rem;
-    right: 1.5rem;
-    width: 32px;
-    height: 32px;
-    background: rgba(30, 30, 30, 0.8);
-    backdrop-filter: blur(5px);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 50%;
-    cursor: pointer;
-    z-index: 100;
-    font-size: 1.2rem;
-    line-height: 1;
-    padding: 0;
-    transition: background 0.2s, transform 0.2s;
-}
-
-#novel-plugin-btn-close::before {
-    content: '×';
-}
-
-#novel-plugin-btn-close:hover {
-    background: var(--bg-tertiary);
-    /* FIX 1: Removed transform animation */
-    transform: none;
-}
-
-#novel-plugin-content-wrapper {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0;
     position: relative;
 }
 
-.novel-plugin-page-content {
-    padding: 1.5rem;
-    /* BUG 1 FIX: Added padding-top to avoid overlap with fixed back button */
-    padding-top: 4.5rem; 
-    max-width: 1000px;
-    margin: 0 auto;
-    animation: pageFadeIn 0.3s ease-out;
-}
-
-@keyframes pageFadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* --- Header & Tabs --- */
+/* --- Navigation / Header --- */
 .novel-plugin-header {
     display: flex;
-    justify-content: flex-start;
     align-items: center;
-    padding: 1rem 1.5rem 0;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    position: sticky;
+    top: 0;
+    z-index: 50;
     border-bottom: 1px solid var(--border-color);
-    background: var(--bg-primary);
-    z-index: 5;
-    max-width: 1000px;
-    margin: 0 auto;
-    /* BUG 1 FIX: Added padding-top to avoid overlap */
-    padding-top: 4.5rem;
 }
 
-.novel-plugin-tabs {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.novel-plugin-tab {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-    background: none;
-    border: none;
-    padding: 0.5rem 1rem 1rem 1rem;
-    cursor: pointer;
-    border-bottom: 3px solid transparent;
-    transition: color 0.2s, border-color 0.2s;
-}
-
-.novel-plugin-tab:hover {
-    color: var(--text-primary);
-}
-
-.novel-plugin-tab.active {
-    color: var(--brand-color-light);
-    border-bottom-color: var(--brand-color-light);
-}
-
-/* --- Buttons --- */
-.novel-plugin-button {
-    display: block;
-    width: 100%;
-    padding: 0.75rem 1rem;
-    background: var(--brand-color);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: 600;
-    text-align: center;
-    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
-    margin-top: 0.5rem;
-    box-sizing: border-box;
-}
-
-.novel-plugin-button:hover {
-    background: var(--brand-color-light);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(171, 106, 251, 0.3);
-}
-
-.novel-plugin-button.secondary {
-    background: transparent;
-    color: var(--text-secondary);
-    border: 1px solid var(--border-color);
-}
-
-.novel-plugin-button.secondary:hover {
-    background: var(--bg-tertiary);
-    border-color: var(--text-secondary);
-    color: var(--text-primary);
-    transform: translateY(-2px);
-    box-shadow: none;
-}
-
-/* BUG 1 FIX: Styles for the back button */
-.novel-plugin-back-btn {
-    position: fixed;
-    top: 1.5rem;
-    left: 1.5rem;
-    width: 32px;
-    height: 32px;
-    background: rgba(30, 30, 30, 0.8);
-    backdrop-filter: blur(5px);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 1.2rem;
-    line-height: 1;
-    padding: 0;
-    margin-bottom: 0;
-    transition: background 0.2s, transform 0.2s;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.novel-plugin-back-btn:hover {
-    background: var(--bg-tertiary);
-    transform: scale(1.1);
-}
-
-.novel-plugin-view-btn {
-    background: var(--brand-color);
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.9rem;
-    transition: background 0.2s, transform 0.2s;
-    white-space: nowrap;
-}
-
-.novel-plugin-view-btn:hover {
-    background: var(--brand-color-light);
-    transform: scale(1.05);
-}
-
-/* --- Typography --- */
 .novel-plugin-title {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     font-weight: 700;
     color: var(--text-primary);
-    margin: 0 0 0.25rem 0;
-}
-
-.novel-plugin-subtitle {
-    font-size: 1rem;
-    color: var(--text-secondary);
-    margin: 0 0 1rem 0;
-}
-
-.novel-plugin-section-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-top: 2rem;
-    margin-bottom: 1rem;
-}
-
-.novel-plugin-error-text {
-    font-size: 0.9rem;
-    color: #ff8a8a;
-    text-align: center;
-    margin: 0.5rem 0;
-}
-
-/* --- Loader --- */
-.novel-plugin-loader {
-    width: 48px;
-    height: 48px;
-    border: 3px solid var(--text-secondary);
-    border-bottom-color: var(--brand-color);
-    border-radius: 50%;
-    display: block;
-    margin: 3rem auto;
-    animation: spin 1s linear infinite;
-}
-
-.novel-plugin-loader.small {
-    width: 24px;
-    height: 24px;
-    border-width: 2px;
-    margin: 1rem auto;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* --- Search & Filter --- */
-.novel-plugin-input-container {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-}
-
-.novel-plugin-input {
-    flex: 1;
-    padding: 0.75rem 1rem;
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    font-size: 1rem;
-    box-sizing: border-box;
-    transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.novel-plugin-input:focus {
-    outline: none;
-    border-color: var(--brand-color);
-    box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.3);
-}
-
-.novel-plugin-filter-container {
-    margin: -0.5rem 0 1.5rem 0; /* Adjusted margins */
     display: flex;
     align-items: center;
-    gap: 0.75rem; /* Adjusted gap */
-    padding: 0;
+    gap: 0.5rem;
 }
 
-.novel-plugin-filter-container label {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    white-space: nowrap; /* --- NEW --- */
-}
-
-.novel-plugin-select {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background-color: var(--bg-tertiary);
+.novel-plugin-close-btn {
+    background: transparent;
+    border: none;
     color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px; /* Rounded corners */
-    padding: 0.75rem 2.5rem 0.75rem 1rem; /* Adjusted padding */
-    font-size: 0.9rem; /* Adjusted font size */
-    font-weight: 500;
+    font-size: 1.5rem;
     cursor: pointer;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23AAA' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    background-size: 16px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    flex-grow: 1; /* Make selects fill space */
-    width: 100%; /* --- NEW --- */
+    padding: 0.5rem;
+    line-height: 1;
+    transition: opacity 0.2s;
 }
+.novel-plugin-close-btn:hover { opacity: 0.7; }
 
-.novel-plugin-select:focus {
+.novel-plugin-search-bar {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    width: 300px;
+    font-size: 0.9rem;
     outline: none;
+    transition: border-color 0.2s;
+}
+.novel-plugin-search-bar:focus {
     border-color: var(--brand-color);
-    box-shadow: 0 0 0 3px rgba(138, 43, 226, 0.3);
 }
 
-/* --- Discover: Hero --- */
-.novel-plugin-hero {
-    height: 300px;
-    border-radius: 8px;
-    background-size: cover;
-    background-position: 50% 35%;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    padding: 1.5rem;
+/* --- Content Containers --- */
+.novel-plugin-content {
+    padding: 2rem;
+    flex-grow: 1;
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto;
     box-sizing: border-box;
-    background-image: linear-gradient(to top, #000 10%, rgba(0,0,0,0.1)), var(--bg-image, none);
 }
 
-.novel-plugin-hero-content {
-    max-width: 60%;
-}
-
-.novel-plugin-hero-title {
-    font-size: 2rem;
-    font-weight: 800;
-    color: #fff;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.7);
-    margin: 0 0 0.5rem 0;
-}
-
-.novel-plugin-hero-score {
-    font-size: 1rem;
+/* --- Grids (Discover Page) --- */
+.novel-plugin-section-title {
+    font-size: 1.4rem;
     font-weight: 600;
-    color: #fff;
-    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
-    margin: 0 0 1rem 0;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid var(--brand-color);
+    padding-left: 1rem;
 }
 
-.novel-plugin-hero .novel-plugin-button {
-    width: auto;
-    max-width: 200px;
-}
-
-/* --- Discover: Poster Grid --- */
 .novel-plugin-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
 }
 
-.novel-plugin-poster-card {
+.novel-plugin-card {
     cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s;
     position: relative;
-    overflow: hidden;
-    border-radius: 8px;
-    background: var(--bg-secondary);
-    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.novel-plugin-card:hover {
+    transform: translateY(-4px);
+    opacity: 0.9;
 }
 
-.novel-plugin-poster-img {
+.novel-plugin-card-img-container {
     width: 100%;
-    height: auto;
-    aspect-ratio: 2 / 3;
-    object-fit: cover;
-    border-radius: 8px;
-    background: var(--bg-tertiary);
-    box-shadow: 0 0 0 3px var(--cover-color, var(--bg-tertiary));
-    position: relative;
-    z-index: 1;
-    transition: transform 0.3s ease, opacity 0.3s ease, filter 0.3s ease, box-shadow 0.3s ease;
-}
-
-.novel-plugin-poster-title {
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: var(--text-secondary);
-    margin: 0.5rem 0 0 0;
-    white-space: nowrap;
+    aspect-ratio: 2/3;
     overflow: hidden;
-    text-overflow: ellipsis;
-    position: relative;
-    z-index: 2;
-    padding: 0 10px;
-    transition: color 0.2s;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+    background: var(--bg-secondary);
 }
 
-.novel-plugin-poster-score {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: #A0A0A0;
-    margin-top: 0px;
-    padding-bottom: 4px;
-    padding-left: 10px;
-    padding-right: 10px;
-    position: relative;
-    z-index: 2;
+.novel-plugin-card-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
-.novel-plugin-poster-card::after {
-    content: 'View';
-    position: absolute;
-    top: 38%;
-    left: 50%;
-    transform: translate(-50%, -50%) scale(0.9);
-    color: white;
-    font-size: 0.9rem;
+.novel-plugin-card-title {
+    font-size: 0.95rem;
     font-weight: 600;
-    padding: 0.4rem 0.8rem;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(3px);
-    border-radius: 20px;
-    opacity: 0;
-    transition: opacity 0.3s ease, transform 0.3s ease;
-    z-index: 2;
-    pointer-events: none;
-}
-
-.novel-plugin-poster-card:hover {
-    transform: translateY(-5px);
-}
-
-.novel-plugin-poster-card:hover .novel-plugin-poster-img {
-    opacity: 0.3;
-    transform: scale(1.05);
-    filter: blur(2px);
-    box-shadow: 0 0 0 4px var(--cover-color, var(--bg-tertiary)), 0 8px 20px rgba(0,0,0,0.5);
-}
-
-.novel-plugin-poster-card:hover::after {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-}
-
-.novel-plugin-poster-card:hover .novel-plugin-poster-title {
-    color: var(--text-primary);
-}
-
-.novel-plugin-poster-card:hover .novel-plugin-poster-score {
-    color: #E0E0E0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
 
 /* --- Details Page --- */
+.novel-plugin-details-container {
+    animation: fadeIn 0.3s ease;
+}
 
+/* Header Section (Banner style) */
 .novel-plugin-details-header {
     display: flex;
-    align-items: flex-end;
-    gap: 1rem;
-    margin-top: -80px;
-    padding: 0 1.5rem;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    align-items: flex-start;
     position: relative;
-    z-index: 2;
 }
 
-.novel-plugin-details-cover {
-    width: 150px;
-    height: auto;
-    aspect-ratio: 2 / 3;
-    object-fit: cover;
+.novel-plugin-details-poster {
+    width: 220px;
     border-radius: 8px;
-    border: 2px solid var(--bg-primary);
-    box-shadow: 0 0 0 4px var(--cover-color, var(--bg-tertiary)), 0 5px 15px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     flex-shrink: 0;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.novel-plugin-details-cover:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 4px var(--cover-color, var(--bg-tertiary)), 0 8px 25px rgba(0,0,0,0.5);
+    z-index: 2;
+    position: relative;
 }
 
 .novel-plugin-details-info {
-    padding-bottom: 0.5rem;
-    flex-grow: 1; 
+    flex-grow: 1;
+    z-index: 2;
 }
 
-.novel-plugin-details-info .novel-plugin-title {
-    text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+.novel-plugin-details-title {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
 }
 
-.novel-plugin-tags {
+.novel-plugin-details-meta {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-}
-
-.novel-plugin-tag {
-    background: var(--bg-tertiary);
+    gap: 1rem;
     color: var(--text-secondary);
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-weight: 500;
-    transition: background 0.2s, color 0.2s;
-}
-
-.novel-plugin-tag:hover {
-    background: var(--brand-color-light);
-    color: white;
-}
-
-.novel-plugin-tag.score {
-    color: var(--brand-color-light);
-    font-weight: 700;
-}
-
-.novel-plugin-details-body {
-    display: flex;
-    gap: 2rem;
-    margin-top: 2rem;
-}
-
-/* --- NEW: Main content column --- */
-.novel-plugin-details-main {
-    flex: 2;
-    min-width: 0; /* Prevents overflow */
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
 }
 
 .novel-plugin-details-description {
     line-height: 1.6;
+    color: #d1d1d1;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    max-width: 900px;
 }
 
-.novel-plugin-details-description h3 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.1rem;
+/* Tags */
+.novel-plugin-tag {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--brand-color-light);
+}
+
+/* Action Buttons */
+.novel-plugin-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.novel-plugin-btn {
+    padding: 0.8rem 1.5rem;
+    border-radius: 6px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.novel-plugin-btn-primary {
+    background: var(--brand-color);
+    color: white;
+}
+.novel-plugin-btn-primary:hover { background: var(--brand-color-light); }
+
+.novel-plugin-btn-secondary {
+    background: var(--bg-tertiary);
     color: var(--text-primary);
+}
+.novel-plugin-btn-secondary:hover { background: #333; }
+
+/* Source Selector */
+.novel-plugin-source-select {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    padding: 0.8rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    outline: none;
+    cursor: pointer;
+}
+
+/* Layout: Sidebar + Content */
+.novel-plugin-details-body {
+    display: flex;
+    gap: 3rem;
+}
+
+.novel-plugin-details-main {
+    flex-grow: 1;
 }
 
 .novel-plugin-details-sidebar {
-    flex: 1;
-    min-width: 240px; /* Increased min-width for sidebar */
+    width: 300px;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 2rem;
 }
 
-.novel-plugin-details-sidebar h3 {
-    margin: 0 0 0.75rem 0;
-    font-size: 1.1rem;
-    color: var(--text-primary);
-}
-
-#novel-plugin-chapter-button-container {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-/* --- Chapter & Manual Match List --- */
-.novel-plugin-chapter-list,
-.novel-plugin-manual-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    margin-top: 1.5rem;
+/* Chapter List */
+.novel-plugin-chapter-list {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    max-height: 500px;
+    overflow-y: auto;
 }
 
 .novel-plugin-chapter-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
     padding: 1rem;
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    transition: background 0.2s, border-color 0.2s;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background 0.2s;
+    font-size: 0.95rem;
+}
+.novel-plugin-chapter-item:last-child { border-bottom: none; }
+.novel-plugin-chapter-item:hover { background: var(--bg-tertiary); }
+.novel-plugin-chapter-item.active { 
+    background: rgba(138, 43, 226, 0.1); 
+    color: var(--brand-color-light);
+    border-left: 3px solid var(--brand-color);
 }
 
-.novel-plugin-chapter-item:hover {
-    background: var(--bg-tertiary);
-    border-color: #444;
-}
-
-.novel-plugin-chapter-title {
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin: 0;
+/* Sidebar Cards (Characters/Staff) */
+.novel-plugin-sidebar-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
     color: var(--text-secondary);
-    font-size: 0.9rem;
-    transition: color 0.2s;
 }
 
-.novel-plugin-chapter-item:hover .novel-plugin-chapter-title {
-    color: var(--text-primary);
-}
-
-/* Highlight for last read chapter */
-.novel-plugin-chapter-item.last-read {
-    border-left-color: var(--brand-color);
-    border-left-width: 3px;
-}
-.novel-plugin-chapter-item.last-read .novel-plugin-chapter-title {
-    color: var(--brand-color-light);
-}
-.novel-plugin-chapter-item.last-read .novel-plugin-chapter-title span {
-    color: var(--brand-color-light);
-    font-weight: 700;
-}
-
-
-.novel-plugin-result-card {
-    display: flex;
-    align-items: center;
+.novel-plugin-involved-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); /* Sidebar layout */
     gap: 1rem;
-    padding: 0.75rem;
+}
+.novel-plugin-involved-card {
+    display: flex;
+    gap: 1rem;
     background: var(--bg-secondary);
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    transition: background 0.2s, border-color 0.2s;
-    position: relative; /* --- NEW --- */
+    padding: 0.5rem;
+    border-radius: 6px;
+    align-items: center;
 }
-
-.novel-plugin-result-card:hover {
-    background: var(--bg-tertiary);
-    border-color: #444;
-}
-
-.novel-plugin-result-img {
-    width: 60px;
-    height: 88px;
+.novel-plugin-involved-img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
     object-fit: cover;
-    border-radius: 4px;
-    background: var(--bg-tertiary);
-    flex-shrink: 0;
 }
-
-.novel-plugin-result-stack {
-    flex: 1;
-    overflow: hidden;
+.novel-plugin-involved-info {
+    font-size: 0.9rem;
 }
-
-.novel-plugin-result-title {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    margin: 0 0 0.25rem 0;
-}
-
-.novel-plugin-result-chapter {
-    font-size: 0.85rem;
+.novel-plugin-involved-role {
+    font-size: 0.8rem;
     color: var(--text-secondary);
-    margin: 0;
 }
-
-/* --- NEW: Provider Tag for Manual Search --- */
-.novel-plugin-provider-tag {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #000;
-    padding: 0.1rem 0.4rem;
-    border-radius: 4px;
-}
-.novel-plugin-provider-tag[data-provider="novelbuddy"] {
-    background-color: var(--provider-novelbuddy);
-    color: #fff;
-}
-.novel-plugin-provider-tag[data-provider="novelbin"] {
-    background-color: var(--provider-novelbin);
-    color: #000;
-}
-/* --- END NEW --- */
 
 
 /* --- Reader Page --- */
 .novel-plugin-reader-container {
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-top: 1rem;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: #111; /* Reader specific bg */
 }
 
-.novel-plugin-reader-content {
-    line-height: 1.8;
-    color: var(--text-secondary);
-    white-space: pre-wrap;
+.novel-plugin-reader-header {
+    padding: 1rem 2rem;
+    background: #000;
+    border-bottom: 1px solid #222;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.novel-plugin-reader-content-wrapper {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 2rem 0;
+    scroll-behavior: smooth;
+}
+
+.novel-plugin-reader-text {
     max-width: 800px;
     margin: 0 auto;
+    padding: 0 2rem;
+    font-size: 1.2rem;
+    line-height: 1.8;
+    color: #ddd;
+    white-space: pre-wrap; /* Preserve paragraphs from text content */
 }
 
-.novel-plugin-reader-content p {
-    margin: 0 0 1.5rem 0;
-}
-
-
-/* =========================================
---- NEW STYLES FOR METADATA (REPLACED) ---
-=========================================
-*/
-
-/* --- Spoiler Tag Handling --- */
-.novel-plugin-spoiler-tag {
-    background: var(--bg-tertiary);
-    color: var(--bg-tertiary); /* Hides text */
-    text-shadow: none;
-    transition: background 0.2s, color 0.2s;
-    user-select: none; /* --- FIX: Prevent selection --- */
-}
-
-/* --- FIX: Hide text even when selected --- */
-.novel-plugin-spoiler-tag::selection {
-    background: var(--bg-tertiary);
-    color: var(--bg-tertiary);
-    text-shadow: none;
-}
-.novel-plugin-spoiler-tag::-moz-selection { /* Firefox */
-    background: var(--bg-tertiary);
-    color: var(--bg-tertiary);
-    text-shadow: none;
-}
-
-.novel-plugin-spoiler-tag:hover {
-    background: var(--border-color);
-    color: var(--border-color);
-}
-
-/* --- FIX: Hide text even when selected (hover state) --- */
-.novel-plugin-spoiler-tag:hover::selection {
-    background: var(--border-color);
-    color: var(--border-color);
-    text-shadow: none;
-}
-.novel-plugin-spoiler-tag:hover::-moz-selection { /* Firefox */
-    background: var(--border-color);
-    color: var(--border-color);
-    text-shadow: none;
-}
-
-#novel-plugin-tags-container.show-spoilers .novel-plugin-spoiler-tag {
-    background: #581c1c;
-    color: #ffc2c2; /* Reveals text */
-    user-select: auto; /* --- FIX: Allow selection when revealed --- */
-}
-
-/* --- FIX: Allow normal selection when revealed --- */
-#novel-plugin-tags-container.show-spoilers .novel-plugin-spoiler-tag::selection {
-    background: Highlight; /* Use browser default */
-    color: HighlightText; /* Use browser default */
-    text-shadow: none;
-}
-#novel-plugin-tags-container.show-spoilers .novel-plugin-spoiler-tag::-moz-selection { /* Firefox */
-    background: Highlight;
-    color: HighlightText;
-    text-shadow: none;
-}
-/* --- END SPOILER FIXES --- */
-
-
-.novel-plugin-section-header {
+/* Reader Typography Controls (Simple) */
+.novel-plugin-reader-controls {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
-}
-
-.novel-plugin-spoiler-toggle {
-    background: none;
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.25rem 0.5rem;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.novel-plugin-spoiler-toggle:hover {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-}
-
-/* --- Sidebar Metadata --- */
-.novel-plugin-details-sidebar-section {
-    border-top: 1px solid var(--border-color);
-    padding-top: 1.5rem;
-}
-/* First section (buttons) has no top border */
-#novel-plugin-chapter-button-container {
-    border-top: none;
-    padding-top: 0;
-}
-.novel-plugin-details-sidebar-section:first-child {
-    border-top: none;
-    padding-top: 0;
-}
-
-.novel-plugin-sidebar-muted {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    font-style: italic;
-}
-
-/* --- UPDATED: Rankings (AniList Style) --- */
-.novel-plugin-ranking-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.novel-plugin-ranking-item {
-    display: flex;
-    align-items: baseline;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    font-weight: 600;
-}
-
-.novel-plugin-ranking-hash {
-    color: var(--brand-color-light);
-    font-weight: 700;
-    margin-right: 4px;
-}
-
-.novel-plugin-ranking-rank {
-    color: var(--text-primary);
-    font-weight: 700;
-    margin-right: 8px;
-}
-
-/* --- UPDATED: Meta / External Links --- */
-.novel-plugin-external-links {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.novel-plugin-ext-link-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.6rem 1rem;
-    background: var(--bg-secondary);
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-decoration: none;
-    border-radius: 4px;
-    border-left: 3px solid transparent;
-    transition: all 0.2s ease;
-}
-
-.novel-plugin-ext-link-btn:hover {
-    background: var(--bg-tertiary);
-    color: var(--text-primary);
-    border-left-color: var(--brand-color);
-    padding-left: 1.25rem; /* Slight slide effect */
-}
-
-.novel-plugin-ext-icon {
-    width: 16px;
-    height: 16px;
-    opacity: 0.7;
-}
-.novel-plugin-ext-icon svg {
-    width: 16px;
-    height: 16px;
-    stroke: var(--text-secondary);
-}
-.novel-plugin-ext-link-btn:hover .novel-plugin-ext-icon svg {
-    stroke: var(--text-primary);
-}
-
-
-/* --- UPDATED: Character & Staff Grid --- */
-.novel-plugin-involved-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 1rem;
 }
-
-.novel-plugin-involved-card {
-    display: flex;
-    align-items: stretch; /* Make items stretch to fill height */
-    gap: 0; /* Remove gap, image will touch info */
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
-    overflow: hidden;
-    height: 80px; /* Fixed height */
+.novel-plugin-reader-btn {
+    background: #222;
+    border: 1px solid #333;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
 }
+.novel-plugin-reader-btn:hover { background: #333; }
 
-.novel-plugin-involved-card:hover {
-    background: var(--bg-tertiary);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-}
-
-.novel-plugin-involved-img {
-    width: 60px; /* Fixed width for the image */
-    height: 80px; /* Match card height */
-    object-fit: cover;
-    flex-shrink: 0;
-    background: var(--bg-tertiary);
-    border-radius: 0; /* No radius */
-}
-
-.novel-plugin-involved-info {
-    flex: 1; /* Take remaining space */
-    padding: 0.75rem;
-    min-width: 0; /* Prevents overflow */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.novel-plugin-involved-name {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0 0 0.25rem 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.novel-plugin-involved-role {
-    font-size: 0.8rem;
+/* --- Loading / States --- */
+.novel-plugin-loading {
+    text-align: center;
+    padding: 4rem;
+    font-size: 1.2rem;
     color: var(--text-secondary);
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+}
+.novel-plugin-error {
+    text-align: center;
+    padding: 4rem;
+    color: #ff5555;
 }
 
-/* --- UPDATED: Reviews List --- */
-.novel-plugin-reviews-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+/* --- Animations --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-.novel-plugin-review-card {
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    padding: 1rem;
-    transition: background 0.2s;
-}
-.novel-plugin-review-card:hover {
-    background: var(--bg-tertiary);
-}
-
-.novel-plugin-review-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.novel-plugin-review-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-    background: var(--bg-tertiary);
-    flex-shrink: 0;
-}
-
-.novel-plugin-review-meta {
-    flex: 1;
-    min-width: 0;
-}
-
-.novel-plugin-review-user {
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.novel-plugin-review-summary-text {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    white-space: normal; /* --- FIX: Allow wrapping --- */
-    word-break: break-word; /* --- FIX: Allow wrapping --- */
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-
-.novel-plugin-review-score-badge {
-    flex-shrink: 0;
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: var(--brand-color-light);
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    padding: 0.25rem 0.6rem;
-    border-radius: 6px;
-}
-
-
-/* =========================================
---- NEW: MOBILE RESPONSIVE STYLES ---
-========================================= */
+/* -------------------------------------------------------------
+   MOBILE RESPONSIVENESS
+   -------------------------------------------------------------
+*/
 
 @media (max-width: 768px) {
-
-    /* --- General Layout --- */
-    /* Reduce padding on main content and header for small screens */
-    .novel-plugin-page-content {
+    /* Adjust Container */
+    .novel-plugin-content {
         padding: 1rem;
-        padding-top: 4.5rem; /* Keep top padding for fixed buttons */
-    }
-    .novel-plugin-header {
-        padding: 1rem 1rem 0 1rem;
-        padding-top: 4.5rem;
-        justify-content: center; /* Center tabs on mobile */
-    }
-
-    /* --- Hero --- */
-    .novel-plugin-hero-content {
-        max-width: 100%; /* Use full width on mobile */
-    }
-    .novel-plugin-hero-title {
-        font-size: 1.5rem; /* Slightly smaller title */
-    }
-
-    /* --- Search Page --- */
-    .novel-plugin-filter-container {
-        flex-direction: column; /* Stack filters vertically */
-        gap: 0.75rem;
-    }
-
-    /* --- Details Page Banner/Header --- */
-    .novel-plugin-details-header {
-        flex-direction: column;   /* Stack cover image and info */
-        align-items: center;      /* Center them */
-        gap: 1rem;
-        margin-top: -100px; /* Adjust overlap for centered cover */
-        padding: 0 1rem; /* Reduce horizontal padding */
-    }
-    .novel-plugin-details-info {
-        padding-bottom: 0;
-        text-align: center; /* Center-align title/subtitle */
-        width: 100%; /* --- FIX: Make info box full width --- */
-        flex-grow: 0; /* --- FIX: Disable desktop flex-grow --- */
-    }
-
-    /* --- Details Page Body (Main + Sidebar) --- */
-    .novel-plugin-details-body {
-        /* Stack sidebar on top of main content */
-        flex-direction: column-reverse; 
-        gap: 2rem;
-    }
-    .novel-plugin-details-sidebar {
-        min-width: 100%; /* Take full width */
-        gap: 2rem; /* Add more space between sections */
     }
     
-    /* --- Details Page Grids --- */
-    .novel-plugin-involved-grid {
-         /* Force one column for character/staff cards */
-        grid-template-columns: 1fr;
+    /* Header Adjustments */
+    .novel-plugin-search-bar {
+        width: 150px; 
     }
-    .novel-plugin-involved-card {
-        height: auto; /* Let height be flexible */
-    }
-    .novel-plugin-involved-img {
-        height: 80px; /* Keep image height fixed */
+    .novel-plugin-title span {
+        display: none; /* Hide text logo on small screens if needed */
     }
 
-    /* --- Poster Grid (Discover & Recommendations) --- */
+    /* Details Page Stack */
+    .novel-plugin-details-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    /* --- FIX: Center thumbnail on mobile --- */
+    .novel-plugin-details-poster {
+        margin: 0 auto 1.5rem auto; /* Center horizontally + bottom margin */
+        display: block;
+    }
+
+    .novel-plugin-details-info {
+        width: 100%;
+        flex-grow: 0;
+    }
+    
+    .novel-plugin-details-title {
+        font-size: 1.8rem;
+    }
+    
+    .novel-plugin-details-meta {
+        justify-content: center;
+    }
+    
+    .novel-plugin-actions {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    /* Stack sidebar below main content */
+    .novel-plugin-details-body {
+        flex-direction: column;
+        gap: 2rem;
+    }
+    
+    .novel-plugin-details-sidebar {
+        width: 100%;
+    }
+
+    /* Grid adjustments */
     .novel-plugin-grid {
-         /* Allow for 3 columns on most phones */
-        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
         gap: 1rem;
-    }
-
-    /* --- Reader Page --- */
-    .novel-plugin-reader-header {
-        flex-wrap: wrap; /* Allow buttons to wrap */
-        gap: 0.5rem;
-    }
-    .novel-plugin-reader-header .novel-plugin-select {
-        flex-basis: 100%; /* Make select full width */
-        order: -1; /* Put select on top */
-    }
-    .novel-plugin-reader-container {
-        padding: 1rem;
     }
 }
