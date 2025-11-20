@@ -444,8 +444,7 @@
     content: 'View';
     position: absolute;
     top: 38%;
-    /* FIX: User requested 55% adjustment for centering */
-    left: 55%;
+    left: 50%; /* Reverted to 50% */
     transform: translate(-50%, -50%) scale(0.9);
     color: white;
     font-size: 0.9rem;
@@ -1084,14 +1083,20 @@
         padding: 0 1rem; /* Reduce horizontal padding */
     }
     
-    /* FIX: Explicitly center the cover image using standard margins (Reverted previous hack) */
+    /* FIX: Explicitly center the cover image using standard margins */
     .novel-plugin-details-cover {
         display: block;
         margin: 0 auto 1rem auto;
     }
-    
-    /* FIX: Removed specific hover transform hack for mobile as it is no longer needed */
-    
+
+    /* FIX: Apply user's requested positioning to the banner */
+    .novel-plugin-details-banner {
+        position: relative;
+        left: 55%;
+        transform: translateX(-50%);
+        width: 100vw; /* Ensure full width is maintained while shifted */
+    }
+
     .novel-plugin-details-info {
         padding-bottom: 0;
         text-align: center; /* Center-align title/subtitle */
