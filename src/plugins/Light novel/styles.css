@@ -1082,6 +1082,13 @@
         margin-top: -100px; /* Adjust overlap for centered cover */
         padding: 0 1rem; /* Reduce horizontal padding */
     }
+    
+    /* FIX: Explicitly center the cover image */
+    .novel-plugin-details-cover {
+        margin: 0 auto;
+        display: block;
+    }
+
     .novel-plugin-details-info {
         padding-bottom: 0;
         text-align: center; /* Center-align title/subtitle */
