@@ -1141,8 +1141,8 @@ function init() {
                 
                 const cssUrl = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/styles.css";
                 const queriesUrl = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/anilist.js";
-                const scrapersUrlNovelBuddy = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/novelbuddy.js";
-                const scrapersUrlNovelBin = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/novelbin.js";
+                const scrapersUrlNovelBuddy = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/providers/novelbuddy.js";
+                const scrapersUrlNovelBin = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/providers/novelbin.js";
                 
                 try {
                     await Promise.all([
