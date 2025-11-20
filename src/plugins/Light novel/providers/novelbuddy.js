@@ -4,7 +4,7 @@
         return;
     }
 
-    const NOVELBUDDY_URL = "https://novelbuddy.com";
+    const NOVELBUDDY_URL = "https://corsproxy.io/?url=https://novelbuddy.com";
 
     // --- Private Utility Functions ---
 
