@@ -1078,16 +1078,15 @@
     .novel-plugin-details-header {
         flex-direction: column;   /* Stack cover image and info */
         align-items: center;      /* Center them */
+        left: 55%;
         gap: 1rem;
         margin-top: -100px; /* Adjust overlap for centered cover */
         padding: 0 1rem; /* Reduce horizontal padding */
     }
     
-    /* FIX: Explicitly center the cover image using user's 55% adjustment */
     .novel-plugin-details-cover {
         display: block;
         position: relative;
-        left: 55%;
         transform: translateX(-50%);
         margin-bottom: 1rem;
     }
