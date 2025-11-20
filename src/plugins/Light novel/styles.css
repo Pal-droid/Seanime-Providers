@@ -1077,15 +1077,17 @@
     /* --- Details Page Banner/Header --- */
     .novel-plugin-details-header {
         flex-direction: column;   /* Stack cover image and info */
-        align-items: center;      /* Center them */
+        align-items: center;      /* Center them (Flexbox) */
+        text-align: center;       /* Center them (Inline fallback) */
         gap: 1rem;
         margin-top: -100px; /* Adjust overlap for centered cover */
         padding: 0 1rem; /* Reduce horizontal padding */
     }
     
-    /* FIX: Explicitly center the cover image */
+    /* FIX: Explicitly center the cover image with forceful overrides */
     .novel-plugin-details-cover {
-        margin: 0 auto;
+        margin: 0 auto !important;
+        align-self: center !important;
         display: block;
     }
 
