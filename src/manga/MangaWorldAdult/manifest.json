@@ -9,5 +9,5 @@
   "type": "manga-provider",
   "language": "typescript",
   "lang": "it",
-  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/mangaworldadult/provider.ts"
+  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/MangaWorldAdult/provider.ts"
 }
