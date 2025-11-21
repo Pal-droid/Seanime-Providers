@@ -12,6 +12,17 @@
     "website": ""
   },
   {
+    "id": "mangaworldadult",
+    "name": "MangaWorldAdult",
+    "description": "MangaWorldAdult is a manga provider for Seanime",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/MangaWorldAdult/manifest.json",
+    "author": "Pal",
+    "type": "manga-provider",
+    "language": "typescript",
+    "lang": "it",
+    "icon": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/MangaWorld.jpeg",
+    "website": ""
+  {
     "id": "mangafreak",
     "name": "MangaFreak",
     "description": "MangaFreak is a manga provider for Seanime",
