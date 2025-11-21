@@ -476,7 +476,7 @@ function init() {
                         margin: -1.5rem -1.5rem 0 -1.5rem;
                         max-width: 1000px;
                         box-sizing: content-box;
-                        left: 50%;
+                        left: 55%;
                         transform: translateX(-50%);
                         margin-top: -4.5rem;
                         border-radius: 8px;
@@ -1141,8 +1141,8 @@ function init() {
                 
                 const cssUrl = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/styles.css";
                 const queriesUrl = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/anilist.js";
-                const scrapersUrlNovelBuddy = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/novelbuddy.js";
-                const scrapersUrlNovelBin = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/novelbin.js";
+                const scrapersUrlNovelBuddy = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/providers/novelbuddy.js";
+                const scrapersUrlNovelBin = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/providers/novelbin.js";
                 
                 try {
                     await Promise.all([
