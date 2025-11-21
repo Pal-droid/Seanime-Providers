@@ -19,6 +19,9 @@
     --brand-color: #8A2BE2;
     --brand-color-light: #ab6afb;
     --border-color: #222222;
+    /* --- NEW: Provider Colors --- */
+    --provider-novelbuddy: #8A2BE2;
+    --provider-novelbin: #E4A11B;
 }
 
 /* --- Modal & Layout (Full Screen) --- */
@@ -312,6 +315,7 @@
 .novel-plugin-filter-container label {
     font-size: 0.9rem;
     color: var(--text-secondary);
+    white-space: nowrap; /* --- NEW --- */
 }
 
 .novel-plugin-select {
@@ -332,6 +336,7 @@
     background-size: 16px;
     transition: border-color 0.2s, box-shadow 0.2s;
     flex-grow: 1; /* Make selects fill space */
+    width: 100%; /* --- NEW --- */
 }
 
 .novel-plugin-select:focus {
@@ -439,7 +444,7 @@
     content: 'View';
     position: absolute;
     top: 38%;
-    left: 50%;
+    left: 50%; /* Reverted to 50% */
     transform: translate(-50%, -50%) scale(0.9);
     color: white;
     font-size: 0.9rem;
@@ -480,8 +485,6 @@
 
 /* --- Details Page --- */
 
-/* REMOVED .novel-plugin-details-banner as it is now inline */
-
 .novel-plugin-details-header {
     display: flex;
     align-items: flex-end;
@@ -511,6 +514,7 @@
 
 .novel-plugin-details-info {
     padding-bottom: 0.5rem;
+    flex-grow: 1; 
 }
 
 .novel-plugin-details-info .novel-plugin-title {
@@ -569,7 +573,6 @@
 .novel-plugin-details-sidebar {
     flex: 1;
     min-width: 240px; /* Increased min-width for sidebar */
-    /* --- NEW: Make sidebar sections distinct --- */
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
@@ -650,6 +653,7 @@
     border-radius: 8px;
     border: 1px solid var(--border-color);
     transition: background 0.2s, border-color 0.2s;
+    position: relative; /* --- NEW --- */
 }
 
 .novel-plugin-result-card:hover {
@@ -687,6 +691,28 @@
     margin: 0;
 }
 
+/* --- NEW: Provider Tag for Manual Search --- */
+.novel-plugin-provider-tag {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #000;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+}
+.novel-plugin-provider-tag[data-provider="novelbuddy"] {
+    background-color: var(--provider-novelbuddy);
+    color: #fff;
+}
+.novel-plugin-provider-tag[data-provider="novelbin"] {
+    background-color: var(--provider-novelbin);
+    color: #000;
+}
+/* --- END NEW --- */
+
+
 /* --- Reader Page --- */
 .novel-plugin-reader-container {
     background: var(--bg-secondary);
@@ -719,6 +745,19 @@
     color: var(--bg-tertiary); /* Hides text */
     text-shadow: none;
     transition: background 0.2s, color 0.2s;
+    user-select: none; /* --- FIX: Prevent selection --- */
+}
+
+/* --- FIX: Hide text even when selected --- */
+.novel-plugin-spoiler-tag::selection {
+    background: var(--bg-tertiary);
+    color: var(--bg-tertiary);
+    text-shadow: none;
+}
+.novel-plugin-spoiler-tag::-moz-selection { /* Firefox */
+    background: var(--bg-tertiary);
+    color: var(--bg-tertiary);
+    text-shadow: none;
 }
 
 .novel-plugin-spoiler-tag:hover {
@@ -726,15 +765,37 @@
     color: var(--border-color);
 }
 
+/* --- FIX: Hide text even when selected (hover state) --- */
+.novel-plugin-spoiler-tag:hover::selection {
+    background: var(--border-color);
+    color: var(--border-color);
+    text-shadow: none;
+}
+.novel-plugin-spoiler-tag:hover::-moz-selection { /* Firefox */
+    background: var(--border-color);
+    color: var(--border-color);
+    text-shadow: none;
+}
+
 #novel-plugin-tags-container.show-spoilers .novel-plugin-spoiler-tag {
     background: #581c1c;
     color: #ffc2c2; /* Reveals text */
+    user-select: auto; /* --- FIX: Allow selection when revealed --- */
 }
 
-#novel-plugin-tags-container.show-spoilers .novel-plugin-spoiler-tag:hover {
-    background: #7a2828;
-    color: #ffdbdb;
+/* --- FIX: Allow normal selection when revealed --- */
+#novel-plugin-tags-container.show-spoilers .novel-plugin-spoiler-tag::selection {
+    background: Highlight; /* Use browser default */
+    color: HighlightText; /* Use browser default */
+    text-shadow: none;
 }
+#novel-plugin-tags-container.show-spoilers .novel-plugin-spoiler-tag::-moz-selection { /* Firefox */
+    background: Highlight;
+    color: HighlightText;
+    text-shadow: none;
+}
+/* --- END SPOILER FIXES --- */
+
 
 .novel-plugin-section-header {
     display: flex;
@@ -1021,10 +1082,26 @@
         margin-top: -100px; /* Adjust overlap for centered cover */
         padding: 0 1rem; /* Reduce horizontal padding */
     }
+    
+    /* FIX: Explicitly center the cover image using standard margins */
+    .novel-plugin-details-cover {
+        display: block;
+        margin: 0 auto 1rem auto;
+    }
+
+    /* FIX: Apply user's requested positioning to the banner */
+    .novel-plugin-details-banner {
+        position: relative;
+        left: 55%;
+        transform: translateX(-50%);
+        width: 100vw; /* Ensure full width is maintained while shifted */
+    }
+
     .novel-plugin-details-info {
         padding-bottom: 0;
-        flex-grow: 1; 
         text-align: center; /* Center-align title/subtitle */
+        width: 100%; /* --- FIX: Make info box full width --- */
+        flex-grow: 0; /* --- FIX: Disable desktop flex-grow --- */
     }
 
     /* --- Details Page Body (Main + Sidebar) --- */
@@ -1037,7 +1114,7 @@
         min-width: 100%; /* Take full width */
         gap: 2rem; /* Add more space between sections */
     }
-
+    
     /* --- Details Page Grids --- */
     .novel-plugin-involved-grid {
          /* Force one column for character/staff cards */
