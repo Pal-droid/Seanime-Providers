@@ -12,6 +12,18 @@
     "website": ""
   },
   {
+    "id": "hentaisaturn",
+    "name": "HentaiSaturn",
+    "description": "HentaiSaturn is an online streaming provider for italian sub/dub hentai",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/hentaisaturn/manifest.json",
+    "author": "Pal",
+    "type": "onlinestream-provider",
+    "language": "typescript",
+    "lang": "it",
+    "icon": "https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/hentaisaturn.png",
+    "website": ""
+  },
+  {
     "id": "hentaiworld",
     "name": "HentaiWorld",
     "description": "HentaiWorld is an online streaming provider for italian sub/dub hentai",
