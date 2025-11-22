@@ -11,5 +11,4 @@
 | Name | Status | Notes |
 |------|--------|-------|
 | [Agefans](https://m.agedm.io/#/) | Work in progress | Chinese-only provider |
-| [HentaiWorld](https://hentaiworld.me/) | Planned | Italian-only provider |
 | [HentaiSaturn](https://hentaisaturn.tv) | Planned | Italian-only provider |
