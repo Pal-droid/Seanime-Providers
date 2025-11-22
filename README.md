@@ -77,3 +77,5 @@ Or
 * [Seanime official site](https://seanime.app/)
 
 * [Seanime extension docs](https://seanime.gitbook.io/seanime-extensions)
+
+* [kRYstall9](https://github.com/kRYstall9)
