@@ -4,6 +4,8 @@ This is the marketplace that contains all extensions I have made.
 
 [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/marketplace/main.json) for the marketplace's manifest URL.
 
+> **Please remember this is the @Pal/marketplace not the official [Seanime marketplace](https://raw.githubusercontent.com/5rahim/seanime-extensions/refs/heads/main/marketplace.json).**
+
 ---
 
 ## Currently Available Extensions / Plugins
