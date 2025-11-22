@@ -8,6 +8,6 @@
   "type": "onlinestream-provider",
   "language": "typescript",
   "lang": "it",
-  "icon": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/hentaiworld.png",
+  "icon": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/hentaisaturn.png",
   "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/hentaisaturn/provider.ts"
 }
