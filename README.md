@@ -30,7 +30,7 @@ Each folder represents a standalone Seanime extension provider.
 
 1. Open Seanime.  
 2. Go to the **Extensions** tab.  
-3. Select **Add from URL**.  
+3. Select **Add extensions**.  
 4. Paste the **raw GitHub URL** of the desired `manifest.json` file, for example:
 
 ```
@@ -68,7 +68,7 @@ Or
 
 ---
 
-### Credits
+### Credits ❤️
 
 * [Seanime](https://github.com/5rahim/seanime) made by [5rahim](https://github.com/5rahim)
 
@@ -76,6 +76,6 @@ Or
 
 * [Seanime official site](https://seanime.app/)
 
-* [Seanime extension docs](https://seanime.gitbook.io/seanime-extensions)
+* [Seanime extensions docs](https://seanime.gitbook.io/seanime-extensions)
 
 * [kRYstall9](https://github.com/kRYstall9) *(For the source code of [MangaWorldAdult](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/MangaWorldAdult/manifest.json), [HentaiWorld](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/hentaiworld/manifest.json), and [HentaiSaturn](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/hentaisaturn/manifest.json))*
