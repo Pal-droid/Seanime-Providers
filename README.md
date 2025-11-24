@@ -43,17 +43,12 @@ https://raw.githubusercontent.com/pal-droid/seanime-providers/main/src/manga/sca
 
 ## Where do i find the manifest URL's?
 
-[Click here for anime extensions](https://github.com/Pal-droid/Seanime-Providers/tree/main/src/anime/README.md)
 
-[Click here for manga extensions](https://github.com/Pal-droid/Seanime-Providers/tree/main/src/manga/README.md)
-
-[Click here for plugins](https://github.com/Pal-droid/Seanime-Providers/tree/main/src/plugins/README.md)
-
-[Click here for custom sources](https://github.com/Pal-droid/Seanime-Providers/tree/main/src/Custom%20source/README.md)
+[Click here](https://pal-droid.github.io/Seanime-Providers/) to visit the extensions Marketplace
 
 Or
 
-[Click here to see full list of extensions and extension marketplace](https://github.com/Pal-droid/Seanime-Providers/tree/main/marketplace/README.md)
+[Click here to see full list of extensions and extension marketplace README](https://github.com/Pal-droid/Seanime-Providers/tree/main/marketplace/README.md)
 
 ---
 
