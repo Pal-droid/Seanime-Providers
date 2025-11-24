@@ -5,11 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
     <title>Seanime Marketplace</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts for Premium Feel -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <script>
       tailwind.config = { 
         darkMode: "class",
@@ -49,7 +48,7 @@
             -ms-overflow-style: none;  /* IE and Edge */
             scrollbar-width: none;  /* Firefox */
         }
-        
+
         /* Glass effect utilities */
         .glass-panel {
             background: rgba(17, 24, 39, 0.7);
@@ -57,14 +56,14 @@
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        
+
         .glass-card {
             background: rgba(31, 41, 55, 0.4);
             backdrop-filter: blur(8px);
             border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.3s ease;
         }
-        
+
         .glass-card:hover {
             border-color: rgba(59, 130, 246, 0.3);
             transform: translateY(-2px);
@@ -80,17 +79,14 @@
     </style>
   </head>
   <body class="bg-gray-950 text-gray-200 font-sans antialiased min-h-screen flex flex-col">
-    
-    <!-- Background ambient glow -->
+
     <div class="fixed top-0 left-0 w-full h-96 bg-gradient-to-b from-blue-900/10 to-transparent pointer-events-none z-0"></div>
 
-    <!-- Navigation -->
     <nav class="glass-panel sticky top-0 z-50 border-b-0 shadow-lg shadow-black/20">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          
-          <!-- Logo Area -->
-          <div class="flex items-center justify-between">
+
+          <div class="flex items-center justify-between w-full md:w-auto">
             <div class="flex items-center gap-3">
                 <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
@@ -99,21 +95,29 @@
                   Seanime <span class="text-gray-500 font-normal">Marketplace</span>
                 </h1>
             </div>
+            
+            <button id="settings-btn-mobile" class="md:hidden p-2 text-gray-400 hover:text-white transition">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+            </button>
           </div>
 
-          <!-- Mobile Scrollable Tabs -->
-          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 mask-linear">
-            <button class="tab-btn whitespace-nowrap px-4 py-1.5 text-sm font-medium rounded-full border border-transparent hover:bg-gray-800 transition" data-tab="plugins">Plugins</button>
-            <button class="tab-btn whitespace-nowrap px-4 py-1.5 text-sm font-medium rounded-full border border-transparent hover:bg-gray-800 transition" data-tab="online">Online Streams</button>
-            <button class="tab-btn whitespace-nowrap px-4 py-1.5 text-sm font-medium rounded-full border border-transparent hover:bg-gray-800 transition" data-tab="manga">Manga</button>
-            <button class="tab-btn whitespace-nowrap px-4 py-1.5 text-sm font-medium rounded-full border border-transparent hover:bg-gray-800 transition" data-tab="torrent">Torrents</button>
-            <button class="tab-btn whitespace-nowrap px-4 py-1.5 text-sm font-medium rounded-full border border-transparent hover:bg-gray-800 transition" data-tab="styling">Styling</button>
+          <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0 mask-linear">
+                <button class="tab-btn whitespace-nowrap px-4 py-1.5 text-sm font-medium rounded-full border border-transparent hover:bg-gray-800 transition" data-tab="plugins">Plugins</button>
+                <button class="tab-btn whitespace-nowrap px-4 py-1.5 text-sm font-medium rounded-full border border-transparent hover:bg-gray-800 transition" data-tab="online">Online Streams</button>
+                <button class="tab-btn whitespace-nowrap px-4 py-1.5 text-sm font-medium rounded-full border border-transparent hover:bg-gray-800 transition" data-tab="manga">Manga</button>
+                <button class="tab-btn whitespace-nowrap px-4 py-1.5 text-sm font-medium rounded-full border border-transparent hover:bg-gray-800 transition" data-tab="torrent">Torrents</button>
+                <button class="tab-btn whitespace-nowrap px-4 py-1.5 text-sm font-medium rounded-full border border-transparent hover:bg-gray-800 transition" data-tab="styling">Styling</button>
+              </div>
+
+              <button id="settings-btn" class="hidden md:flex p-2 text-gray-400 hover:text-white bg-gray-800/50 hover:bg-gray-800 rounded-lg transition border border-gray-700/50">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              </button>
           </div>
         </div>
       </div>
     </nav>
 
-    <!-- Search & Filters -->
     <div class="relative z-10 border-b border-gray-800/50 bg-gray-950/50 backdrop-blur-sm">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <div class="relative group">
@@ -132,16 +136,13 @@
       </div>
     </div>
 
-    <!-- Main Content -->
     <main class="flex-grow max-w-7xl mx-auto p-4 sm:p-6 w-full relative z-10">
-      
-      <!-- Sections -->
+
       <section id="plugins" class="tab-content grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></section>
       <section id="online" class="tab-content hidden grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></section>
       <section id="manga" class="tab-content hidden grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></section>
       <section id="torrent" class="tab-content hidden grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"></section>
 
-      <!-- Styling Section -->
       <section id="styling" class="tab-content hidden space-y-6">
         <div id="styling-container" class="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2"></div>
         <div id="styling-empty" class="text-center py-12 text-gray-500">
@@ -151,13 +152,34 @@
       </section>
     </main>
 
-    <!-- Toast Notification -->
     <div id="toast" class="fixed bottom-6 right-6 bg-gray-900 border border-gray-700 text-white px-4 py-3 rounded-lg shadow-2xl transform translate-y-24 transition-transform duration-300 flex items-center gap-3 z-[60]">
         <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
         <span id="toast-msg" class="text-sm font-medium">Operation successful</span>
     </div>
 
-    <!-- Code Snippet Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden items-center justify-center z-[80] p-4 transition-opacity opacity-0">
+        <div class="glass-card bg-gray-900 rounded-2xl border border-gray-700 shadow-2xl max-w-md w-full p-6 transform scale-95 transition-transform duration-200" id="settings-content">
+            <h3 class="text-lg font-bold text-white mb-1">Server Settings</h3>
+            <p class="text-sm text-gray-500 mb-6">Configure where extensions are installed.</p>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase">Server URI</label>
+                    <input type="text" id="setting-uri" placeholder="http://localhost" class="w-full px-4 py-2.5 rounded-lg bg-gray-950 border border-gray-700 text-gray-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none transition" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-400 mb-1.5 uppercase">Server Port</label>
+                    <input type="text" id="setting-port" placeholder="43211" class="w-full px-4 py-2.5 rounded-lg bg-gray-950 border border-gray-700 text-gray-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 outline-none transition" />
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-end gap-3">
+                <button id="settings-close" class="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition">Cancel</button>
+                <button id="settings-save" class="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-lg shadow-blue-500/20 transition">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <div id="snippet-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden items-center justify-center z-[70] p-4 sm:p-6 transition-opacity opacity-0">
       <div class="bg-gray-900 rounded-2xl border border-gray-700 shadow-2xl max-w-4xl w-full h-[85vh] flex flex-col overflow-hidden transform scale-95 transition-transform duration-200" id="modal-content">
         <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800 bg-gray-950">
@@ -184,9 +206,6 @@
       </div>
     </div>
 
-    <!-- Templates -->
-    
-    <!-- 1. Loading Skeleton -->
     <template id="skeleton-template">
         <div class="glass-card rounded-xl p-5 flex flex-col h-full animate-pulse">
             <div class="flex items-center mb-4">
@@ -206,7 +225,6 @@
         </div>
     </template>
 
-    <!-- 2. Plugin Card -->
     <template id="card-template">
       <div class="glass-card rounded-xl p-5 flex flex-col h-full group animate-fade-in">
         <div class="flex items-start justify-between mb-4">
@@ -221,16 +239,14 @@
                 </div>
             </div>
         </div>
-        
+
         <p class="text-sm text-gray-400 leading-relaxed flex-grow desc-text line-clamp-3"></p>
-        
+
         <div class="mt-5 flex flex-wrap items-center gap-2 pt-4 border-t border-gray-800/50 buttons-container">
-            <!-- Buttons injected here -->
-        </div>
+            </div>
       </div>
     </template>
 
-    <!-- 3. Snippet Card -->
     <template id="snippet-template">
       <div class="glass-card rounded-xl overflow-hidden group animate-fade-in border-l-4 border-l-blue-500/50">
         <div class="p-4 bg-gray-900/30 flex items-center justify-between border-b border-gray-800">
@@ -263,7 +279,31 @@
       const placeholderDataUrl = "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='#1f2937'/><path d='M50 40 L50 60 M40 50 L60 50' stroke='#374151' stroke-width='2'/></svg>`);
       const $ = (s) => document.querySelector(s);
       const $$ = (s) => Array.from(document.querySelectorAll(s));
-      
+
+      // --- Settings Logic ---
+      const DEFAULT_URI = "http://localhost";
+      const DEFAULT_PORT = "43211";
+
+      function getStoredSettings() {
+          return {
+              uri: localStorage.getItem('seanime_uri') || DEFAULT_URI,
+              port: localStorage.getItem('seanime_port') || DEFAULT_PORT
+          };
+      }
+
+      function saveSettings(uri, port) {
+          // Remove trailing slash from URI if present
+          if (uri.endsWith('/')) uri = uri.slice(0, -1);
+          localStorage.setItem('seanime_uri', uri);
+          localStorage.setItem('seanime_port', port);
+          showToast("Settings saved!");
+      }
+
+      function getInstallUrl() {
+          const { uri, port } = getStoredSettings();
+          return `${uri}:${port}/api/v1/extensions/external/install`;
+      }
+
       // Safe Clipboard Copy
       function copyToClipboard(text) {
           const textArea = document.createElement("textarea");
@@ -287,10 +327,10 @@
           const toast = document.getElementById('toast');
           const msgEl = document.getElementById('toast-msg');
           const icon = toast.querySelector('svg');
-          
+
           msgEl.textContent = msg;
           toast.classList.remove('translate-y-24');
-          
+
           if(isError) {
               icon.classList.remove('text-green-400');
               icon.classList.add('text-red-400');
@@ -354,7 +394,7 @@
 
       async function loadPlugins() {
         const categories = ["plugins", "online", "manga", "torrent"];
-        
+
         // Show skeletons first
         categories.forEach(id => renderSkeletons(id));
 
@@ -380,7 +420,7 @@
         categories.forEach(id => document.getElementById(id).innerHTML = "");
 
         const items = normalizePluginData(data);
-        
+
         // If no items
         if (!items.length) {
              categories.forEach(id => {
@@ -414,7 +454,7 @@
           title.textContent = item.name || item.id || "Unnamed";
           authorEl.textContent = item.author || "Unknown";
           desc.textContent = item.description || "No description available.";
-          
+
           btns.innerHTML = "";
 
           // Website Button
@@ -440,8 +480,11 @@
               btn.innerHTML = `<svg class="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Processing`;
 
               try {
+                // CHANGED: Use dynamic URL logic
+                const installUrl = getInstallUrl();
+                
                 const res = await fetch(
-                  "http://localhost:43211/api/v1/extensions/external/install",
+                  installUrl,
                   {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -500,7 +543,7 @@
       async function loadSnippets() {
         const container = document.getElementById("styling-container");
         const empty = document.getElementById("styling-empty");
-        
+
         let res;
         try {
           res = await fetch("styles/snippets.json");
@@ -566,7 +609,7 @@
                   modal.querySelector('#modal-content').classList.remove("scale-95");
                   modal.querySelector('#modal-content').classList.add("scale-100");
               });
-              
+
             });
 
             container.appendChild(node);
@@ -590,7 +633,7 @@
           t = setTimeout(() => applySearch(e.target.value), 120);
         });
 
-        // Modal logic
+        // Modal logic (Snippet)
         const modal = $("#snippet-modal");
         const closeModal = () => {
             modal.classList.add("opacity-0");
@@ -601,15 +644,55 @@
 
         $("#modal-close").addEventListener("click", closeModal);
         $("#modal-copy").addEventListener("click", () => copyToClipboard($("#modal-code").textContent));
-        
+
         modal.addEventListener("click", (e) => {
           if (e.target === modal) closeModal();
         });
+
+        // --- SETTINGS MODAL LOGIC ---
+        const settingsModal = $("#settings-modal");
+        const settingsContent = $("#settings-content");
         
+        const openSettings = () => {
+            const { uri, port } = getStoredSettings();
+            $("#setting-uri").value = uri;
+            $("#setting-port").value = port;
+            
+            settingsModal.classList.remove("hidden");
+            requestAnimationFrame(() => {
+                settingsModal.classList.remove("opacity-0");
+                settingsContent.classList.remove("scale-95");
+                settingsContent.classList.add("scale-100");
+            });
+        };
+
+        const closeSettings = () => {
+            settingsModal.classList.add("opacity-0");
+            settingsContent.classList.remove("scale-100");
+            settingsContent.classList.add("scale-95");
+            setTimeout(() => settingsModal.classList.add("hidden"), 200);
+        };
+
+        // Triggers
+        $("#settings-btn").addEventListener("click", openSettings);
+        $("#settings-btn-mobile").addEventListener("click", openSettings);
+        $("#settings-close").addEventListener("click", closeSettings);
+        $("#settings-save").addEventListener("click", () => {
+            const uri = $("#setting-uri").value.trim();
+            const port = $("#setting-port").value.trim();
+            saveSettings(uri, port);
+            closeSettings();
+        });
+
+        settingsModal.addEventListener("click", (e) => {
+             if (e.target === settingsModal) closeSettings();
+        });
+
         // Close on Escape
         document.addEventListener('keydown', (e) => {
-            if(e.key === "Escape" && !modal.classList.contains('hidden')) {
-                closeModal();
+            if(e.key === "Escape") {
+                if(!modal.classList.contains('hidden')) closeModal();
+                if(!settingsModal.classList.contains('hidden')) closeSettings();
             }
         });
 
@@ -619,4 +702,3 @@
     </script>
   </body>
 </html>
-
