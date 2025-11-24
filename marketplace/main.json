@@ -24,6 +24,18 @@
     "website": ""
   },
   {
+    "id": "animeheaven",
+    "name": "AnimeHeaven",
+    "description": "AnimeHeaven is an online streaming provider for english sub anime",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/animeheaven/manifest.json",
+    "author": "Pal",
+    "type": "onlinestream-provider",
+    "language": "javascript",
+    "lang": "en",
+    "icon": "https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/animeheaven.png",
+    "website": ""
+  },
+  {
     "id": "hentaiworld",
     "name": "HentaiWorld",
     "description": "HentaiWorld is an online streaming provider for italian sub/dub hentai",
