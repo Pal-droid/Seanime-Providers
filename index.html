@@ -157,7 +157,8 @@
         <span id="toast-msg" class="text-sm font-medium">Operation successful</span>
     </div>
 
-    <div id="settings-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden items-center justify-center z-[80] p-4 transition-opacity opacity-0">
+    <!-- Added 'flex' class here to ensure centering works when 'hidden' is removed -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden flex items-center justify-center z-[80] p-4 transition-opacity opacity-0">
         <div class="glass-card bg-gray-900 rounded-2xl border border-gray-700 shadow-2xl max-w-md w-full p-6 transform scale-95 transition-transform duration-200" id="settings-content">
             <h3 class="text-lg font-bold text-white mb-1">Server Settings</h3>
             <p class="text-sm text-gray-500 mb-6">Configure where extensions are installed.</p>
@@ -180,7 +181,8 @@
         </div>
     </div>
 
-    <div id="snippet-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden items-center justify-center z-[70] p-4 sm:p-6 transition-opacity opacity-0">
+    <!-- Added 'flex' class here as well for the snippet modal -->
+    <div id="snippet-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm hidden flex items-center justify-center z-[70] p-4 sm:p-6 transition-opacity opacity-0">
       <div class="bg-gray-900 rounded-2xl border border-gray-700 shadow-2xl max-w-4xl w-full h-[85vh] flex flex-col overflow-hidden transform scale-95 transition-transform duration-200" id="modal-content">
         <div class="flex justify-between items-center px-6 py-4 border-b border-gray-800 bg-gray-950">
           <div class="flex items-center gap-2">
@@ -702,3 +704,4 @@
     </script>
   </body>
 </html>
+
