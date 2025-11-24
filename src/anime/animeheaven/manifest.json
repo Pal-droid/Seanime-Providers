@@ -9,5 +9,5 @@
   "language": "javascript",
   "lang": "en",
   "icon": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/animeheaven.png",
-  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/animeheaven/provider.ts"
+  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/animeheaven/provider.js"
 }
