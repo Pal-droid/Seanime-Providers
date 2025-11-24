@@ -12,4 +12,3 @@
 | Name | Status | Notes |
 |------|--------|-------|
 | [Agefans](https://m.agedm.io/#/) | Work in progress | Chinese-only provider |
-| [AnimeHeaven](https://animeheaven.me/) | Work in progress |
