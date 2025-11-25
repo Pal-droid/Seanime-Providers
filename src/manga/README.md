@@ -19,3 +19,4 @@
 | Bato        | Work in progress   | 
 | Manganato   | Work in progress   | Some mirrors might not be able to be added due to Cloudflared |
 | Allmanga    | Considering        | 
+| Kagane | Planned |
