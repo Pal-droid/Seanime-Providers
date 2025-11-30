@@ -149,7 +149,7 @@ function init() {
                 if (error) html += '<div class="error-msg">' + error + '</div>';
                 html += '<input type="password" id="ani-token" class="token-input" placeholder="Paste AniList Access Token" />';
                 html += '<button id="ani-save-btn" class="token-btn">Load Activity Feed</button>';
-                html += '<div class="token-help">Create token at <a href="https://anilist.co/api/v2/oauth/authorize?client_id=22384&response_type=token" target="_blank">AniList API</a></div>';
+                html += '<div class="token-help">Create token at <a href="https://anilist.co/api/v2/oauth/authorize?client_id=13985&response_type=token" target="_blank">AniList API</a></div>';
                 html += '</div>';
                 
                 content.innerHTML = html;
