@@ -16,7 +16,7 @@ function init() {
         // ---------------------------------------------------------------------------  
   
         /** * Generates the self-contained JavaScript.
-         * Stateless version: Does not use LocalStorage.
+         * 
          */  
         function getSmartInjectedScript(prefilledToken: string = ''): string {  
             let script = '(function() {\n';  
@@ -325,7 +325,7 @@ function init() {
                 if (typeof $database !== 'undefined' && $database.anilist) {
                     // @ts-ignore
                     token = await $database.anilist.getToken();
-                    console.log("[injected-activity-feed] Token retrieved from host.");
+                    console.log(`[injected-activity-feed] Token retrieved from host: ${token ? 'YES' : 'NO'}`);
                 }
             } catch (e) {
                 console.warn("[injected-activity-feed] Could not retrieve internal token:", e);
