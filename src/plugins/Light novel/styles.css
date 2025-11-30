@@ -19,7 +19,6 @@
     --brand-color: #8A2BE2;
     --brand-color-light: #ab6afb;
     --border-color: #222222;
-    /* --- NEW: Provider Colors --- */
     --provider-novelbuddy: #8A2BE2;
     --provider-novelbin: #E4A11B;
 }
@@ -693,15 +692,29 @@
 
 /* --- NEW: Provider Tag for Manual Search --- */
 .novel-plugin-provider-tag {
-    position: absolute;
-    top: 0.5rem;
-    right: 0.5rem;
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #000;
-    padding: 0.1rem 0.4rem;
+    /* Changed from absolute to static to sit in flow */
+    position: static;
+    display: inline-block;
+    
+    /* Badge styling */
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.25rem 0.5rem;
     border-radius: 4px;
+    
+    /* Layout positioning */
+    margin-right: 0; /* Gap handled by parent gap */
+    flex-shrink: 0; /* Prevent squishing */
+    align-self: center;
+    
+    /* Default Colors */
+    color: #fff;
+    background: var(--bg-tertiary);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
+
 .novel-plugin-provider-tag[data-provider="novelbuddy"] {
     background-color: var(--provider-novelbuddy);
     color: #fff;
@@ -1082,7 +1095,7 @@
         margin-top: -100px; /* Adjust overlap for centered cover */
         padding: 0 1rem; /* Reduce horizontal padding */
     }
-    
+
     /* FIX: Explicitly center the cover image using standard margins */
     .novel-plugin-details-cover {
         display: block;
@@ -1114,7 +1127,7 @@
         min-width: 100%; /* Take full width */
         gap: 2rem; /* Add more space between sections */
     }
-    
+
     /* --- Details Page Grids --- */
     .novel-plugin-involved-grid {
          /* Force one column for character/staff cards */
