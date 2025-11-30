@@ -16,7 +16,7 @@ function init() {
         // ---------------------------------------------------------------------------  
   
         /** * Generates the self-contained JavaScript.
-         * Now accepts an optional prefilledToken to skip the manual input step.
+         * Stateless version: Does not use LocalStorage.
          */  
         function getSmartInjectedScript(prefilledToken: string = ''): string {  
             let script = '(function() {\n';  
@@ -25,7 +25,6 @@ function init() {
             script += 'const BOX_ID = "'+INJECTED_BOX_ID+'";\n';  
             script += 'const MODAL_ID = "'+MODAL_ID+'";\n';  
             script += 'const TARGET_SEL = \''+TARGET_SELECTOR+'\'; \n';  
-            script += 'const LS_KEY = "anilist_feed_token";\n'; 
             // Inject the token from the host context safely
             script += 'const INJECTED_TOKEN = "'+ prefilledToken.replace(/"/g, '\\"') +'";\n';
             
@@ -150,7 +149,7 @@ function init() {
                 if (error) html += '<div class="error-msg">' + error + '</div>';
                 html += '<input type="password" id="ani-token" class="token-input" placeholder="Paste AniList Access Token" />';
                 html += '<button id="ani-save-btn" class="token-btn">Load Activity Feed</button>';
-                html += '<div class="token-help">Create token at <a href="https://anilist.co/api/v2/oauth/authorize?client_id=13985&response_type=token" target="_blank">AniList API</a></div>';
+                html += '<div class="token-help">Create token at <a href="https://anilist.co/api/v2/oauth/authorize?client_id=22384&response_type=token" target="_blank">AniList API</a></div>';
                 html += '</div>';
                 
                 content.innerHTML = html;
@@ -158,7 +157,7 @@ function init() {
                 document.getElementById('ani-save-btn').onclick = () => {
                     const token = document.getElementById('ani-token').value.trim();
                     if (token) {
-                        localStorage.setItem(LS_KEY, token);
+                        // Directly use the token, do NOT save to localStorage
                         fetchActivities(token);
                     }
                 };
@@ -200,7 +199,7 @@ function init() {
                 }
 
                 document.getElementById('reset-token').onclick = () => {
-                    localStorage.removeItem(LS_KEY);
+                    // Just return to input form, no storage to clear
                     renderInputForm();
                 };
             }
@@ -281,8 +280,6 @@ function init() {
 
                 } catch (e) {
                     console.error(e);
-                    // Only clear local storage if it was a stored token, not the injected one
-                    if (!INJECTED_TOKEN) localStorage.removeItem(LS_KEY); 
                     renderInputForm("Error: " + e.message);
                 }
             }
@@ -297,21 +294,13 @@ function init() {
                 }
                 
                 // Priority 1: Injected Token (from Host)
-                if (INJECTED_TOKEN && INJECTED_TOKEN !== "null" && INJECTED_TOKEN !== "undefined") {
-                    // Save it to LS so we have it for future, then fetch
-                    localStorage.setItem(LS_KEY, INJECTED_TOKEN);
+                if (INJECTED_TOKEN && INJECTED_TOKEN !== "null" && INJECTED_TOKEN !== "undefined" && INJECTED_TOKEN.trim() !== "") {
                     fetchActivities(INJECTED_TOKEN);
                     return;
                 }
 
-                // Priority 2: Stored Token (Previous Session)
-                const savedToken = localStorage.getItem(LS_KEY);
-                if (savedToken) {
-                    fetchActivities(savedToken);
-                } else {
-                    // Priority 3: Manual Input
-                    renderInputForm();
-                }
+                // Default: Manual Input (No storage check)
+                renderInputForm();
             }
 
             mainLoop();
