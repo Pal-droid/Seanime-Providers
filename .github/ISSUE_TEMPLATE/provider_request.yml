@@ -1,6 +1,6 @@
 name: Provider request
 description: Suggest a new provider or improvement
-title: ""
+title: " "
 labels: ["request"]
 body:
   - type: input
