@@ -1,7 +1,7 @@
 name: Provider request
 description: Suggest a new provider or improvement
-title: "[FEATURE] "
-labels: ["enhancement", "provider", "request", "plugin"]
+title: ""
+labels: ["request"]
 body:
   - type: input
     id: summary
