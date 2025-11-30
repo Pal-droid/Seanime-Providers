@@ -54,7 +54,7 @@ Or
 
 ### Want to suggest more providers?
 
-[Open an issue](https://github.com/Pal-droid/Seanime-Providers/issues/new)
+[Open an issue](https://github.com/Pal-droid/Seanime-Providers/issues/new?template=provider_request.yml)
 
 Or 
 
