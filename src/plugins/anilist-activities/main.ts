@@ -1059,9 +1059,10 @@ function init() {
                         }
                     }
                     
+                    // --- CHANGED perPage: 25 to perPage: 50 for more resilience ---
                     const query = \`
                     query { 
-                        Page(page: 1, perPage: 25) { 
+                        Page(page: 1, perPage: 50) { 
                             activities(type: MEDIA_LIST, sort: ID_DESC, isFollowing: true) { 
                                 ... on ListActivity { 
                                     id 
