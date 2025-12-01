@@ -4,6 +4,7 @@ function init() {
     $ui.register((ctx) => {  
         const INJECTED_BOX_ID = "activity-stories-feed";  
         const VIEWER_ID = "story-viewer-overlay";  
+        const INPUT_MODAL_ID = "reply-input-modal";
         const SCRIPT_DATA_ATTR = "data-injected-box-script";  
 
         const SELECTOR_MAP = {
@@ -18,10 +19,12 @@ function init() {
             MANUAL_OVERRIDE_SELECTOR: "anilist-feed.manualOverrideSelector",
             BG_STYLE: "anilist-feed.bgStyle",
             RING_COLOR: "anilist-feed.ringColor",
+            REPLY_POSITION: "anilist-feed.replyPosition",
         };
 
         const initialDropdownChoice = $storage.get(STORAGE_KEYS.DROPDOWN_CHOICE) ?? DEFAULT_CHOICE;
         const initialManualSelector = $storage.get(STORAGE_KEYS.MANUAL_OVERRIDE_SELECTOR) ?? '';
+        const initialReplyPosition = $storage.get(STORAGE_KEYS.REPLY_POSITION) ?? 'right';
         
         const resolveTargetSelector = (dropdownChoice: string, manualOverride: string): string => {
             return (manualOverride && manualOverride.trim() !== "") 
@@ -34,14 +37,16 @@ function init() {
             manualOverrideSelector: initialManualSelector,
             activeTargetSelector: resolveTargetSelector(initialDropdownChoice, initialManualSelector),
             bgStyle: $storage.get(STORAGE_KEYS.BG_STYLE) ?? 'glass',
-            ringColor: $storage.get(STORAGE_KEYS.RING_COLOR) ?? '#FF6F61'
+            ringColor: $storage.get(STORAGE_KEYS.RING_COLOR) ?? '#FF6F61',
+            replyPosition: initialReplyPosition,
         };
 
         const refs = {
             dropdownChoice: ctx.fieldRef(state.dropdownChoice),
             manualOverrideSelector: ctx.fieldRef(state.manualOverrideSelector),
             bgStyle: ctx.fieldRef(state.bgStyle),
-            ringColor: ctx.fieldRef(state.ringColor)
+            ringColor: ctx.fieldRef(state.ringColor),
+            replyPosition: ctx.fieldRef(state.replyPosition),
         };
         
         ctx.registerEventHandler("save-feed-settings", () => {
@@ -54,12 +59,14 @@ function init() {
             $storage.set(STORAGE_KEYS.MANUAL_OVERRIDE_SELECTOR, newManualSelector);
             $storage.set(STORAGE_KEYS.BG_STYLE, refs.bgStyle.current);
             $storage.set(STORAGE_KEYS.RING_COLOR, refs.ringColor.current);
+            $storage.set(STORAGE_KEYS.REPLY_POSITION, refs.replyPosition.current);
             
             state.dropdownChoice = newDropdownChoice;
             state.manualOverrideSelector = newManualSelector;
             state.activeTargetSelector = finalSelector;
             state.bgStyle = refs.bgStyle.current;
             state.ringColor = refs.ringColor.current;
+            state.replyPosition = refs.replyPosition.current;
 
             ctx.toast.success("Settings saved! Refresh page to apply.");
         });
@@ -109,6 +116,14 @@ function init() {
                         { label: "White", value: "#FFFFFF" }
                     ]
                 }),
+                tray.select("Reply Modal Position", {
+                    fieldRef: refs.replyPosition,
+                    options: [
+                        { label: "Right Side (Default)", value: "right" },
+                        { label: "Left Side", value: "left" },
+                    ],
+                    help: "Choose where the 'View Replies' modal slides in from."
+                }),
                 tray.button("Save & Apply", {
                     onClick: "save-feed-settings",
                     intent: "primary-subtle"
@@ -118,7 +133,6 @@ function init() {
         });
           
         function getSmartInjectedScript(prefilledToken: string = '', settings: typeof state): string {  
-            // --- Logic to calculate dynamic CSS variables ---
             let bgCss = "";
             switch (settings.bgStyle) {
                 case "dark": bgCss = "background-color: #151f2e; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);"; break;
@@ -132,12 +146,267 @@ function init() {
             const ringColor = settings.ringColor || '#FF6F61';
             const IS_LIGHT = settings.bgStyle === 'light';
             const MAIN_TEXT_COLOR = IS_LIGHT ? '#374151' : '#E5E7EB';
-            // --- End dynamic CSS variables ---
+            const REPLY_POSITION = settings.replyPosition;
+
+            const styles = `
+                /* FEED STYLES */
+                #${INJECTED_BOX_ID} { 
+                    z-index: 20; 
+                    position: relative; 
+                    box-sizing: border-box; 
+                    width: 100%; 
+                    max-width: 1300px; 
+                    margin: 16px auto 24px auto; 
+                    ${bgCss} 
+                    padding: 0; 
+                    border-radius: 12px; 
+                    font-family: "Inter", sans-serif; 
+                    animation: slideInDown 0.4s ease-out; 
+                    color: ${MAIN_TEXT_COLOR}; 
+                    min-height: 120px; 
+                    display: flex; 
+                    flex-direction: column; 
+                    justify-content: center; 
+                }
+                .box-header { margin-bottom: 12px; font-weight: 600; font-size: 1rem; display: flex; justify-content: space-between; align-items: center; padding: 16px 16px 0 16px; }
+                .action-btn { font-size: 0.75rem; color: #9CA3AF; cursor: pointer; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 4px 10px; border-radius: 12px; transition: all 0.2s; }
+                .action-btn:hover { background: rgba(255,255,255,0.15); color: white; border-color: rgba(255,255,255,0.3); }
+
+                /* BASE STYLES - Mobile First */
+                .stories-container { display: flex; overflow-x: auto; gap: 20px; padding: 0 16px 5px 16px; scrollbar-width: none; }
+                .stories-container::-webkit-scrollbar { display: none; } 
+                .story-item { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; cursor: pointer; text-align: center; max-width: 65px; transition: transform 0.2s; }
+                .story-ring { width: 64px; height: 64px; padding: 3px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; transition: transform 0.2s; }
+                .story-image { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid #1F2937; }
+                .story-name { font-size: 0.75rem; font-weight: 500; color: ${MAIN_TEXT_COLOR}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; }
+
+                /* DESKTOP / LARGE SCREEN ENHANCEMENTS */
+                @media (min-width: 768px) {
+                    .stories-container { 
+                        gap: 30px; 
+                        padding: 0 24px 5px 24px; 
+                        scrollbar-width: thin; 
+                        scrollbar-color: #6B7280 #1F2937; 
+                    }
+                    .stories-container::-webkit-scrollbar { 
+                        height: 8px; 
+                        display: block; 
+                    }
+                    .stories-container::-webkit-scrollbar-track {
+                        background: rgba(31, 41, 55, 0.5); 
+                        border-radius: 10px;
+                    }
+                    .stories-container::-webkit-scrollbar-thumb {
+                        background-color: rgba(107, 114, 128, 0.7); 
+                        border-radius: 10px;
+                        border: 2px solid transparent; 
+                    }
+                    .story-item { max-width: 80px; } 
+                    .story-ring { 
+                        width: 80px; height: 80px; 
+                        padding: 4px; 
+                        margin-bottom: 10px; 
+                    }
+                    .story-name { font-size: 0.85rem; } 
+                    
+                    #${INJECTED_BOX_ID} { padding-top: 24px; padding-bottom: 24px; } 
+                    .box-header { padding: 0 24px 0 24px; }
+                }
+
+                .token-form { display: flex; flex-direction: column; align-items: center; width: 100%; gap: 10px; padding: 0 16px 16px 16px;}
+                .token-input { background: rgba(0,0,0,0.3); border: 1px solid #4B5563; color: white; padding: 8px 12px; border-radius: 6px; width: 80%; max-width: 300px; font-size: 0.9rem; }
+                .token-btn { background: #6366F1; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
+                .token-btn:hover { background: #4F46E5; }
+                .token-help { font-size: 0.8rem; color: #9CA3AF; text-align: center; }
+                .token-help a { color: #8B5CF6; text-decoration: underline; }
+                .state-msg { text-align: center; color: #9CA3AF; width: 100%; padding: 0 16px 16px 16px; }
+                .error-msg { color: #F87171; margin-bottom: 8px; font-size: 0.9rem; }
+
+                /* VIEWER STYLES */
+                #${VIEWER_ID} { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; display: none; flex-direction: column; }
+                #${VIEWER_ID}.is-open { display: flex; animation: fadeIn 0.2s; }
+                .sv-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; filter: blur(40px) brightness(0.4); z-index: 0; background-size: cover; background-position: center; transition: background-image 0.5s ease; will-change: filter, background-image; }
+                .sv-content { position: relative; z-index: 2; width: 100%; height: 100%; display: flex; flex-direction: column; }
+                .sv-progress-container { display: flex; gap: 4px; padding: 12px 10px; width: 100%; box-sizing: border-box; }
+                .sv-progress-bar { flex: 1; height: 3px; background: rgba(255,255,255,0.3); border-radius: 2px; overflow: hidden; }
+                .sv-progress-fill { height: 100%; background: #fff; width: 0%; transition: width 0.1s linear; }
+                .sv-progress-bar.completed .sv-progress-fill { width: 100%; }
+                .sv-header { display: flex; align-items: center; padding: 0 16px; margin-top: 4px; height: 50px; }
+                .sv-avatar { width: 32px; height: 32px; border-radius: 50%; margin-right: 10px; border: 1px solid rgba(255,255,255,0.2); }
+                .sv-username { color: white; font-weight: 600; font-size: 0.9rem; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+                .sv-close { margin-left: auto; color: white; background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 5px; opacity: 0.8; }
+                .sv-body { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+                .sv-card-img { width: 85%; max-height: 60vh; object-fit: cover; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+                .sv-footer { padding: 20px; padding-bottom: 40px; color: white; text-align: center; }
+                .sv-text-main { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+                .sv-text-sub { font-size: 0.9rem; font-weight: 400; margin-bottom: 4px; text-shadow: 0 1px 4px rgba(0,0,0,0.8); }
+                .sv-nav-left, .sv-nav-right { position: absolute; top: 0; bottom: 0; z-index: 100; cursor: pointer; background: transparent; }
+                .sv-nav-left:active, .sv-nav-right:active { background: rgba(255,255,255,0.05); }
+                .sv-nav-left { left: 0; width: 30%; }
+                .sv-nav-right { right: 0; width: 70%; }
+                .sv-animate-enter { animation: fadeInScale 0.3s ease-out; }
+                @keyframes fadeInScale { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+                .sv-actions { margin-top: 15px; display: flex; justify-content: center; gap: 15px; }
+                .sv-action-btn { background: rgba(255, 255, 255, 0.15); border: none; padding: 8px 15px; border-radius: 8px; color: white; cursor: pointer; transition: background 0.2s; font-weight: 500; font-size: 0.9rem; }
+                .sv-action-btn:hover { background: rgba(255, 255, 255, 0.25); }
+
+                /* VIEWER ENHANCEMENTS FOR PC */
+                @media (min-width: 1024px) {
+                    .sv-body { padding-top: 20px; }
+                    .sv-card-img { 
+                        width: auto; 
+                        max-width: 600px; 
+                        max-height: 70vh; 
+                    }
+                    .sv-nav-left { width: 15%; } 
+                    .sv-nav-right { width: 15%; } 
+                }
+
+                /* --- REPLY MODAL ANIMATIONS --- */
+                @keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+                @keyframes slideOutRight { from { transform: translateX(0); } to { transform: translateX(100%); } }
+                @keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+                @keyframes slideOutLeft { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+
+                .slide-in-right { animation: slideInRight 0.3s ease-out forwards; }
+                .slide-out-right { animation: slideOutRight 0.3s ease-in forwards; }
+                .slide-in-left { animation: slideInLeft 0.3s ease-out forwards; }
+                .slide-out-left { animation: slideOutLeft 0.3s ease-in forwards; }
+
+                /* REPLY MODAL STYLES */
+                #reply-modal { 
+                    position: absolute; 
+                    top: 0; 
+                    width: 100%; 
+                    max-width: 400px;
+                    height: 100%; 
+                    background: rgba(0,0,0,0.95); 
+                    z-index: 10; 
+                    display: none; 
+                    flex-direction: column; 
+                    padding: 10px; 
+                    box-sizing: border-box; 
+                }
+                
+                #reply-modal.is-visible {
+                    display: flex; 
+                }
+
+                /* Position Classes */
+                #reply-modal.pos-right { right: 0; left: auto; }
+                #reply-modal.pos-left { left: 0; right: auto; }
+
+                /* Mobile Override: Always full width, but still use L/R animations for consistency */
+                @media (max-width: 768px) {
+                    #reply-modal { max-width: 100%; left: 0 !important; right: 0 !important; }
+                }
+
+                .reply-header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+                .reply-header h3 { color: white; margin: 0; font-size: 1.1rem; }
+                .reply-close { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+                .reply-list { flex-grow: 1; overflow-y: auto; padding: 10px 0; }
+                .reply-item { display: flex; gap: 10px; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+                .reply-avatar { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+                .reply-body { flex-grow: 1; text-align: left; }
+                .reply-meta { font-size: 0.8rem; color: #9CA3AF; margin-bottom: 4px; }
+                .reply-meta span { font-weight: 600; color: white; margin-right: 5px; }
+                .reply-text { color: white; font-size: 0.9rem; line-height: 1.4; }
+                .reply-none { color: #9CA3AF; text-align: center; padding: 20px; }
+
+                /* REPLY INPUT MODAL STYLES */
+                #${INPUT_MODAL_ID} {
+                    position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000;
+                    display: none; justify-content: center; align-items: center;
+                    animation: fadeIn 0.2s;
+                }
+                #${INPUT_MODAL_ID}.is-open { display: flex; }
+                .input-modal-card {
+                    background: #151f2e;
+                    border-radius: 12px;
+                    width: 90%;
+                    max-width: 450px;
+                    padding: 20px;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+                    color: white;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 15px;
+                }
+                .input-modal-card h3 {
+                    margin: 0;
+                    font-size: 1.2rem;
+                    font-weight: 700;
+                    color: #3DB4F2;
+                    border-bottom: 1px solid rgba(255,255,255,0.1);
+                    padding-bottom: 10px;
+                }
+                .reply-textarea {
+                    width: 100%;
+                    min-height: 100px;
+                    padding: 10px;
+                    border: 1px solid #4B5563;
+                    border-radius: 8px;
+                    background: #1F2937;
+                    color: white;
+                    font-size: 1rem;
+                    resize: vertical;
+                    box-sizing: border-box;
+                }
+                .reply-textarea:focus {
+                    outline: none;
+                    border-color: #3DB4F2;
+                    box-shadow: 0 0 0 1px #3DB4F2;
+                }
+                .input-modal-footer {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                .char-count {
+                    font-size: 0.8rem;
+                    color: #9CA3AF;
+                }
+                .char-count.error {
+                    color: #EF4444;
+                    font-weight: 600;
+                }
+                .input-modal-actions button {
+                    padding: 8px 15px;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+                .input-modal-actions .cancel-btn {
+                    background: transparent;
+                    border: 1px solid #4B5563;
+                    color: #9CA3AF;
+                    margin-right: 10px;
+                }
+                .input-modal-actions .cancel-btn:hover {
+                    background: rgba(75, 85, 99, 0.1);
+                }
+                .input-modal-actions .submit-btn {
+                    background: #3DB4F2;
+                    border: none;
+                    color: white;
+                }
+                .input-modal-actions .submit-btn:hover {
+                    background: #2A9DD8;
+                }
+                .input-modal-actions .submit-btn:disabled {
+                    background: #374151;
+                    cursor: not-allowed;
+                }
+            `;
 
             const jsString = `
             (function() {
+                const styles = \`${styles}\`; 
+
                 const BOX_ID = "${INJECTED_BOX_ID}";
                 const VIEWER_ID = "${VIEWER_ID}";
+                const INPUT_MODAL_ID = "${INPUT_MODAL_ID}";
                 const TARGET_SEL = '${settings.activeTargetSelector}';
                 const INJECTED_TOKEN = "${prefilledToken.replace(/"/g, '\\"')}";
                 const CACHE_KEY = "anilist-feed-cache";
@@ -145,13 +414,8 @@ function init() {
                 const STORY_DURATION = 5000;
                 const RING_COLOR = '${ringColor}';
                 const IS_LIGHT = ${IS_LIGHT};
-                
-                // Dynamic CSS variables passed from the main script
-                const BG_CSS_VAR = \`${bgCss}\`;
-                const MAIN_TEXT_COLOR_VAR = \`${MAIN_TEXT_COLOR}\`;
-                
-                // URL to fetch the external CSS file (per user request)
-                const CSS_URL = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/anilist-activities/styles.css";
+                const MAX_REPLY_CHARS = 140;
+                const REPLY_POSITION = '${REPLY_POSITION}';
 
                 let activeToken = null;
                 let allStoryGroups = [];
@@ -161,38 +425,72 @@ function init() {
                 let currentStoryTimer = null;
                 let progressInterval = null;
                 let startTime = 0;
+                let currentActivityIdForReply = null; 
+                let isInteractionActive = false;
 
-                // --- CSS Fetch and Injection Logic ---
-                async function fetchAndInjectStyles() {
-                    if (document.getElementById('anilist-feed-styles')) return;
+                // --- TIMER CONTROL LOGIC ---
 
-                    try {
-                        const res = await fetch(CSS_URL);
-                        if (!res.ok) throw new Error('Failed to fetch CSS');
-                        
-                        let cssText = await res.text();
-
-                        // Perform string replacements for dynamic variables and IDs
-                        cssText = cssText
-                            .replace(new RegExp('\\$\\{INJECTED_BOX_ID\\}', 'g'), BOX_ID)
-                            .replace(new RegExp('\\$\\{VIEWER_ID\\}', 'g'), VIEWER_ID)
-                            .replace(new RegExp('\\$\\{BG_CSS_VAR\\}', 'g'), BG_CSS_VAR)
-                            .replace(new RegExp('\\$\\{MAIN_TEXT_COLOR_VAR\\}', 'g'), MAIN_TEXT_COLOR_VAR);
-                        
-                        // Inject the final, processed CSS into a style tag
-                        const styleTag = document.createElement('style');
-                        styleTag.id = 'anilist-feed-styles';
-                        styleTag.innerHTML = cssText;
-                        document.head.appendChild(styleTag);
-
-                    } catch (e) {
-                        console.error("Error injecting external CSS:", e);
+                function pauseViewerTimer() {
+                    if (currentStoryTimer) clearTimeout(currentStoryTimer);
+                    if (progressInterval) clearInterval(progressInterval);
+                    
+                    const activeBar = document.querySelector('.sv-progress-bar.active');
+                    if (activeBar) {
+                         const fill = activeBar.querySelector('.sv-progress-fill');
+                         if (fill) fill.style.transition = 'none'; 
                     }
                 }
-                // --- End CSS Fetch and Injection Logic ---
 
+                function resumeViewerTimer() {
+                    const viewerOpen = document.getElementById(VIEWER_ID)?.classList.contains('is-open');
+                    const replyModalVisible = document.getElementById('reply-modal')?.classList.contains('is-visible');
+                    const inputModalOpen = document.getElementById(INPUT_MODAL_ID)?.classList.contains('is-open');
 
-                // --- UTILITIES (Compact) ---
+                    if (replyModalVisible || inputModalOpen) {
+                        isInteractionActive = true;
+                        return;
+                    }
+
+                    isInteractionActive = false;
+                    
+                    if (viewerOpen && currentStoryData) {
+                        const activeBar = document.querySelector('.sv-progress-bar.active');
+                        if (activeBar) {
+                            const fill = activeBar.querySelector('.sv-progress-fill');
+                            if (fill) fill.style.transition = 'width 0.1s linear';
+                        }
+                        
+                        restartStoryTimer();
+                    }
+                }
+
+                function restartStoryTimer() {
+                    if (isInteractionActive) return;
+
+                    if (currentStoryTimer) clearTimeout(currentStoryTimer);
+                    if (progressInterval) clearInterval(progressInterval);
+                    startTime = Date.now();
+                    
+                    const activeBar = document.querySelector('.sv-progress-bar.active');
+                    if (!activeBar) return;
+                    
+                    const fill = activeBar.querySelector('.sv-progress-fill');
+                    if (fill) {
+                        fill.style.transition = 'width 0.1s linear';
+                        fill.style.width = '0%';
+                    }
+                    
+                    currentStoryTimer = setTimeout(window.nextStory, STORY_DURATION);
+                    progressInterval = setInterval(() => {
+                        const percent = Math.min(100, ((Date.now() - startTime) / STORY_DURATION) * 100);
+                        if (fill) fill.style.width = percent + '%';
+                        if (percent >= 100) clearInterval(progressInterval);
+                    }, 100);
+                }
+                
+                // --- END TIMER CONTROL LOGIC ---
+
+                // --- UTILITIES ---
                 function timeAgo(t) {
                     const s = Math.floor((new Date() - new Date(t * 1000)) / 1000);
                     let i = s / 31536000;
@@ -225,9 +523,23 @@ function init() {
                 async function apiCall(query, variables) {
                     if (!activeToken) {
                         console.error("API call failed: No active token.");
-                        // Use a custom alert message instead of prompt/alert
-                        // Using a standard function name to avoid conflicts in the host environment
-                        (typeof $ui !== 'undefined' ? $ui.toast.error : window.alert)("Please enter your AniList Access Token to interact with activities.");
+                        const viewer = document.getElementById(VIEWER_ID);
+                        if (viewer) {
+                            const msgBox = document.createElement('div');
+                            msgBox.style.cssText = 'position:absolute; bottom:100px; left:50%; transform:translateX(-50%); background:rgba(255,0,0,0.8); color:white; padding:10px; border-radius:8px; z-index:10001; font-size:0.9rem;';
+                            msgBox.innerText = 'Error: Please enter your AniList Access Token.';
+                            viewer.appendChild(msgBox);
+                            setTimeout(() => viewer.removeChild(msgBox), 3000);
+                        } else {
+                            const box = document.getElementById(BOX_ID);
+                            if (box) {
+                                const msg = document.createElement('div');
+                                msg.innerText = 'Error: Please enter your AniList Access Token.';
+                                msg.style.cssText = 'color: #F87171; text-align: center; padding: 10px; background: rgba(248, 113, 113, 0.1); border-radius: 8px; margin: 10px;';
+                                box.prepend(msg);
+                                setTimeout(() => msg.remove(), 3000);
+                            }
+                        }
                         return null;
                     }
                     try {
@@ -240,60 +552,118 @@ function init() {
                         if (!res.ok || json.errors) throw new Error(json.errors ? json.errors[0].message : 'Network Error');
                         return json;
                     } catch (e) {
-                        // Display the full error message to the user
                         console.error('AniList API Error:', e.message);
-                        (typeof $ui !== 'undefined' ? $ui.toast.error : window.alert)('AniList API Error: ' + e.message);
+                        const box = document.getElementById(BOX_ID);
+                        if (box) {
+                            const msg = document.createElement('div');
+                            msg.innerText = 'API Error: ' + e.message;
+                            msg.style.cssText = 'color: #F87171; text-align: center; padding: 10px; background: rgba(248, 113, 113, 0.1); border-radius: 8px; margin: 10px;';
+                            box.prepend(msg);
+                            setTimeout(() => msg.remove(), 5000);
+                        }
                         return null;
                     }
                 }
+                
+                window.openReplyInputModal = (activityId) => {
+                    currentActivityIdForReply = activityId;
+                    const modal = document.getElementById(INPUT_MODAL_ID);
+                    const textarea = document.getElementById('reply-textarea');
+                    const countSpan = document.getElementById('char-count-span');
+                    const submitBtn = document.getElementById('reply-submit-btn');
 
-                window.likeActivity = async (id) => {
-                    // MUTATION: This call is always correct as it doesn't return the full activity object
-                    const LIKE_MUTATION = 'mutation ($id: Int) { ToggleLike(id: $id, type: ACTIVITY) { id isLiked likeCount } }';
-                    const btn = document.getElementById('sv-like-btn');
-                    if (btn) btn.disabled = true;
+                    if (!modal || !textarea || !countSpan || !submitBtn) return;
+                    
+                    isInteractionActive = true; 
+                    pauseViewerTimer(); 
 
-                    const result = await apiCall(LIKE_MUTATION, { id });
-                    if (result) {
-                        const data = result.data.ToggleLike;
-                        const act = currentStoryData.activities.find(a => a.id === id);
-                        if (act) {
-                            act.isLiked = data.isLiked;
-                            act.likeCount = data.likeCount;
-                        }
-                        // Re-render the current frame to update the button state
-                        renderStoryFrame(false); 
-                    }
-                    if (btn) btn.disabled = false;
+                    textarea.value = '';
+                    countSpan.innerText = \`0/\${MAX_REPLY_CHARS}\`;
+                    countSpan.classList.remove('error');
+                    submitBtn.disabled = true;
+                    
+                    modal.classList.add('is-open');
+                    textarea.focus();
                 }
 
-                window.replyActivity = async (id) => {
-                    // Use a custom prompt function if necessary, otherwise rely on the host environment's capability
-                    const replyText = window.prompt("Enter your reply (Max 140 characters):");
-                    if (!replyText || replyText.trim().length === 0) return;
-                    if (replyText.length > 140) return (typeof $ui !== 'undefined' ? $ui.toast.error : window.alert)("Reply too long (Max 140 characters).");
+                window.closeReplyInputModal = () => {
+                    document.getElementById(INPUT_MODAL_ID)?.classList.remove('is-open');
+                    currentActivityIdForReply = null;
+
+                    resumeViewerTimer(); 
+                }
+
+                window.handleReplyInput = (textarea) => {
+                    const countSpan = document.getElementById('char-count-span');
+                    const submitBtn = document.getElementById('reply-submit-btn');
+                    const charCount = textarea.value.length;
+                    
+                    if (!countSpan || !submitBtn) return;
+
+                    countSpan.innerText = \`\${charCount}/\${MAX_REPLY_CHARS}\`;
+                    
+                    if (charCount > MAX_REPLY_CHARS || charCount === 0) {
+                        countSpan.classList.add('error');
+                        submitBtn.disabled = true;
+                    } else {
+                        countSpan.classList.remove('error');
+                        submitBtn.disabled = false;
+                    }
+                }
+
+                window.submitReply = async () => {
+                    const activityId = currentActivityIdForReply;
+                    const textarea = document.getElementById('reply-textarea');
+                    const replyText = textarea?.value?.trim();
+                    
+                    if (!replyText || replyText.length === 0 || replyText.length > MAX_REPLY_CHARS || !activityId) return;
 
                     const REPLY_MUTATION = 'mutation ($activityId: Int, $text: String) { SaveActivityReply(activityId: $activityId, text: $text) { id } }';
-                    const btn = document.getElementById('sv-reply-btn');
-                    if (btn) btn.disabled = true;
-
-                    const result = await apiCall(REPLY_MUTATION, { activityId: id, text: replyText.trim() });
+                    const submitBtn = document.getElementById('reply-submit-btn');
+                    
+                    if (submitBtn) submitBtn.disabled = true;
+                    
+                    const result = await apiCall(REPLY_MUTATION, { activityId: activityId, text: replyText });
+                    
                     if (result) {
-                        (typeof $ui !== 'undefined' ? $ui.toast.success : window.alert)("Reply posted successfully!");
-                        // Optionally refresh the reply list if modal is open
-                        if (document.getElementById('reply-modal')?.classList.contains('is-open')) {
-                            window.showReplies(id, true);
-                        }
+                        window.closeReplyInputModal();
+                        
+                        const successMsg = document.createElement('div');
+                        successMsg.innerText = "Reply posted successfully!";
+                        successMsg.style.cssText = 'position:absolute; top:20px; left:50%; transform:translateX(-50%); background:#10B981; color:white; padding:8px 15px; border-radius:8px; font-weight:600; z-index: 10002;';
+                        document.getElementById(INPUT_MODAL_ID).appendChild(successMsg);
+                        setTimeout(() => {
+                            successMsg.remove();
+                            resumeViewerTimer();
+                        }, 1500);
+
+                    } else {
+                        if (submitBtn) submitBtn.disabled = false;
                     }
-                    if (btn) btn.disabled = false;
+                }
+
+                window.replyActivity = (id) => {
+                    window.openReplyInputModal(id);
                 }
                 
-                window.showReplies = async (activityId, forceRefresh = false) => {
+                window.showReplies = async (activityId) => {
                     const replyModal = document.getElementById('reply-modal');
                     const replyList = document.getElementById('reply-list');
                     if (!replyModal || !replyList) return;
 
-                    replyModal.classList.add('is-open');
+                    isInteractionActive = true; 
+                    pauseViewerTimer(); 
+
+                    // 1. Ensure modal is visible for layout
+                    replyModal.classList.add('is-visible');
+                    
+                    // 2. Clean previous animation classes
+                    replyModal.classList.remove('slide-out-right', 'slide-out-left');
+                    
+                    // 3. Add specific Enter animation based on position
+                    const animClass = (REPLY_POSITION === 'right') ? 'slide-in-right' : 'slide-in-left';
+                    replyModal.classList.add(animClass);
+                    
                     replyList.innerHTML = '<div class="reply-none">Loading replies...</div>';
                     
                     const REPLIES_QUERY = \`
@@ -338,29 +708,59 @@ function init() {
                 }
 
                 window.closeReplies = () => {
-                    document.getElementById('reply-modal')?.classList.remove('is-open');
+                    const replyModal = document.getElementById('reply-modal');
+                    if (!replyModal) return;
+
+                    // 1. Remove Enter animations
+                    replyModal.classList.remove('slide-in-right', 'slide-in-left');
+                    
+                    // 2. Add Exit animation
+                    const animClass = (REPLY_POSITION === 'right') ? 'slide-out-right' : 'slide-out-left';
+                    replyModal.classList.add(animClass);
+
+                    // 3. Wait for animation to finish, then hide
+                    setTimeout(() => {
+                        replyModal.classList.remove('is-visible', 'slide-out-right', 'slide-out-left');
+                        resumeViewerTimer();
+                    }, 280); 
                 }
+
+                // --- KEYBOARD NAVIGATION ---
+                function handleKeyDown(e) {
+                    const viewer = document.getElementById(VIEWER_ID);
+                    const replyModal = document.getElementById('reply-modal');
+                    const inputModal = document.getElementById(INPUT_MODAL_ID);
+                    
+                    const isViewerOpen = viewer && viewer.classList.contains('is-open');
+                    const isReplyModalVisible = replyModal && replyModal.classList.contains('is-visible');
+                    const isInputModalOpen = inputModal && inputModal.classList.contains('is-open');
+
+                    if (!isViewerOpen) {
+                        return; 
+                    }
+
+                    if (e.key === 'Escape') {
+                        if (isInputModalOpen) {
+                            window.closeReplyInputModal();
+                        } else if (isReplyModalVisible) {
+                            window.closeReplies();
+                        } else {
+                            window.closeStoryViewer();
+                        }
+                        e.preventDefault();
+                    } else if (isReplyModalVisible || isInputModalOpen) {
+                         return; 
+                    } else if (e.key === 'ArrowRight') {
+                        window.nextStory();
+                        e.preventDefault();
+                    } else if (e.key === 'ArrowLeft') {
+                        window.prevStory();
+                        e.preventDefault();
+                    }
+                }
+                // --- END KEYBOARD NAVIGATION ---
 
                 // --- STORY VIEWER LOGIC ---
-                function restartStoryTimer() {
-                    if (currentStoryTimer) clearTimeout(currentStoryTimer);
-                    if (progressInterval) clearInterval(progressInterval);
-                    startTime = Date.now();
-                    
-                    const activeBar = document.querySelector('.sv-progress-bar.active');
-                    if (!activeBar) return;
-                    
-                    const fill = activeBar.querySelector('.sv-progress-fill');
-                    if (fill) fill.style.width = '0%';
-                    
-                    currentStoryTimer = setTimeout(window.nextStory, STORY_DURATION);
-                    progressInterval = setInterval(() => {
-                        const percent = Math.min(100, ((Date.now() - startTime) / STORY_DURATION) * 100);
-                        if (fill) fill.style.width = percent + '%';
-                        if (percent >= 100) clearInterval(progressInterval);
-                    }, 100);
-                }
-
                 window.openStoryViewer = (storyGroupIndex) => {
                     const storyGroup = allStoryGroups[storyGroupIndex];
                     if (!storyGroup) return;
@@ -371,15 +771,23 @@ function init() {
                     
                     renderStoryFrame(true);
                     document.getElementById(VIEWER_ID).classList.add('is-open');
+
+                    document.addEventListener('keydown', handleKeyDown);
                 }
 
                 window.closeStoryViewer = () => {
                     document.getElementById(VIEWER_ID).classList.remove('is-open');
-                    window.closeReplies(); // Close reply modal too
+                    window.closeReplies(); 
+                    window.closeReplyInputModal(); 
+                    
                     if(currentStoryTimer) clearTimeout(currentStoryTimer);
                     if(progressInterval) clearInterval(progressInterval); 
+
                     currentStoryData = null;
                     currentStoryGroupIndex = -1;
+                    isInteractionActive = false;
+                    
+                    document.removeEventListener('keydown', handleKeyDown);
                 }
 
                 window.nextStory = () => {
@@ -388,7 +796,6 @@ function init() {
                         currentStoryIndex++;
                         renderStoryFrame(true);
                     } else {
-                        // FEATURE: Auto-advance to next user
                         const nextUserIndex = currentStoryGroupIndex + 1;
                         if (nextUserIndex < allStoryGroups.length) {
                             window.openStoryViewer(nextUserIndex);
@@ -404,15 +811,17 @@ function init() {
                         currentStoryIndex--;
                         renderStoryFrame(true);
                     } else {
-                        // Go back to previous user
                         const prevUserIndex = currentStoryGroupIndex - 1;
                         if (prevUserIndex >= 0) {
-                            window.openStoryViewer(prevUserIndex);
-                            // Jump to the last story of the previous user
-                            currentStoryIndex = allStoryGroups[prevUserIndex].activities.length - 1;
-                            renderStoryFrame(false); // Render without animation, just update time
+                            document.getElementById(VIEWER_ID).classList.remove('is-open');
+                            
+                            currentStoryGroupIndex = prevUserIndex;
+                            currentStoryData = allStoryGroups[prevUserIndex];
+                            currentStoryIndex = currentStoryData.activities.length - 1;
+
+                            document.getElementById(VIEWER_ID).classList.add('is-open');
+                            renderStoryFrame(true);
                         } else {
-                            // Loop back to the start of the current user's stories if already at the first story
                             currentStoryIndex = 0;
                             renderStoryFrame(true);
                         }
@@ -424,15 +833,16 @@ function init() {
                     if(!v || !currentStoryData) return;
                     
                     const act = currentStoryData.activities[currentStoryIndex];
-                    const activityId = act.id; // CRITICAL: Get ID for listeners
+                    const activityId = act.id;
                     
-                    // Always close replies when changing frame
-                    window.closeReplies(); 
+                    // Close replies instantly without animation when changing frames
+                    const replyModal = document.getElementById('reply-modal');
+                    if (replyModal) replyModal.classList.remove('is-visible', 'slide-in-right', 'slide-out-right', 'slide-in-left', 'slide-out-left');
+                    window.closeReplyInputModal();
 
                     v.querySelector('.sv-background').style.backgroundImage = \`url(\${act.coverImage || currentStoryData.profileImage})\`;
                     v.querySelector('.sv-avatar').src = currentStoryData.profileImage;
                     
-                    // Combine username and time
                     const svMeta = v.querySelector('.sv-meta');
                     svMeta.innerHTML = \`
                         <span class="sv-username">\${currentStoryData.name}</span>
@@ -452,21 +862,12 @@ function init() {
 
                     img.src = act.coverImage || 'https://s4.anilist.co/file/anilistcdn/media/anime/cover/large/default.jpg';
                     tMain.innerText = act.textMain;
-                    tSub.innerText = act.mediaTitle; // Use mediaTitle instead of textSub for accuracy
+                    tSub.innerText = act.mediaTitle;
 
-                    // Attach Listeners & Sync Button State 
-                    const likeBtn = v.querySelector('#sv-like-btn');
                     const replyBtn = v.querySelector('#sv-reply-btn');
                     
-                    if (likeBtn) {
-                        const likeCountText = ' (' + act.likeCount + ')';
-                        likeBtn.innerText = '❤️ ' + (act.isLiked ? 'Liked' : 'Like') + likeCountText;
-                        likeBtn.classList.toggle('liked', act.isLiked);
-                        likeBtn.onclick = () => window.likeActivity(activityId); // Attach listener with ID
-                    }
-                    
                     if (replyBtn) {
-                        replyBtn.onclick = () => window.replyActivity(activityId); // Attach listener with ID
+                        replyBtn.onclick = () => window.replyActivity(activityId);
                     }
 
                     if (viewRepliesBtn) {
@@ -495,7 +896,7 @@ function init() {
                             <div class="sv-header">
                                 <img class="sv-avatar" src="">
                                 <div class="sv-meta"></div>
-                                <button class="sv-close" aria-label="Close">&times;</button>
+                                <button class="sv-close" aria-label="Close" onclick="window.closeStoryViewer()">&times;</button>
                             </div>
                             <div class="sv-body">
                                 <div class="sv-nav-left" onclick="window.prevStory()"></div> 
@@ -506,14 +907,12 @@ function init() {
                                 <div class="sv-text-main"></div>
                                 <div class="sv-text-sub"></div>
                                 <div class="sv-actions">
-                                    <button class="sv-action-btn" id="sv-like-btn">❤️ Like</button>
                                     <button class="sv-action-btn" id="sv-reply-btn">💬 Reply</button>
                                     <button class="sv-action-btn" id="sv-view-replies-btn">👁️ View Replies</button>
                                 </div>
                             </div>
                             
-                            <!-- REPLY MODAL -->
-                            <div id="reply-modal">
+                            <div id="reply-modal" class="pos-\${REPLY_POSITION}">
                                 <div class="reply-header">
                                     <h3>Activity Replies</h3>
                                     <button class="reply-close" aria-label="Close" onclick="window.closeReplies()">&times;</button>
@@ -522,10 +921,27 @@ function init() {
                                     <div class="reply-none">Loading replies...</div>
                                 </div>
                             </div>
-                            <!-- END REPLY MODAL -->
                         </div>
                     \`;
+                    
+                    const inputModal = document.createElement('div');
+                    inputModal.id = INPUT_MODAL_ID;
+                    inputModal.innerHTML = \`
+                        <div class="input-modal-card">
+                            <h3>Post a Reply</h3>
+                            <textarea id="reply-textarea" class="reply-textarea" placeholder="Type your reply here..." oninput="window.handleReplyInput(this)"></textarea>
+                            <div class="input-modal-footer">
+                                <span class="char-count" id="char-count-span">0/\${MAX_REPLY_CHARS}</span>
+                                <div class="input-modal-actions">
+                                    <button class="cancel-btn" onclick="window.closeReplyInputModal()">Cancel</button>
+                                    <button class="submit-btn" id="reply-submit-btn" onclick="window.submitReply()" disabled>Post</button>
+                                </div>
+                            </div>
+                        </div>
+                    \`;
+
                     document.body.appendChild(v);
+                    document.body.appendChild(inputModal);
                     v.querySelector('.sv-close').onclick = window.closeStoryViewer;
                 }
 
@@ -542,15 +958,12 @@ function init() {
                 function ensureBox() {
                     const target = document.querySelector(TARGET_SEL);
                     if (!target) return false;
-                    // Check if the box is already injected
                     if (document.getElementById(BOX_ID)) return true;
                     
                     const box = document.createElement('div');
                     box.id = BOX_ID;
-                    // The style tag is now injected globally by fetchAndInjectStyles
-                    box.innerHTML = '<div id="feed-content"></div>';
+                    box.innerHTML = '<style>' + styles + '</style><div id="feed-content"></div>';
                     
-                    // Prepend for toolbar/containers, insert after for bottom elements
                     if (TARGET_SEL.includes('toolbar') || TARGET_SEL.includes('container') || TARGET_SEL.includes('column-left') || TARGET_SEL.includes('lists-container')) {
                          target.prepend(box);
                     } else {
@@ -619,7 +1032,7 @@ function init() {
                         content.querySelectorAll('.story-item').forEach(item => {
                             item.onclick = () => {
                                 const index = parseInt(item.getAttribute('data-index'));
-                                window.openStoryViewer(index); // Use the global helper
+                                window.openStoryViewer(index); 
                             };
                         });
                     }
@@ -646,7 +1059,6 @@ function init() {
                         }
                     }
                     
-                    // CORRECTED QUERY: isLiked and likeCount must be fields on ListActivity, NOT User.
                     const query = \`
                     query { 
                         Page(page: 1, perPage: 25) { 
@@ -659,9 +1071,7 @@ function init() {
                                     } 
                                     status 
                                     progress 
-                                    createdAt 
-                                    isLiked             
-                                    likeCount           
+                                    createdAt             
                                     user { 
                                         name 
                                         avatar { medium } 
@@ -701,11 +1111,9 @@ function init() {
                             grouped[uName].activities.push({
                                 id: act.id,
                                 textMain: textMain,
-                                mediaTitle: title, // Storing title explicitly
+                                mediaTitle: title,
                                 timestamp: timeAgo(act.createdAt),
                                 coverImage: act.media.coverImage.extraLarge,
-                                isLiked: act.isLiked,
-                                likeCount: act.likeCount,
                             });
                         });
 
@@ -727,10 +1135,7 @@ function init() {
                     }
                 }
             
-                async function mainLoop() {
-                    // Inject styles first by fetching the external file
-                    await fetchAndInjectStyles();
-                    
+                function mainLoop() {
                     if (!ensureBox()) return setTimeout(mainLoop, 500);
                     if (INJECTED_TOKEN && INJECTED_TOKEN.trim() !== "") return fetchActivities(INJECTED_TOKEN, false);
                     renderInputForm();
@@ -760,6 +1165,7 @@ function init() {
                 activeTargetSelector: state.activeTargetSelector,
                 bgStyle: state.bgStyle,
                 ringColor: state.ringColor,
+                replyPosition: state.replyPosition, 
             };
 
             script.setText(getSmartInjectedScript(token, currentSettings));  
@@ -774,9 +1180,9 @@ function init() {
               
             const existingViewer = await ctx.dom.queryOne(`#${VIEWER_ID}`);  
             if (existingViewer) await existingViewer.remove();  
-  
-            const existingStyles = await ctx.dom.queryOne(`#anilist-feed-styles`);  
-            if (existingStyles) await existingStyles.remove();  
+
+            const existingInputModal = await ctx.dom.queryOne(`#${INPUT_MODAL_ID}`);
+            if (existingInputModal) await existingInputModal.remove();
   
             const existingScripts = await ctx.dom.query(`script[${SCRIPT_DATA_ATTR}]`);  
             for (const script of existingScripts) await script.remove();  
