@@ -96,6 +96,18 @@
     "website": ""
   },
   {
+    "id": "anilist-activity",
+    "name": "Anilist Activity",
+    "description": "A plugin for viewing your friend's and your Anilist activity in Seanime made by Pal.",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/anilist-activities/manifest.json",
+    "author": "Pal",
+    "type": "plugin",
+    "language": "typescript",
+    "lang": "MULTI",
+    "icon": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/anilist.ico",
+    "website": ""
+  },
+  {
     "id": "komiku",
     "name": "Komiku",
     "description": "Komiku is a manga provider for Seanime",
