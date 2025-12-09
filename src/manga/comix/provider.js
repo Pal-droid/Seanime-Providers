@@ -11,38 +11,30 @@ class Provider {
 
     getSettings() {
         return {
-            supportsMultiScanlator: true, // API returns scanlator info
+            supportsMultiScanlator: true,
         };
     }
 
     /**
-     * Searches for manga based on a query.
-     * Uses the API to find manga and constructs a composite ID containing the hash_id and slug.
+     * Searches for manga.
      */
     async search(opts) {
         const queryParam = opts.query;
-        // Assumed search endpoint based on standard V2 API patterns for this site structure
         const url = `${this.apiUrl}/manga?keyword=${encodeURIComponent(queryParam)}&order[relevance]=desc`;
 
         try {
             const response = await fetch(url);
-
             if (!response.ok) return [];
             
             const data = await response.json();
-            
-            // Check if result items exist
             if (!data.result || !data.result.items) return [];
 
             const items = data.result.items;
             let mangas = [];
 
             items.forEach((item) => {
-                // We need both hash_id and slug for subsequent requests.
-                // Storing them as a composite ID: "hash_id|slug"
                 const compositeId = `${item.hash_id}|${item.slug}`;
 
-                // Extract image from poster object
                 let imageUrl = '';
                 if (item.poster) {
                     imageUrl = item.poster.medium || item.poster.large || item.poster.small || '';
@@ -52,7 +44,7 @@ class Provider {
                     id: compositeId,
                     title: item.title,
                     synonyms: item.alt_titles,
-                    year: undefined, // Not provided in snippet
+                    year: undefined,
                     image: imageUrl, 
                 });
             });
@@ -66,16 +58,12 @@ class Provider {
     }
 
     /**
-     * Finds and parses all chapters for a given manga ID.
-     * Manga ID is expected to be "hash_id|slug".
+     * Finds all chapters.
      */
     async findChapters(mangaId) {
-        // Deconstruct the composite ID
         const [hashId, slug] = mangaId.split('|');
-
         if (!hashId || !slug) return [];
 
-        // Endpoint: https://comix.to/api/v2/manga/{hash_id}/chapters
         const url = `${this.apiUrl}/manga/${hashId}/chapters?order[number]=desc&limit=100`;
 
         try {
@@ -87,28 +75,27 @@ class Provider {
             let chapters = [];
 
             data.result.items.forEach((item) => {
-                // Construct a composite Chapter ID containing all info needed for the page URL
-                // Format: "hash_id|slug|chapter_id|number"
                 const compositeChapterId = `${hashId}|${slug}|${item.chapter_id}|${item.number}`;
 
                 chapters.push({
                     id: compositeChapterId,
-                    url: `${this.api}/title/${hashId}-${slug}/${item.chapter_id}-chapter-${item.number}`, // Web URL representation
+                    url: `${this.api}/title/${hashId}-${slug}/${item.chapter_id}-chapter-${item.number}`,
                     title: item.name || `Chapter ${item.number}`,
                     chapter: item.number.toString(),
-                    index: 0, // Will be set by sorting below
-                    scanlator: item.scanlation_group ? item.scanlation_group.name : undefined,
+                    index: 0,
+
+                    scanlator: (() => {
+                        if (item.is_official === 1) return "Official";
+                        const name = item.scanlation_group?.name?.trim();
+                        return name && name.length > 0 ? name : undefined;
+                    })(),
+
                     language: item.language
                 });
             });
 
-            // Sort by chapter number (descending or ascending as per preference, usually descending for display, but Seanime might prefer specific order)
-            // The API request asked for desc, but we ensure consistency here.
             chapters.sort((a, b) => parseFloat(b.chapter) - parseFloat(a.chapter));
-
-            chapters.forEach((chapter, i) => {
-                chapter.index = i;
-            });
+            chapters.forEach((chapter, i) => (chapter.index = i));
 
             return chapters;
         }
@@ -119,61 +106,44 @@ class Provider {
     }
 
     /**
-     * Finds and parses the image pages for a given chapter ID.
-     * Chapter ID is expected to be "hash_id|slug|chapter_id|number".
+     * Finds all image pages.
      */
     async findChapterPages(chapterId) {
-        // Deconstruct the composite ID
         const parts = chapterId.split('|');
         if (parts.length < 4) return [];
 
         const [hashId, slug, specificChapterId, number] = parts;
-
-        // Construct the web page URL to scrape
-        // URL: https://comix.to/title/{hash_id}-{slug}/{chapter_id}-chapter-{number}
         const url = `${this.api}/title/${hashId}-${slug}/${specificChapterId}-chapter-${number}`;
 
         try {
             const response = await fetch(url);
             const body = await response.text();
-            
-            // We don't need to parse the full DOM. The images are in a JSON string inside a script.
-            // Regex to find "\"images\":[\"url1\", \"url2\"]" pattern
-            // The snippet shows escaped quotes: \"images\":
-            const regex = /\\"images\\":(\[.*?\])/;
+
+            // Matches: "images":[...], \"images\": [...], ,"images":[...], etc.
+            const regex = /["\\]*images["\\]*\s*:\s*(\[[^\]]*\])/s;
+
             const match = body.match(regex);
-
-            if (!match || !match[1]) return [];
-
-            // Parse the JSON array string
-            // The match[1] will be something like: ["https://...", "https://..."] (escaped in source, but regex capture might need unescaping depending on raw extraction)
-            // Since we are matching raw text, we parse the JSON content.
-            let imagesData = [];
-            try {
-                // We need to parse the JSON string. 
-                // Note: If the source is heavily escaped (e.g. inside a string variable), JSON.parse might need a pre-clean.
-                // Based on the snippet, it looks like a standard JSON array.
-                imagesData = JSON.parse(match[1]);
-            } catch (jsonError) {
-                // Fallback: if parsing fails, the string might contain escaped quotes like [\ "url\" ]. 
-                // This simple cleaner handles standard JSON string arrays.
-                const cleanString = match[1].replace(/\\"/g, '"');
-                imagesData = JSON.parse(cleanString);
+            if (!match || !match[1]) {
+                console.error("Images regex NOT matched");
+                return [];
             }
 
-            let pages = [];
+            let images = [];
 
-            imagesData.forEach((imgUrl, index) => {
-                pages.push({
-                    url: imgUrl,
-                    index: index,
-                    headers: {
-                        'Referer': url,
-                    },
-                });
-            });
+            try {
+                images = JSON.parse(match[1]);
+            } catch {
+                const clean = match[1].replace(/\\"/g, '"');
+                images = JSON.parse(clean);
+            }
 
-            return pages;
+            return images.map((img, index) => ({
+                url: img.url,
+                index,
+                headers: {
+                    Referer: url,
+                },
+            }));
         }
         catch (e) {
             console.error(e);
