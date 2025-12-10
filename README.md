@@ -99,3 +99,5 @@ Or
 * [kRYstall9](https://github.com/kRYstall9) *(For the source code of [MangaWorldAdult](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/MangaWorldAdult/manifest.json), [HentaiWorld](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/hentaiworld/manifest.json), and [HentaiSaturn](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/hentaisaturn/manifest.json))*
 
 * [SyntaxSama](https://github.com/syntaxsama) *(For the source code of the visual marketplace)*
+
+* [Dantotsu](https://discord.gg/MSJvfJzS7R) *(The Anilist activity plugin is inspired by Dantotsu's stories.)*
