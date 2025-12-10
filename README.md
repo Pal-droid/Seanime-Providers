@@ -1,4 +1,4 @@
-# Seanime Extensions
+# Seanime Providers
 
 ![Last Commit](https://img.shields.io/github/last-commit/Pal-droid/Seanime-Providers?logo=git&logoColor=white&labelColor=2d3748&color=805ad5&style=for-the-badge)
 ![License](https://img.shields.io/github/license/Pal-droid/Seanime-Providers?style=for-the-badge)
