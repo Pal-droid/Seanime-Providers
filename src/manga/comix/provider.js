@@ -58,42 +58,60 @@ class Provider {
     }
 
     /**
-     * Finds all chapters.
+     * Finds all chapters 
      */
     async findChapters(mangaId) {
         const [hashId, slug] = mangaId.split('|');
         if (!hashId || !slug) return [];
 
-        const url = `${this.apiUrl}/manga/${hashId}/chapters?order[number]=desc&limit=100`;
+        const baseUrl = `${this.apiUrl}/manga/${hashId}/chapters?order[number]=desc&limit=100`;
 
         try {
-            const response = await fetch(url);
-            const data = await response.json();
+            // First page request
+            const firstRes = await fetch(baseUrl);
+            const firstData = await firstRes.json();
 
-            if (!data.result || !data.result.items) return [];
+            if (!firstData.result || !firstData.result.items) return [];
 
-            let chapters = [];
+            const totalPages = firstData.result.pagination?.last_page || 1;
 
-            data.result.items.forEach((item) => {
+            let allChapters = [...firstData.result.items];
+
+            // Fetch remaining pages
+            for (let page = 2; page <= totalPages; page++) {
+                const pageUrl = `${baseUrl}&page=${page}`;
+                const res = await fetch(pageUrl);
+                const data = await res.json();
+
+                if (data.result?.items?.length > 0) {
+                    allChapters.push(...data.result.items);
+                }
+            }
+
+            // Map chapters with proper title & scanlator
+            let chapters = allChapters.map((item) => {
                 const compositeChapterId = `${hashId}|${slug}|${item.chapter_id}|${item.number}`;
 
-                chapters.push({
+                // Chapter title rules
+                const chapterTitle = item.name && item.name.trim().length > 0
+                    ? `Chapter ${item.number} — ${item.name}`
+                    : `Chapter ${item.number}`;
+
+                return {
                     id: compositeChapterId,
                     url: `${this.api}/title/${hashId}-${slug}/${item.chapter_id}-chapter-${item.number}`,
-                    title: item.name || `Chapter ${item.number}`,
+                    title: chapterTitle,
                     chapter: item.number.toString(),
                     index: 0,
-
-                    scanlator: (() => {
-                        if (item.is_official === 1) return "Official";
-                        const name = item.scanlation_group?.name?.trim();
-                        return name && name.length > 0 ? name : undefined;
-                    })(),
-
+                    scanlator:
+                        item.is_official === 1
+                            ? "Official"
+                            : (item.scanlation_group?.name?.trim() || undefined),
                     language: item.language
-                });
+                };
             });
 
+            // Sort descending by chapter number
             chapters.sort((a, b) => parseFloat(b.chapter) - parseFloat(a.chapter));
             chapters.forEach((chapter, i) => (chapter.index = i));
 
