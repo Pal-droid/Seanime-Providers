@@ -1,6 +1,7 @@
 # Seanime Extensions
 
 ![Last Commit](https://img.shields.io/github/last-commit/Pal-droid/Seanime-Providers?logo=git&logoColor=white&labelColor=2d3748&color=805ad5&style=for-the-badge)
+![Deployment](https://img.shields.io/website?url=https://pal-droid.github.io/Seanime-Providers/&label=deployment)
 
 This repository contains custom **[Seanime](https://github.com/5rahim/seanime)** extensions for adding support to various manga and anime sources.
 
