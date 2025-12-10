@@ -11,5 +11,6 @@
 
 | Name | Status | Notes |
 |------|--------|-------|
-| Top anime / manga leaderboard | Considering |
+| AnimeUnity List export / import | Considering |
+| AnimeWorld List export / import | Considering
 | WaifuDex | Work in progress | Viewer for Waifu pics |
