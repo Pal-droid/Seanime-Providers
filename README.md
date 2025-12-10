@@ -1,8 +1,10 @@
 # Seanime Providers
 
-![Last Commit](https://img.shields.io/github/last-commit/Pal-droid/Seanime-Providers?logo=git&logoColor=white&labelColor=2d3748&color=805ad5&style=for-the-badge)
-![License](https://img.shields.io/github/license/Pal-droid/Seanime-Providers?style=for-the-badge)
-![Deployment](https://img.shields.io/website?url=https://pal-droid.github.io/Seanime-Providers/&label=Deployment)
+<p align="center">
+  <img src="https://img.shields.io/github/last-commit/Pal-droid/Seanime-Providers?logo=git&logoColor=white&labelColor=2d3748&color=805ad5&style=for-the-badge" />
+  <img src="https://img.shields.io/github/license/Pal-droid/Seanime-Providers?style=for-the-badge" />
+  <img src="https://img.shields.io/website?url=https://pal-droid.github.io/Seanime-Providers/&label=Deployment" />
+</p>
 
 This repository contains custom **[Seanime](https://github.com/5rahim/seanime)** extensions for adding support to various manga and anime sources.
 
@@ -10,11 +12,13 @@ This repository contains custom **[Seanime](https://github.com/5rahim/seanime)**
 
 ### Powered by:
 
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
-![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![HTML](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
-![CSS](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
+<p align="center">
+  <img src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+  <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" />
+  <img src="https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white" />
+  <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white" />
+  <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white" />
+</p>
 
 ## Repository Structure
 
