@@ -105,10 +105,10 @@ Or
 
 ### Other info
 
-- [Seanime](https://discord.gg/syeSKs4R9H) Discord server
-
 <p align="center">
   <a href="https://discord.gg/syeSKs4R9H">
     <img src="https://img.shields.io/discord/1224767201551192224?color=5865F2&label=Discord&logo=discord&logoColor=white" />
   </a>
 </p>
+
+- [Seanime](https://discord.gg/syeSKs4R9H) Discord server
