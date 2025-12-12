@@ -107,4 +107,8 @@ Or
 
 - [Seanime](https://discord.gg/syeSKs4R9H) Discord server
 
-[![Discord](https://img.shields.io/discord/1224767201551192224?color=5865F2&label=Discord&logo=discord&logoColor=white)](https://discord.gg/syeSKs4R9H)
+<p align="center">
+  <a href="https://discord.gg/syeSKs4R9H">
+    <img src="https://img.shields.io/discord/1224767201551192224?color=5865F2&label=Discord&logo=discord&logoColor=white" />
+  </a>
+</p>
