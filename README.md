@@ -112,5 +112,5 @@ Or
 </p>
 
 <p align="center">
-- my text
+• [Seanime](https://discord.gg/syeSKs4R9H) Discord server 
 </p>
