@@ -112,5 +112,5 @@ Or
 </p>
 
 <p align="center">
-• [Seanime](https://discord.gg/syeSKs4R9H) Discord server 
+  &#8226; <a href="https://discord.gg/syeSKs4R9H">Seanime Discord server</a>
 </p>
