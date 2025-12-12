@@ -111,4 +111,6 @@ Or
   </a>
 </p>
 
-- [Seanime](https://discord.gg/syeSKs4R9H) Discord server
+<p align="center">
+- my text
+</p>
