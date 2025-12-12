@@ -100,3 +100,9 @@ Or
 * [SyntaxSama](https://github.com/syntaxsama) *(For the source code of the visual marketplace)*
 
 * [Dantotsu](https://discord.gg/MSJvfJzS7R) *(The Anilist activity plugin is inspired by Dantotsu's stories.)*
+
+---
+
+### Other info
+
+- [Seanime](https://discord.gg/syeSKs4R9H) Discord server
