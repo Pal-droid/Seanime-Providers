@@ -13,6 +13,7 @@
 | Name | Status | Notes |
 |------|--------|-------|
 | [Agefans](https://m.agedm.io/#/) | Work in progress | Chinese-only provider |
+| [AniWorld](https://aniworld.to/) | Considering | German provider |
 | [Shana Project](https://www.shanaproject.com/) | Planned | Torrent Provider |
 | [1337xx](https://www.1337xx.to/popular-anime) | Planned | Torrent provider |
 | [ToonItalia](https://toonitalia.xyz) | Work in progress |
