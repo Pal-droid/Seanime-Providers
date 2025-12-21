@@ -3,16 +3,12 @@
 <p align="center">
   <img src="https://img.shields.io/github/last-commit/Pal-droid/Seanime-Providers?logo=git&logoColor=white&labelColor=2d3748&color=805ad5&style=for-the-badge" />
   <img src="https://img.shields.io/github/license/Pal-droid/Seanime-Providers?style=for-the-badge" />
-  <img src="https://img.shields.io/website?url=https://pal-droid.github.io/Seanime-Providers/&label=Deployment" />
+  <img src="https://img.shields.io/website?url=https://pal-droid.github.io/Seanime-Providers/&label=Deployment&logo=githubpages&logoColor=white&color=2ea44f&style=for-the-badge" />
 </p>
 
 <p align="center">
-This repository contains custom <strong><a href="https://github.com/5rahim/seanime">Seanime</a></strong> extensions for adding support to various manga and anime sources.
+This repository contains custom <strong><a href="https://github.com/5rahim/seanime">Seanime</a></strong> plugins and extensions for adding support to various manga and anime sources.
 </p>
-
-<blockquote align="center">
-  <em>Plugins are also available.</em>
-</blockquote>
 
 <h3 align="center">Powered by:</h3>
 
