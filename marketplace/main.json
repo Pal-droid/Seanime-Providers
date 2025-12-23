@@ -96,6 +96,18 @@
     "website": ""
   },
   {
+    "id": "anime-news",
+    "name": "Anime News",
+    "description": "Get Anime news in your Seanime instance!",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/aninewsnet-seanime/refs/heads/main/manifest.json",
+    "author": "SyntaxSama",
+    "type": "plugin",
+    "language": "typescript",
+    "lang": "MULTI",
+    "icon": "https://raw.githubusercontent.com/Pal-droid/aninewsnet-seanime/refs/heads/main/animenewsnetwork.png",
+    "website": ""
+  },
+  {
     "id": "anilist-activity",
     "name": "Anilist Activity",
     "description": "A plugin for viewing your friend's and your Anilist activity in Seanime made by Pal.",
