@@ -47,5 +47,7 @@ Here’s a list of all currently available **extensions and plugins**:
 |------|----------|-------------|----------|
 | <div align="center"><img src="https://raw.githubusercontent.com/pal-droid/Seanime-Providers/refs/heads/main/public/ln.png" width="48" height="48"/><br><b>Light Novel Reader **(WIP)**</b></div> | EN | Read light novels from NovelBuddy inside Seanime **(WIP)** | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/manifest.json) |
 | <div align="center"><img src="https://raw.githubusercontent.com/pal-droid/Seanime-Providers/refs/heads/main/public/anilist.ico" width="48" height="48"/><br><b>Anilist Activity</b></div> | MULTI | A plugin for viewing your friend's and your Anilist activity in Seanime made by Pal. | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/anilist-activities/manifest.json) |
+| <div align="center"><img src="https://raw.githubusercontent.com/SyntaxSama/aninewsnet-seanime/refs/heads/main/animenewsnetwork.png" width="48" height="48"/><br><b>Anime News</b></div> | EN | A plugin for viewing the latest Anime news from [ANN](https://www.animenewsnetwork.com/); *Original owner: [SyntaxSama](https://github.com/syntaxsama/)*. | [Click here](https://raw.githubusercontent.com/Pal-droid/aninewsnet-seanime/refs/heads/main/manifest.json) |
+
 
 </details>
