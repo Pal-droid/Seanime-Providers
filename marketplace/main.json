@@ -107,6 +107,19 @@
     "icon": "https://raw.githubusercontent.com/Pal-droid/aninewsnet-seanime/refs/heads/main/animenewsnetwork.png",
     "website": ""
   },
+    },
+  {
+    "id": "always-advanced-search",
+    "name": "Always Advanced Search",
+    "description": "Always use advanced search instead of the basic search feature.",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/advanced-search/manifest.json",
+    "author": "SyntaxSama & Pal-droid",
+    "type": "plugin",
+    "language": "typescript",
+    "lang": "EN",
+    "icon": "https://raw.githubusercontent.com/Pal-droid/advanced-search/refs/heads/main/2015046.png",
+    "website": ""
+  },
   {
     "id": "anilist-activity",
     "name": "Anilist Activity",
