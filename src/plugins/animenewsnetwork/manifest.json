@@ -1,7 +1,7 @@
 {
     "id": "anime-news",
     "name": "Anime News",
-    "version": "1.2.0",
+    "version": "1.2.1",
     "manifestURI": "https://raw.githubusercontent.com/Pal-droid/aninewsnet-seanime/refs/heads/main/manifest.json",
     "language": "typescript",
     "type": "plugin",
