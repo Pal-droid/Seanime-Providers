@@ -100,10 +100,10 @@
     "name": "Anime News",
     "description": "Get Anime news in your Seanime instance!",
     "manifestURI": "https://raw.githubusercontent.com/Pal-droid/aninewsnet-seanime/refs/heads/main/manifest.json",
-    "author": "SyntaxSama",
+    "author": "SyntaxSama & Pal-droid",
     "type": "plugin",
     "language": "typescript",
-    "lang": "MULTI",
+    "lang": "EN",
     "icon": "https://raw.githubusercontent.com/Pal-droid/aninewsnet-seanime/refs/heads/main/animenewsnetwork.png",
     "website": ""
   },
