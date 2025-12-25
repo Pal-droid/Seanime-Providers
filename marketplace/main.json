@@ -120,6 +120,18 @@
     "website": ""
   },
   {
+    "id": "cookie-clicker",
+    "name": "Cookie Clicker",
+    "description": "A cookie clicker tray based plugin.",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/cookie-clicker/manifest.json",
+    "author": "SyntaxSama & Pal-droid",
+    "type": "plugin",
+    "language": "typescript",
+    "lang": "EN",
+    "icon": "",
+    "website": ""
+  },
+  {
     "id": "anilist-activity",
     "name": "Anilist Activity",
     "description": "A plugin for viewing your friend's and your Anilist activity in Seanime made by Pal.",
