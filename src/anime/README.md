@@ -7,7 +7,7 @@
 | HentaiWorld | 1.1.0 | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/hentaiworld/manifest.json) | Italian-only hentai provider |
 | HentaiSaturn | 1.0.0 | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/hentaisaturn/manifest.json) | Italian-only provider |
 | AnimeHeaven | 1.0.0 | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/animeheaven/manifest.json) |
-| AniWorld | 1.0.0 | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/aniworld/manifest.json) |
+| AniWorld | 1.0.0 | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/aniworld/manifest.json) | German-only Provider
 
 **Other planned providers:**
 
