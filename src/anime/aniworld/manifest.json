@@ -1,7 +1,7 @@
 {
   "id": "aniworld",
   "name": "AniWorld",
-  "description": "AniWorld is an online streaming provider for german subs.",
+  "description": "AniWorld is an online streaming provider for german dubs.",
   "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/aniworld/manifest.json",
   "version": "1.1.0",
   "author": "Pal",
