@@ -37,6 +37,7 @@ Here’s a list of all currently available **extensions and plugins**:
 | <div align="center"><img src="https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/hentaiworld.png" width="48" height="48"/><br><b>HentaiWorld</b></div> | IT | HentaiWorld is an online streaming provider for Seanime | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/hentaiworld/manifest.json) |
 | <div align="center"><img src="https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/hentaisaturn.png" width="48" height="48"/><br><b>HentaiSaturn</b></div> | IT | HentaiSaturn is an online streaming provider for Seanime | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/hentaisaturn/manifest.json) |
 | <div align="center"><img src="https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/animeheaven.png" width="48" height="48"/><br><b>AnimeHeaven</b></div> | EN | AnimeHeaven is an online streaming provider for Seanime | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/animeheaven/manifest.json) |
+| <div align="center"><img src="https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/aniworld.png" width="48" height="48"/><br><b>AniWorld</b></div> | DE | AniWorld is an online streaming provider for german subs. | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/aniworld/manifest.json) |
 
 </details>
 
