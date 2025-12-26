@@ -108,6 +108,18 @@
     "website": ""
   },
   {
+    "id": "antiseeding",
+    "name": "Anti-Seeding",
+    "description": "Prevent torrent seeding.",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/antiseeding/manifest.json",
+    "author": "ItsSkaiya & Pal-droid",
+    "type": "plugin",
+    "language": "typescript",
+    "lang": "EN",
+    "icon": "",
+    "website": ""
+  },
+  {
     "id": "anime-news",
     "name": "Anime News",
     "description": "Get Anime news in your Seanime instance!",
