@@ -6,7 +6,7 @@
     "language": "typescript",
     "type": "plugin",
     "description": "Get anime news in your Seanime instance!",
-    "author": "SyntaxSama & Pal-droid",
+    "author": "SyntaxSama & Pal",
     "icon": "https://raw.githubusercontent.com/Pal-droid/aninewsnet-seanime/refs/heads/main/animenewsnetwork.png",
     "website": "",
     "lang": "EN",
