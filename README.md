@@ -78,6 +78,7 @@ or
 ---
 
 ### Want to suggest more providers?
+> PR's welcomed!
 
 [Open an issue](https://github.com/Pal-droid/Seanime-Providers/issues/new?template=provider_request.yml)
 
