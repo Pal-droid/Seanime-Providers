@@ -100,7 +100,7 @@ Or
 
 ---
 
-### Other info
+### Other connections
 
 <p align="center">
   <a href="https://discord.gg/syeSKs4R9H">
@@ -110,4 +110,8 @@ Or
 
 <p align="center">
   &#8226; <a href="https://discord.gg/syeSKs4R9H">Seanime Discord server</a>
+</p>
+
+<p align="center">
+  &#8226; <a href="https://github.com/kRYstall9">kRYstall9</a>
 </p>
