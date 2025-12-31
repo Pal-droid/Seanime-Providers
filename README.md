@@ -96,7 +96,7 @@ Or
 
 * [SyntaxSama](https://github.com/syntaxsama) *(For the source code of the visual marketplace; Original owner of the Anime News, Always Advanced Search, Cookie clicker, Anti-Seeding plugins)*
 
-* [Dantotsu](https://discord.gg/MSJvfJzS7R) *(The Anilist activity plugin is inspired by Dantotsu's stories.)*
+* [Dantotsu](https://discord.gg/MSJvfJzS7R) *(The Anilist activity plugin is inspired by Dantotsu's stories feature.)*
 
 ---
 
