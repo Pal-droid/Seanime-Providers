@@ -12,6 +12,18 @@
     "website": ""
   },
   {
+    "id": "mangabats",
+    "name": "MangaBats",
+    "description": "MangaBats is a manga provider for Seanime",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/manganato/manifest.json",
+    "author": "Pal",
+    "type": "manga-provider",
+    "language": "javascript",
+    "lang": "en",
+    "icon": "https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/mangabats.png",
+    "website": ""
+  },
+  {
     "id": "hentaisaturn",
     "name": "HentaiSaturn",
     "description": "HentaiSaturn is an online streaming provider for italian sub/dub hentai",
