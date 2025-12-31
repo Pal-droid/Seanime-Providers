@@ -1,7 +1,7 @@
 {
-  "id": "manganato",
-  "name": "MangaNato",
-  "description": "Manganato is a manga provider for Seanime",
+  "id": "mangabats",
+  "name": "MangaBats",
+  "description": "MangaBats is a manga provider for Seanime",
   "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/manganato/manifest.json",
   "version": "1.0.0",
   "author": "Pal",
