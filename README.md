@@ -26,6 +26,7 @@ This repository contains custom <strong><a href="https://github.com/5rahim/seani
 src/
 ├── anime/
 │   └── animeheaven/
+|       ├── ...
 └── manga/
     ├── mangafreak/
     │   ├── provider.js
