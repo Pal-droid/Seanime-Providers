@@ -27,6 +27,7 @@ src/
 ├── anime/
 │   └── animeheaven/
 |       ├── ...
+|        ...
 └── manga/
     ├── mangafreak/
     │   ├── provider.js
