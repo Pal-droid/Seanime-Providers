@@ -8,9 +8,7 @@ function init() {
         const INPUT_MODAL_ID = "reply-input-modal";
         const SCRIPT_DATA_ATTR = "data-injected-box-script";
         const SEANIME_API_URL = 'http://localhost:43211/api/v1/status';
-        
-        // CSS URL - Replace with your actual raw github URL
-        const EXTERNAL_CSS_URL = "https://raw.githubusercontent.com/username/repo/main/styles.css";
+        const EXTERNAL_CSS_URL = "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/anilist-activities/styles.css";
 
         const SELECTOR_MAP: Record<string, string> = {
             'toolbar': 'div[data-home-toolbar-container="true"]',
