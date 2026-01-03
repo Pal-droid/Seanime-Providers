@@ -2,7 +2,8 @@
   "id": "animepahe",
   "name": "Animepahe",
   "version": "1.0.5",
-  "manifestURI": "https://raw.githubusercontent.com/Pal-droid/seanime-marketplace/refs/heads/main/manifest.json",
+  "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/anime/animepahe/manifest.json
+",
   "language": "typescript",
   "type": "onlinestream-provider",
   "description": "Animepahe streaming provider for Seanime",
