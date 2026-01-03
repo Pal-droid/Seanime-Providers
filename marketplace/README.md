@@ -55,6 +55,7 @@ Here’s a list of all currently available **extensions and plugins**:
 | <div align="center"><img src="https://raw.githubusercontent.com/Pal-droid/advanced-search/refs/heads/main/2015046.png" width="48" height="48"/><br><b>Always Advanced Search</b></div> | EN | Always use advanced search instead of the basic search feature; *Original owner: [SyntaxSama](https://github.com/syntaxsama/)*. | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/advanced-search/manifest.json) |
 | <div align="center"><br><b>Anti Seeding</b></div> | EN | *Original owner: [SyntaxSama](https://github.com/syntaxsama/)*. | [Click here](https://raw.githubusercontent.com/Pal-drois/Seanime-Providers/refs/heads/main/src/plugins/antiseeding/manifest.json) |
 | <div align="center"><br><b>Cookie Clicker</b></div> | EN | *Original owner: [SyntaxSama](https://github.com/syntaxsama/)*. | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/cookie-clicker/manifest.json) |
+| <div align="center"><img src="https://raw.githubusercontent.com/pal-droid/Seanime-Providers/refs/heads/main/public/seanime-xmas.png" width="48" height="48"/><br><b>Seanime winter effects</b></div> | EN | A simple plugin to display snow effects. | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/effects/manifest.json) |
 
 
 </details>
