@@ -132,6 +132,18 @@
     "website": ""
   },
   {
+    "id": "snow-effect",
+    "name": "Seanime Snow effect",
+    "description": "A simple plugin to display snow effects.",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/effects/manifest.json",
+    "author": "Pal",
+    "type": "plugin",
+    "language": "javascript",
+    "lang": "EN",
+    "icon": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/seanime-xmas.png",
+    "website": ""
+  },
+  {
     "id": "antiseeding",
     "name": "Anti-Seeding",
     "description": "Prevent torrent seeding.",
