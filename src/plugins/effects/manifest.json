@@ -8,7 +8,7 @@
   "icon": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/seanime-xmas.png",
   "language": "javascript",
   "type": "plugin",
-  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/effects/manifest.json",
+  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/effects/provider.js",
   "lang": "EN",
   "plugin": {
     "version": "1",
