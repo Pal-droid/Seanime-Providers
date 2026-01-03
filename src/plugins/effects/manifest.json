@@ -1,0 +1,19 @@
+{
+  "id": "snow-effect",
+  "name": "Seanime Snow effect",
+  "version": "1.0.0",
+  "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/effects/manifest.json",
+  "description": "A simple plugin for showing winter effects.",
+  "author": "Pal",
+  "icon": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/seanime-xmas.png",
+  "language": "javascript",
+  "type": "plugin",
+  "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/effects/manifest.json",
+  "lang": "EN",
+  "plugin": {
+    "version": "1",
+    "permissions": {
+      "scopes": []
+    }
+  }
+}
