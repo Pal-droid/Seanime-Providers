@@ -5,13 +5,12 @@
 class Provider {
 
     constructor() {
-        this.api = 'https://comix.to';
         this.apiUrl = 'https://comix.to/api/v2';
     }
 
     getSettings() {
         return {
-            supportsMultiScanlator: true,
+            supportsMultiScanlator: false,
         };
     }
 
@@ -52,7 +51,6 @@ class Provider {
             return mangas;
         }
         catch (e) {
-            console.error(e);
             return [];
         }
     }
@@ -99,7 +97,7 @@ class Provider {
 
                 return {
                     id: compositeChapterId,
-                    url: `${this.api}/title/${hashId}-${slug}/${item.chapter_id}-chapter-${item.number}`,
+                    url: `https://comix.to/title/${hashId}-${slug}/${item.chapter_id}-chapter-${item.number}`,
                     title: chapterTitle,
                     chapter: item.number.toString(),
                     index: 0,
@@ -111,6 +109,9 @@ class Provider {
                 };
             });
 
+            // Always apply deduplication
+            chapters = this.deduplicateChapters(chapters);
+
             // Sort descending by chapter number
             chapters.sort((a, b) => parseFloat(b.chapter) - parseFloat(a.chapter));
             chapters.forEach((chapter, i) => (chapter.index = i));
@@ -118,9 +119,75 @@ class Provider {
             return chapters;
         }
         catch (e) {
-            console.error(e);
             return [];
         }
+    }
+
+    /**
+     * Extract numeric chapter number from chapter string
+     */
+    extractChapterNumber(chapterStr) {
+        // Try to parse as float first
+        const num = parseFloat(chapterStr);
+        if (!isNaN(num)) {
+            return num;
+        }
+        
+        // If that fails, try to extract numbers from the string
+        const match = chapterStr.match(/(\d+(?:\.\d+)?)/);
+        return match ? parseFloat(match[1]) : 0;
+    }
+
+    /**
+     * Deduplicate chapters by chapter number only
+     * When multiple scanlators have the same chapter number, keep the best version
+     */
+    deduplicateChapters(chapters) {
+        const chapterMap = new Map();
+        
+        // Process chapters to find the best version of each chapter
+        chapters.forEach(chapter => {
+            const chapterNum = this.extractChapterNumber(chapter.chapter);
+            const chapterNumKey = chapterNum.toString(); // Use string as key for consistency
+            
+            if (!chapterMap.has(chapterNumKey)) {
+                // First time seeing this chapter number
+                chapterMap.set(chapterNumKey, { ...chapter });
+            } else {
+                // We already have a chapter with this number
+                const existing = chapterMap.get(chapterNumKey);
+                
+                // Check which title is more complete (has "—" separator with extra content)
+                const existingHasTitle = existing.title.includes("—");
+                const currentHasTitle = chapter.title.includes("—");
+                
+                // Combine scanlator names if they're different
+                let combinedScanlator = existing.scanlator;
+                if (chapter.scanlator && existing.scanlator) {
+                    const existingScanlators = existing.scanlator.split(', ');
+                    if (!existingScanlators.includes(chapter.scanlator)) {
+                        combinedScanlator = `${existing.scanlator}, ${chapter.scanlator}`;
+                    }
+                } else if (chapter.scanlator && !existing.scanlator) {
+                    combinedScanlator = chapter.scanlator;
+                }
+                
+                // Decide which chapter to keep
+                if (currentHasTitle && !existingHasTitle) {
+                    // Current chapter has a title, existing doesn't - replace with current
+                    chapterMap.set(chapterNumKey, { 
+                        ...chapter, 
+                        scanlator: combinedScanlator 
+                    });
+                } else {
+                    // Keep existing but update scanlator info
+                    existing.scanlator = combinedScanlator;
+                }
+            }
+        });
+        
+        // Convert map back to array
+        return Array.from(chapterMap.values());
     }
 
     /**
@@ -131,7 +198,7 @@ class Provider {
         if (parts.length < 4) return [];
 
         const [hashId, slug, specificChapterId, number] = parts;
-        const url = `${this.api}/title/${hashId}-${slug}/${specificChapterId}-chapter-${number}`;
+        const url = `https://comix.to/title/${hashId}-${slug}/${specificChapterId}-chapter-${number}`;
 
         try {
             const response = await fetch(url);
@@ -142,7 +209,6 @@ class Provider {
 
             const match = body.match(regex);
             if (!match || !match[1]) {
-                console.error("Images regex NOT matched");
                 return [];
             }
 
@@ -164,7 +230,6 @@ class Provider {
             }));
         }
         catch (e) {
-            console.error(e);
             return [];
         }
     }
