@@ -19,6 +19,7 @@
 | Name        | Status            | Notes |
 |-------------|--------------------|-------|
 | Bato        | Work in progress   | 
+| AsuraScans | Planned |
 | Allmanga    | Considering        | 
 | Kagane | Planned |
 | LelManga| Considering | French-only scans, small library |
