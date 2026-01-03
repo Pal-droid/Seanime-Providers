@@ -32,6 +32,7 @@ function init() {
                         let animePlayerObserver = null;
                         let mangaObserver = null;
                         let glowInterval = null;
+                        let loadingLogoObserver = null; // Added for loading logo
                         
                         // Create snow container
                         const snowContainer = document.createElement('div');
@@ -224,6 +225,11 @@ function init() {
                             logo.style.transition = 'filter 2s ease';
                             logo.style.filter = '';
                             
+                            // Update logo source to Christmas version
+                            if (logo.src !== 'https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/seanime-xmas.png') {
+                                logo.src = 'https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/seanime-xmas.png';
+                            }
+                            
                             // Create new glow interval
                             glowInterval = setInterval(() => {
                                 if (!snowEnabled || isInAnimePlayer || isInMangaReader) {
@@ -372,6 +378,68 @@ function init() {
                         });
                         
                         console.log('Snow Effect Activated');
+                        
+                        // --- Loading Logo Detection and Replacement ---
+                        function setupLoadingLogoDetection() {
+                            console.log('Setting up loading logo detection...');
+                            
+                            // Function to check for and replace loading logo
+                            function replaceLoadingLogo() {
+                                // Look for the loading logo using the exact selector pattern
+                                const loadingLogo = document.querySelector('img[alt="Loading..."][decoding="async"][data-nimg="1"].animate-pulse');
+                                
+                                if (loadingLogo && snowEnabled) {
+                                    console.log('Found loading logo, replacing with Christmas version');
+                                    
+                                    // Replace the src with Christmas logo
+                                    if (loadingLogo.src !== 'https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/seanime-xmas.png') {
+                                        loadingLogo.src = 'https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/public/seanime-xmas.png';
+                                        console.log('Loading logo replaced successfully');
+                                    }
+                                }
+                            }
+                            
+                            // Check initially
+                            replaceLoadingLogo();
+                            
+                            // Set up observer to watch for loading logo addition
+                            loadingLogoObserver = new MutationObserver((mutations) => {
+                                let shouldCheck = false;
+                                for (const mutation of mutations) {
+                                    // Check for added nodes
+                                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                                        shouldCheck = true;
+                                        break;
+                                    }
+                                    // Check for attribute changes on existing elements
+                                    if (mutation.type === 'attributes' && 
+                                        (mutation.attributeName === 'alt' || mutation.attributeName === 'src')) {
+                                        shouldCheck = true;
+                                        break;
+                                    }
+                                }
+                                
+                                if (shouldCheck) {
+                                    replaceLoadingLogo();
+                                }
+                            });
+                            
+                            // Start observing the entire document
+                            loadingLogoObserver.observe(document.body, {
+                                childList: true,
+                                subtree: true,
+                                attributes: true,
+                                attributeFilter: ['alt', 'src', 'class']
+                            });
+                            
+                            // Also check periodically in case observer misses it
+                            const intervalId = setInterval(replaceLoadingLogo, 1000);
+                            
+                            // Clean up interval when observer is disconnected
+                            window.addEventListener('beforeunload', () => {
+                                clearInterval(intervalId);
+                            });
+                        }
                         
                         // --- Anime Player Detection ---
                         function setupAnimePlayerDetection() {
@@ -557,6 +625,7 @@ function init() {
                         // Initialize everything
                         function initializePlugin() {
                             // Setup all detection systems
+                            setupLoadingLogoDetection(); // Added loading logo detection
                             setupAnimePlayerDetection();
                             setupMangaDetection();
                             
@@ -595,6 +664,9 @@ function init() {
                             }
                             if (mangaObserver) {
                                 mangaObserver.disconnect();
+                            }
+                            if (loadingLogoObserver) {
+                                loadingLogoObserver.disconnect(); // Clean up loading logo observer
                             }
                         });
                         
