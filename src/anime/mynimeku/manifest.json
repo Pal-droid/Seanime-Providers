@@ -6,7 +6,7 @@
   "version": "1.0.0",
   "author": "Pal",
   "type": "onlinestream-provider",
-  "language": "javascript",
+  "language": "typescript",
   "lang": "id",
   "icon": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/mynimeku.jpg",
   "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/mynimeku/provider.ts"
