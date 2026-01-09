@@ -84,6 +84,18 @@
     "website": ""
   },
   {
+    "id": "mynimeku",
+    "name": "MyNimeKu",
+    "description": "MyNimeKu is an online streaming provider for indonesian subs.",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/mynimeku/manifest.json",
+    "author": "Pal",
+    "type": "onlinestream-provider",
+    "language": "typescript",
+    "lang": "id",
+    "icon": "https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/mynimeku.jpg",
+    "website": ""
+  },
+  {
     "id": "mangaworldadult",
     "name": "MangaWorldAdult",
     "description": "MangaWorldAdult is a manga provider for Seanime",
