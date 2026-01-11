@@ -10,6 +10,18 @@
     "lang": "en",
     "icon": "https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/mangabuddy.png",
     "website": ""
+  },  
+  {
+    "id": "asurascans",
+    "name": "AsuraScans",
+    "description": "AsuraScans is a manga provider for Seanime",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/asurascans/manifest.json",
+    "author": "Pal",
+    "type": "manga-provider",
+    "language": "javascript",
+    "lang": "en",
+    "icon": "https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/asurascans.webp",
+    "website": ""
   },
   {
     "id": "mangabats",
