@@ -12,6 +12,7 @@
 | [Comix](https://comix.to/home) | 1.0.0 | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/comix/manifest.json) | Supports multiple Scans |
 | [MangaWorldAdult](https://mangaworldadult.net) | 1.0.0 | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/MangaWorldAdult/manifest.json) | Italian NSFW provider 
 | [MangaBats](https://www.mangabats.com) | 1.0.0 | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/manganato/manifest.json) |  |
+| [AsuraScans](https://www.mangabats.com) | 1.0.0 | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/asurascans/manifest.json) | The latest chapter for a manga might not be able to find pages due to how the site needs you to buy a subscription to get early access to new chapters. |
 
 
 **Other planned providers:**
@@ -19,7 +20,6 @@
 | Name        | Status            | Notes |
 |-------------|--------------------|-------|
 | Bato        | Work in progress   | 
-| AsuraScans | Planned |
 | Allmanga    | Considering        | 
 | Kagane | Planned |
 | LelManga| Considering | French-only scans, small library |
