@@ -48,6 +48,18 @@
     "website": ""
   },
   {
+    "id": "animepahe",
+    "name": "AnimePahe",
+    "description": "AnimePahe is an online streaming provider for english sub/dubs.",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/animepahe/manifest.json",
+    "author": "ItsSkaiya & Pal",
+    "type": "onlinestream-provider",
+    "language": "typescript",
+    "lang": "en",
+    "icon": "https://raw.githubusercontent.com/Pal-droid/seanime-marketplace/refs/heads/main/animepahe.png",
+    "website": ""
+  },
+  {
     "id": "aniworld",
     "name": "AniWorld",
     "description": "AniWorld is an online streaming provider for german dubs.",
