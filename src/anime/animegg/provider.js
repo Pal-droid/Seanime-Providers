@@ -44,19 +44,33 @@ class Provider {
     const html = await res.text();
     const episodes = [];
 
-    // RELAXED REGEX:
-    // 1. Matches the anchor with class "anm_det_pop"
-    // 2. Captures the title inside <strong> tags (allowing for attributes on strong)
-    // 3. Matches across newlines ([\s\S]*?) until it finds "Episode <number>"
-    const epRegex = /<a href="([^"]+)" class="anm_det_pop">[\s\S]*?<strong>(.*?)<\/strong>[\s\S]*?Episode\s+(\d+)/g;
+    // UPDATED REGEX:
+    // 1. Capture the URL (Group 1)
+    // 2. Capture the Strong text (Group 2) - usually "Anime Name EpisodeNum"
+    // 3. Capture the Italic text (Group 3) - can be "Episode X" OR "Actual Title"
+    const epRegex = /<a href="([^"]+)" class="anm_det_pop">[\s\S]*?<strong>(.*?)<\/strong>[\s\S]*?<i class="anititle">(.*?)<\/i>/g;
 
     let match;
     while ((match = epRegex.exec(html)) !== null) {
+      const href = match[1];
+      const strongText = match[2];
+      const italicText = match[3];
+
+      // Try to extract number from URL first (e.g. /sword-art-online-episode-25)
+      let epNumStr = href.match(/-episode-(\d+)/);
+      let epNum = epNumStr ? parseInt(epNumStr[1]) : 0;
+
+      // Fallback: If URL doesn't have "-episode-", try extracting last number from strong tag
+      if (!epNum) {
+        const numMatch = strongText.match(/(\d+)$/);
+        epNum = numMatch ? parseInt(numMatch[1]) : 0;
+      }
+
       episodes.push({
-        id: match[1],
-        title: match[2],
-        number: parseInt(match[3]),
-        url: `${this.base}${match[1]}`,
+        id: href,
+        title: italicText.trim(), // e.g. "The World Seed" or "Episode 25"
+        number: epNum,
+        url: `${this.base}${href}`,
       });
     }
 
@@ -100,7 +114,6 @@ class Provider {
     const parsedSources = [];
 
     // 2. Regex to extract attributes from the unquoted JS objects
-    // Matches patterns like: {file: "/path...", label: "720p"}
     const objRegex = /{.*?file:\s*"(.*?)".*?label:\s*"(.*?)".*?}/g;
     
     let objMatch;
@@ -125,7 +138,6 @@ class Provider {
     const initialUrl = `${this.base}${bestSource.file}`;
 
     // 4. Construct the Proxy URL
-    // The proxy handles the redirects and headers, preventing the client from hanging.
     const headers = {
         "Referer": this.base
     };
