@@ -60,6 +60,18 @@
     "website": ""
   },
   {
+    "id": "animegg",
+    "name": "AnimeGG",
+    "description": "AnimeGG is an online streaming provider for english sub/dubs.",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/animegg/manifest.json",
+    "author": "Pal",
+    "type": "onlinestream-provider",
+    "language": "javascript",
+    "lang": "en",
+    "icon": "https://raw.githubusercontent.com/Pal-droid/seanime-marketplace/refs/heads/main/animegg.png",
+    "website": ""
+  },
+  {
     "id": "aniworld",
     "name": "AniWorld",
     "description": "AniWorld is an online streaming provider for german dubs.",
