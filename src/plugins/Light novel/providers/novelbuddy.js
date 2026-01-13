@@ -38,9 +38,6 @@
 
     // --- Interface Implementation ---
 
-    /**
-     * Searches NovelBuddy for a query
-     */
     async function manualSearch(query) {
         const url = `${NOVELBUDDY_URL}/search?q=${encodeURIComponent(query)}`;
         try {
@@ -63,12 +60,7 @@
                 }
                 const latestChapter = item.querySelector('.latest-chapter')?.textContent?.trim() || "No Chapter";
               
-                results.push({ 
-                    title: title, 
-                    url: novelUrl, 
-                    image: image, 
-                    latestChapter: latestChapter 
-                });
+                results.push({ title, url: novelUrl, image, latestChapter });
             });
             return results;
         } catch (err) {
@@ -77,18 +69,14 @@
         }
     }
 
-    /**
-     * Gets all chapter URLs and titles for a novel
-     */
     async function getChapters(novelUrl) {
         const url = `${NOVELBUDDY_URL}${novelUrl}`;
         try {
             const res = await fetch(url);
             const html = await res.text();
             const bookIdMatch = html.match(/var bookId = (\d+);/);
-            if (!bookIdMatch || !bookIdMatch[1]) {
-                throw new Error("Could not find bookId on novel page.");
-            }
+            if (!bookIdMatch || !bookIdMatch[1]) throw new Error("Could not find bookId.");
+            
             const bookId = bookIdMatch[1];
             const chapterApiUrl = `${NOVELBUDDY_URL}/api/manga/${bookId}/chapters?source=detail`;
             const chapterRes = await fetch(chapterApiUrl);
@@ -97,16 +85,10 @@
             
             const parser = new DOMParser();
             const doc = parser.parseFromString(chapterHtml, "text/html");
-            const chapterItems = doc.querySelectorAll('ul.chapter-list li a');
-            chapterItems.forEach(link => {
+            doc.querySelectorAll('ul.chapter-list li a').forEach(link => {
                 const url = link.getAttribute('href');
-                let title = link.querySelector('strong.chapter-title')?.textContent?.trim();
-                if (!title || title.length === 0) {
-                    title = link.getAttribute('title')?.trim() || "Unknown Chapter";
-                }
-                if (url) {
-                    chapters.push({ url: url, title: title });
-                }
+                let title = link.querySelector('strong.chapter-title')?.textContent?.trim() || link.getAttribute('title')?.trim() || "Unknown Chapter";
+                if (url) chapters.push({ url, title });
             });
             return chapters.reverse();
         } catch (err) {
@@ -117,10 +99,19 @@
 
     /**
      * Gets the processed HTML content for a single chapter
-     * Specifically cleans watermarks and garbage elements
+     * Handles obfuscated watermarks via Unicode Normalization
      */
     async function getChapterContent(chapterUrl) {
         const url = `${NOVELBUDDY_URL}${chapterUrl}`;
+
+        // Helper: Converts fancy unicode (𝒻, 𝐚, 𝙚) into plain text (f, a, e)
+        const normalizeText = (str) => {
+            return str.normalize("NFKD")
+                      .replace(/[\u0300-\u036f]/g, "") // Remove accents
+                      .toLowerCase()
+                      .replace(/[^a-z0-9]/g, "");    // Remove symbols/spaces for strict checking
+        };
+
         try {
             const res = await fetch(url);
             const html = await res.text();
@@ -128,95 +119,67 @@
             const doc = parser.parseFromString(html, "text/html");
             const contentElement = doc.querySelector('.content-inner');
     
-            if (!contentElement) {
-                throw new Error("Could not extract chapter content.");
-            }
+            if (!contentElement) throw new Error("Could not extract content.");
 
-            // 1. Remove specific known ad/garbage elements
-            contentElement.querySelectorAll('script, div[id^="pf-"], div[style*="text-align:center"], ins, div[align="center"], .code-block, .ads-container').forEach(el => el.remove());
+            // 1. Remove obvious ad/script elements
+            contentElement.querySelectorAll('script, div[id^="pf-"], ins, .code-block, .ads-container, .hidden').forEach(el => el.remove());
     
-            // 2. Extract HTML as string to handle Unicode text watermarks
-            let cleanHtml = contentElement.innerHTML;
-
-            // Target the specific unicode string: "f𝘳𝚎𝐞we𝐛𝑛𝐨𝘃e𝘭.co𝘮"
-            // And common variations
-            const watermarks = [
-                /f𝘳𝚎𝐞we𝐛𝑛𝐨𝘃e𝘭\.co𝘮/g,
-                /freewebnovel\.com/gi,
-                /𝘧𝘳𝘦𝘦𝘸𝘦𝘣𝘯𝘰𝘷𝘦𝘭/gi
-            ];
-
-            watermarks.forEach(pattern => {
-                cleanHtml = cleanHtml.replace(pattern, "");
+            // 2. Scan and remove elements containing the watermark
+            const paragraphs = contentElement.querySelectorAll('p, div, span, em, strong');
+            paragraphs.forEach(p => {
+                const normalized = normalizeText(p.textContent);
+                
+                // Targets "freewebnovel" in any font style or spacing
+                if (normalized.includes("freewebnovel") || 
+                    normalized.includes("f r e e") || 
+                    normalized.includes("f.r.e.e") ||
+                    normalized.includes("freewebn0vel")) {
+                    p.remove();
+                }
             });
 
-            // 3. Final DOM cleanup (remove empty tags left by the replacement)
+            // 3. Final regex pass on the remaining HTML string for inline fragments
+            let cleanHtml = contentElement.innerHTML;
+            const fuzzyRegex = /f[^\w]?r[^\w]?e[^\w]?e[^\w]?w[^\w]?e[^\w]?b[^\w]?n[^\w]?o[^\w]?v[^\w]?e[^\w]?l/gi;
+            cleanHtml = cleanHtml.replace(fuzzyRegex, "");
+
+            // 4. Clean up empty tags left over
             const wrapper = document.createElement('div');
             wrapper.innerHTML = cleanHtml;
-
-            wrapper.querySelectorAll('p, div, span').forEach(el => {
-                // Remove elements that are empty or only contain whitespace/line breaks
-                if (!el.textContent.trim() && el.children.length === 0) {
-                    el.remove();
-                }
+            wrapper.querySelectorAll('p, div').forEach(el => {
+                if (!el.textContent.trim() && el.children.length === 0) el.remove();
             });
 
             return wrapper.innerHTML;
         } catch (err) {
-            console.error("[novel-plugin] NovelBuddy ChapterContent Error:", err);
+            console.error("[novel-plugin] NovelBuddy Content Error:", err);
             return "<p>Error loading chapter content.</p>";
         }
     }
 
-    /**
-     * Tries to find the best match on NovelBuddy for an Anilist title
-     */
     async function autoMatch(romajiTitle, englishTitle) {
-        console.log(`[novel-plugin-matcher] (NovelBuddy) START: Matching for "${romajiTitle}"`);
-        
         const romajiResults = await manualSearch(romajiTitle);
-        let bestRomajiMatch = null;
-        let bestRomajiScore = 0.0;
-        if (romajiResults && romajiResults.length > 0) {
-            romajiResults.forEach(item => {
-                const similarity = getSimilarity(romajiTitle, item.title);
-                if (similarity > bestRomajiScore) {
-                    bestRomajiScore = similarity;
-                    bestRomajiMatch = item;
+        let bestMatch = null;
+        let highestScore = 0.0;
+
+        const processResults = (results, target) => {
+            results.forEach(item => {
+                const score = getSimilarity(target, item.title);
+                if (score > highestScore) {
+                    highestScore = score;
+                    bestMatch = item;
                 }
             });
-        }
+        };
 
-        let bestEnglishMatch = null;
-        let bestEnglishScore = 0.0;
+        if (romajiResults) processResults(romajiResults, romajiTitle);
+        
         if (englishTitle && englishTitle.toLowerCase() !== romajiTitle.toLowerCase()) {
             const englishResults = await manualSearch(englishTitle);
-            if (englishResults && englishResults.length > 0) {
-                englishResults.forEach(item => {
-                    const similarity = getSimilarity(englishTitle, item.title);
-                    if (similarity > bestEnglishScore) {
-                        bestEnglishScore = similarity;
-                        bestEnglishMatch = item;
-                    }
-                });
-            }
+            if (englishResults) processResults(englishResults, englishTitle);
         }
 
-        let bestMatch = null;
-        let highestSimilarity = 0.0;
-        if (bestRomajiScore > bestEnglishScore) {
-            bestMatch = bestRomajiMatch;
-            highestSimilarity = bestRomajiScore;
-        } else {
-            bestMatch = bestEnglishMatch;
-            highestSimilarity = bestEnglishScore;
-        }
-
-        if (highestSimilarity > 0.8 && bestMatch) {
-            return { match: bestMatch, similarity: highestSimilarity };
-        } else {
-            return null;
-        }
+        return (highestScore > 0.8 && bestMatch) ? { match: bestMatch, similarity: highestScore } : null;
     }
 
     const novelBuddySource = {
@@ -230,9 +193,5 @@
 
     if (window.novelPluginRegistry) {
         window.novelPluginRegistry.registerSource(novelBuddySource);
-        console.log('[novel-plugin] NovelBuddySource registered with content cleaning.');
-    } else {
-        console.error('[novel-plugin] NovelBuddySource: Registry not found!');
     }
-
 })();
