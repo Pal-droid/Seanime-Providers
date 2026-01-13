@@ -10,18 +10,18 @@
   "type": "plugin",
   "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/Light%20novel/main.ts",
   "lang": "EN",
-  "allow": {
-    "unsafeFlags": [
-      {
-        "flag": "dom-script-manipulation",
-        "reason": "Needed for injecting scripts into the reader view"
-      }
-    ]
-  },
   "plugin": {
     "version": "1",
     "permissions": {
-      "scopes": []
+      "scopes": [],
+      "allow": {
+        "unsafeFlags": [
+          {
+            "flag": "dom-script-manipulation",
+            "reason": "Needed for injecting scripts into the reader view"
+          }
+        ]
+      }
     }
   }
 }
