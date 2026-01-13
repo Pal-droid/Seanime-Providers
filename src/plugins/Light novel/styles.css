@@ -791,20 +791,19 @@
     text-shadow: none;
 }
 
-/* FIX: Corrected ID to match HTML (#tags-container) instead of #novel-plugin-tags-container */
-#tags-container.show-spoilers .novel-plugin-spoiler-tag {
+#novel-plugin-tags-container.show-spoilers .novel-plugin-spoiler-tag {
     background: #581c1c;
     color: #ffc2c2; /* Reveals text */
     user-select: auto; /* --- FIX: Allow selection when revealed --- */
 }
 
 /* --- FIX: Allow normal selection when revealed --- */
-#tags-container.show-spoilers .novel-plugin-spoiler-tag::selection {
+#novel-plugin-tags-container.show-spoilers .novel-plugin-spoiler-tag::selection {
     background: Highlight; /* Use browser default */
     color: HighlightText; /* Use browser default */
     text-shadow: none;
 }
-#tags-container.show-spoilers .novel-plugin-spoiler-tag::-moz-selection { /* Firefox */
+#novel-plugin-tags-container.show-spoilers .novel-plugin-spoiler-tag::-moz-selection { /* Firefox */
     background: Highlight;
     color: HighlightText;
     text-shadow: none;
