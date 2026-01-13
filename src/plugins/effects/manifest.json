@@ -13,15 +13,15 @@
   "plugin": {
     "version": "1",
     "permissions": {
-      "scopes": []
-    },
-    "allow": {
-      "unsafeFlags": [
-        {
-          "flag": "dom-script-manipulation",
-          "reason": "Allows the plugin to inject and execute the snow particle script into the UI"
-        }
-      ]
+      "scopes": [],
+      "allow": {
+        "unsafeFlags": [
+          {
+            "flag": "dom-script-manipulation",
+            "reason": "Allows the plugin to inject and execute the snow particle script into the UI"
+          }
+        ]
+      }
     }
   }
 }
