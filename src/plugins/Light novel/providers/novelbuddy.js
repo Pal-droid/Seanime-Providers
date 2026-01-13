@@ -40,8 +40,6 @@
 
     /**
      * Searches NovelBuddy for a query
-     * @param {string} query 
-     * @returns {Promise<SearchResult[]>}
      */
     async function manualSearch(query) {
         const url = `${NOVELBUDDY_URL}/search?q=${encodeURIComponent(query)}`;
@@ -81,8 +79,6 @@
 
     /**
      * Gets all chapter URLs and titles for a novel
-     * @param {string} novelUrl 
-     * @returns {Promise<Chapter[]>}
      */
     async function getChapters(novelUrl) {
         const url = `${NOVELBUDDY_URL}${novelUrl}`;
@@ -112,7 +108,7 @@
                     chapters.push({ url: url, title: title });
                 }
             });
-            return chapters.reverse(); // Reverse to get CH 1 first
+            return chapters.reverse();
         } catch (err) {
             console.error("[novel-plugin] NovelBuddy Details Error:", err);
             return [];
@@ -121,8 +117,7 @@
 
     /**
      * Gets the processed HTML content for a single chapter
-     * @param {string} chapterUrl 
-     * @returns {Promise<string>}
+     * Specifically cleans watermarks and garbage elements
      */
     async function getChapterContent(chapterUrl) {
         const url = `${NOVELBUDDY_URL}${chapterUrl}`;
@@ -136,13 +131,37 @@
             if (!contentElement) {
                 throw new Error("Could not extract chapter content.");
             }
+
+            // 1. Remove specific known ad/garbage elements
+            contentElement.querySelectorAll('script, div[id^="pf-"], div[style*="text-align:center"], ins, div[align="center"], .code-block, .ads-container').forEach(el => el.remove());
     
-            contentElement.querySelectorAll('script, div[id^="pf-"], div[style="text-align:center"], ins, div[align="center"]').forEach(el => el.remove());
-            contentElement.querySelectorAll('div').forEach(div => {
-                if (div.innerHTML.trim() === '') div.remove();
+            // 2. Extract HTML as string to handle Unicode text watermarks
+            let cleanHtml = contentElement.innerHTML;
+
+            // Target the specific unicode string: "f𝘳𝚎𝐞we𝐛𝑛𝐨𝘃e𝘭.co𝘮"
+            // And common variations
+            const watermarks = [
+                /f𝘳𝚎𝐞we𝐛𝑛𝐨𝘃e𝘭\.co𝘮/g,
+                /freewebnovel\.com/gi,
+                /𝘧𝘳𝘦𝘦𝘸𝘦𝘣𝘯𝘰𝘷𝘦𝘭/gi
+            ];
+
+            watermarks.forEach(pattern => {
+                cleanHtml = cleanHtml.replace(pattern, "");
             });
-    
-            return contentElement.innerHTML;
+
+            // 3. Final DOM cleanup (remove empty tags left by the replacement)
+            const wrapper = document.createElement('div');
+            wrapper.innerHTML = cleanHtml;
+
+            wrapper.querySelectorAll('p, div, span').forEach(el => {
+                // Remove elements that are empty or only contain whitespace/line breaks
+                if (!el.textContent.trim() && el.children.length === 0) {
+                    el.remove();
+                }
+            });
+
+            return wrapper.innerHTML;
         } catch (err) {
             console.error("[novel-plugin] NovelBuddy ChapterContent Error:", err);
             return "<p>Error loading chapter content.</p>";
@@ -151,50 +170,38 @@
 
     /**
      * Tries to find the best match on NovelBuddy for an Anilist title
-     * @param {string} romajiTitle 
-     * @param {string} englishTitle 
-     * @returns {Promise<{ match: SearchResult, similarity: number } | null>}
      */
     async function autoMatch(romajiTitle, englishTitle) {
-        // --- THIS IS THE CORRECT, REFFACTORED FUNCTION ---
         console.log(`[novel-plugin-matcher] (NovelBuddy) START: Matching for "${romajiTitle}"`);
         
-        // 1. Get results for Romaji title
         const romajiResults = await manualSearch(romajiTitle);
         let bestRomajiMatch = null;
         let bestRomajiScore = 0.0;
         if (romajiResults && romajiResults.length > 0) {
             romajiResults.forEach(item => {
                 const similarity = getSimilarity(romajiTitle, item.title);
-                console.log(`[novel-plugin-matcher] (NovelBuddy) Romaji Compare: "${romajiTitle}" vs "${item.title}" (Score: ${similarity.toFixed(2)})`);
                 if (similarity > bestRomajiScore) {
                     bestRomajiScore = similarity;
                     bestRomajiMatch = item;
                 }
             });
         }
-        console.log(`[novel-plugin-matcher] (NovelBuddy) Romaji Best: "${bestRomajiMatch?.title}" (Score: ${bestRomajiScore.toFixed(2)})`);
 
-        // 2. Get results for English title
         let bestEnglishMatch = null;
         let bestEnglishScore = 0.0;
         if (englishTitle && englishTitle.toLowerCase() !== romajiTitle.toLowerCase()) {
-            console.log(`[novel-plugin-matcher] (NovelBuddy) INFO: Also matching with English: "${englishTitle}"`);
             const englishResults = await manualSearch(englishTitle);
             if (englishResults && englishResults.length > 0) {
                 englishResults.forEach(item => {
                     const similarity = getSimilarity(englishTitle, item.title);
-                    console.log(`[novel-plugin-matcher] (NovelBuddy) English Compare: "${englishTitle}" vs "${item.title}" (Score: ${similarity.toFixed(2)})`);
                     if (similarity > bestEnglishScore) {
                         bestEnglishScore = similarity;
                         bestEnglishMatch = item;
                     }
                 });
             }
-            console.log(`[novel-plugin-matcher] (NovelBuddy) English Best: "${bestEnglishMatch?.title}" (Score: ${bestEnglishScore.toFixed(2)})`);
         }
 
-        // 3. Compare the best scores
         let bestMatch = null;
         let highestSimilarity = 0.0;
         if (bestRomajiScore > bestEnglishScore) {
@@ -205,22 +212,12 @@
             highestSimilarity = bestEnglishScore;
         }
 
-        console.log(`[novel-plugin-matcher] (NovelBuddy) Final Best: "${bestMatch?.title}" (Score: ${highestSimilarity.toFixed(2)})`);
-
-        // 4. Check against the 0.8 threshold
         if (highestSimilarity > 0.8 && bestMatch) {
-            console.log(`[novel-plugin-matcher] (NovelBuddy) SUCCESS: Match found (Score > 0.8).`);
-            return {
-                match: bestMatch,
-                similarity: highestSimilarity
-            };
+            return { match: bestMatch, similarity: highestSimilarity };
         } else {
-            console.log(`[novel-plugin-matcher] (NovelBuddy) FAILURE: No match found above 0.8 threshold.`);
             return null;
         }
     }
-
-    // --- Create and Register The Source ---
 
     const novelBuddySource = {
         id: "novelbuddy",
@@ -233,7 +230,7 @@
 
     if (window.novelPluginRegistry) {
         window.novelPluginRegistry.registerSource(novelBuddySource);
-        console.log('[novel-plugin] NovelBuddySource registered.');
+        console.log('[novel-plugin] NovelBuddySource registered with content cleaning.');
     } else {
         console.error('[novel-plugin] NovelBuddySource: Registry not found!');
     }
