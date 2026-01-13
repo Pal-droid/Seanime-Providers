@@ -1,7 +1,7 @@
 {
     "id": "anime-news",
     "name": "Anime News",
-    "version": "1.3.1",
+    "version": "1.2.2",
     "manifestURI": "https://raw.githubusercontent.com/Pal-droid/aninewsnet-seanime/refs/heads/main/manifest.json",
     "language": "typescript",
     "type": "plugin",
@@ -14,15 +14,15 @@
     "plugin": {
         "version": "1",
         "permissions": {
-            "scopes": []
-        },
-        "allow": {
-            "unsafeFlags": [
-                {
-                    "flag": "dom-script-manipulation",
-                    "reason": "Required for injecting scripts into the news feed view"
-                }
-            ]
+            "scopes": [],
+            "allow": {
+                "unsafeFlags": [
+                    {
+                        "flag": "dom-script-manipulation",
+                        "reason": "Required for injecting scripts into the news feed view"
+                    }
+                ]
+            }
         }
     },
     "isDevelopment": false
