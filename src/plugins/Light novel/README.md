@@ -13,3 +13,4 @@
 |------|--------|-------|
 | FreeWebNovel | Planned |
 | Novelhall | Planned |
+| NovelFire | Planned |
