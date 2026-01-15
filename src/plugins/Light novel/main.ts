@@ -80,7 +80,11 @@ function init() {
                 sourceRegistry: new Map(),
                 showSettings: false,
                 libraryNovels: [],  // Array of library items
-                libraryLoaded: false // Flag to track if library is loaded
+                libraryLoaded: false, // Flag to track if library is loaded
+                libraryViewMode: localStorage.getItem('novel_plugin_library_view') || 'list', // 'list' or 'cards'
+                libraryPage: 1,
+                libraryPageSize: 10,
+                libraryTotalPages: 1
             };
 
             // Expose registry globally
@@ -92,8 +96,118 @@ function init() {
             };
 
             // ---------------------------------------------------------------------------
-            // 3. STORAGE SERVICE
+            // 3. STORAGE & CACHE SERVICES
             // ---------------------------------------------------------------------------
+            const CacheService = {
+                // TASK 2: Anilist Caching to prevent rate limiting
+                getCacheKey: (type, params) => {
+                    const paramString = typeof params === 'object' 
+                        ? JSON.stringify(params) 
+                        : String(params);
+                    return \`novel_plugin_cache_\${type}_\${btoa(encodeURIComponent(paramString))}\`;
+                },
+
+                get: (key) => {
+                    try {
+                        const item = localStorage.getItem(key);
+                        if (!item) return null;
+                        
+                        const { data, expiry } = JSON.parse(item);
+                        if (expiry && Date.now() > expiry) {
+                            localStorage.removeItem(key);
+                            return null;
+                        }
+                        return data;
+                    } catch (e) {
+                        console.error("[novel-plugin] Cache read error:", e);
+                        return null;
+                    }
+                },
+
+                set: (key, data, ttl = 3600000) => { // 1 hour default TTL
+                    try {
+                        const item = {
+                            data,
+                            expiry: Date.now() + ttl
+                        };
+                        localStorage.setItem(key, JSON.stringify(item));
+                    } catch (e) {
+                        console.error("[novel-plugin] Cache write error:", e);
+                    }
+                },
+
+                clearExpired: () => {
+                    const now = Date.now();
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key?.startsWith('novel_plugin_cache_')) {
+                            try {
+                                const item = localStorage.getItem(key);
+                                if (item) {
+                                    const { expiry } = JSON.parse(item);
+                                    if (expiry && now > expiry) {
+                                        localStorage.removeItem(key);
+                                    }
+                                }
+                            } catch (e) {
+                                // Ignore malformed cache entries
+                            }
+                        }
+                    }
+                }
+            };
+
+            // Wrapped Anilist Queries with Caching
+            const CachedAnilistQueries = {
+                getTrendingLightNovels: async () => {
+                    const cacheKey = CacheService.getCacheKey('trending', {});
+                    const cached = CacheService.get(cacheKey);
+                    if (cached) {
+                        console.log("[novel-plugin] Using cached trending novels");
+                        return cached;
+                    }
+                    
+                    console.log("[novel-plugin] Fetching fresh trending novels");
+                    const data = await AnilistQueries.getTrendingLightNovels();
+                    if (data) {
+                        CacheService.set(cacheKey, data, 1800000); // 30 minutes
+                    }
+                    return data;
+                },
+
+                searchAnilistLightNovels: async (query, sort, genre) => {
+                    const cacheKey = CacheService.getCacheKey('search', { query, sort, genre });
+                    const cached = CacheService.get(cacheKey);
+                    if (cached) {
+                        console.log("[novel-plugin] Using cached search results");
+                        return cached;
+                    }
+                    
+                    console.log("[novel-plugin] Fetching fresh search results");
+                    const data = await AnilistQueries.searchAnilistLightNovels(query, sort, genre);
+                    if (data) {
+                        CacheService.set(cacheKey, data, 900000); // 15 minutes
+                    }
+                    return data;
+                },
+
+                getAnilistLightNovelDetails: async (id) => {
+                    const cacheKey = CacheService.getCacheKey('details', id);
+                    const cached = CacheService.get(cacheKey);
+                    if (cached) {
+                        console.log(\`[novel-plugin] Using cached details for novel \${id}\`);
+                        return cached;
+                    }
+                    
+                    console.log(\`[novel-plugin] Fetching fresh details for novel \${id}\`);
+                    const data = await AnilistQueries.getAnilistLightNovelDetails(id);
+                    if (data) {
+                        CacheService.set(cacheKey, data, 3600000); // 1 hour
+                    }
+                    return data;
+                }
+            };
+
             const StorageService = {
                 getKey: (anilistId, sourceId) => {
                     return (anilistId && sourceId) 
@@ -140,6 +254,17 @@ function init() {
                         return JSON.parse(data);
                     } catch (e) {
                         return null;
+                    }
+                },
+
+                // TASK 3: Remove last read data when removing from library
+                removeLastRead: (anilistId, sourceId) => {
+                    try {
+                        const key = StorageService.getKey(anilistId, sourceId);
+                        localStorage.removeItem(key);
+                        console.log(\`[novel-plugin] Removed last read data for novel \${anilistId}\`);
+                    } catch (e) {
+                        console.error("[novel-plugin] Error removing last read data:", e);
                     }
                 },
 
@@ -218,8 +343,18 @@ function init() {
                     try {
                         const libraryKey = 'novel_plugin_library';
                         let library = StorageService.getLibrary();
+                        
+                        // Find the novel to get sourceId before removal
+                        const novelToRemove = library.find(item => item.anilistId === anilistId);
+                        
                         library = library.filter(item => item.anilistId !== anilistId);
                         localStorage.setItem(libraryKey, JSON.stringify(library));
+                        
+                        // TASK 3: Also remove last read data
+                        if (novelToRemove && novelToRemove.sourceId) {
+                            StorageService.removeLastRead(anilistId, novelToRemove.sourceId);
+                        }
+                        
                         // Mark library as needing reload
                         State.libraryLoaded = false;
                         return library;
@@ -240,7 +375,9 @@ function init() {
                         twitter: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"></path></svg>',
                         settings: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>',
                         library: '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>',
-                        trash: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>'
+                        trash: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>',
+                        grid: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect></svg>',
+                        list: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>'
                     };
                     return icons[name] || icons['link'];
                 },
@@ -250,27 +387,13 @@ function init() {
                         <p class="novel-plugin-poster-title" title="\${item.title.romaji}">\${item.title.romaji}</p>
                     </div>\`,
 
-                libraryCard: (item) => {
-                    const chaptersRead = item.lastChapterIndex + 1;
-                    const totalChapters = item.chapters || '~';
-                    const progressText = item.chapters ? 
-                        \`\${chaptersRead} / \${totalChapters}\` : 
-                        \`\${chaptersRead} / ~\`;
-                    
-                    const progressPercent = item.chapters ? 
-                        Math.min(100, Math.round((chaptersRead / totalChapters) * 100)) : 0;
-                    
-                    return \`<div class="novel-plugin-library-card" data-id="\${item.id}">
+                // TASK 1 & 4: Updated library card (list view) without status or progress counter
+                libraryCardList: (item) => {
+                    return \`<div class="novel-plugin-library-card-list" data-id="\${item.id}">
                         <div class="novel-plugin-library-card-header">
                             <img src="\${item.coverImage.large}" class="novel-plugin-library-img" alt="\${item.title.romaji}" style="--cover-color: \${item.coverImage.color || '#8A2BE2'};">
                             <div class="novel-plugin-library-info">
                                 <p class="novel-plugin-library-title" title="\${item.title.romaji}">\${item.title.romaji}</p>
-                                <div class="novel-plugin-library-progress">
-                                    <div class="novel-plugin-progress-bar">
-                                        <div class="novel-plugin-progress-fill" style="width: \${progressPercent}%"></div>
-                                    </div>
-                                    <span class="novel-plugin-progress-text">\${progressText}</span>
-                                </div>
                                 <p class="novel-plugin-library-chapter" title="\${item.lastChapterTitle || 'Chapter ' + (item.lastChapterIndex + 1)}">
                                     Last: \${item.lastChapterTitle || 'Chapter ' + (item.lastChapterIndex + 1)}
                                 </p>
@@ -279,6 +402,25 @@ function init() {
                         <div class="novel-plugin-library-actions">
                             <button class="novel-plugin-button small continue-btn" data-id="\${item.id}" data-source="\${item.sourceId}">Continue</button>
                             <button class="novel-plugin-button small secondary icon-only remove-btn" data-id="\${item.id}">\${Templates.icon('trash')}</button>
+                        </div>
+                    </div>\`;
+                },
+
+                // TASK 1 & 4: New card view for library without status
+                libraryCardGrid: (item) => {
+                    return \`<div class="novel-plugin-library-card-grid" data-id="\${item.id}">
+                        <div class="novel-plugin-library-grid-img-container">
+                            <img src="\${item.coverImage.large}" class="novel-plugin-library-grid-img" alt="\${item.title.romaji}" style="--cover-color: \${item.coverImage.color || '#8A2BE2'};">
+                            <div class="novel-plugin-library-grid-overlay">
+                                <button class="novel-plugin-button small overlay-btn continue-btn" data-id="\${item.id}" data-source="\${item.sourceId}">Continue</button>
+                                <button class="novel-plugin-button small secondary overlay-btn remove-btn" data-id="\${item.id}">\${Templates.icon('trash')}</button>
+                            </div>
+                        </div>
+                        <div class="novel-plugin-library-grid-info">
+                            <p class="novel-plugin-library-grid-title" title="\${item.title.romaji}">\${item.title.romaji}</p>
+                            <p class="novel-plugin-library-grid-chapter" title="\${item.lastChapterTitle || 'Chapter ' + (item.lastChapterIndex + 1)}">
+                                \${item.lastChapterTitle || 'Chapter ' + (item.lastChapterIndex + 1)}
+                            </p>
                         </div>
                     </div>\`;
                 },
@@ -334,6 +476,26 @@ function init() {
                             State.currentChapters[numericIndex].title, 
                             numericIndex
                         );
+                        
+                        // Check if this is the last chapter and remove from library if finished
+                        const isLastChapter = numericIndex === State.currentChapters.length - 1;
+                        const isFinishedNovel = State.currentNovel.status === 'FINISHED';
+                        
+                        if (isLastChapter && isFinishedNovel) {
+                            // Remove from library when last chapter is read for finished novels
+                            StorageService.removeFromLibrary(State.currentNovel.id);
+                            console.log(\`[novel-plugin] Removed finished novel \${State.currentNovel.title.romaji} from library.\`);
+                            
+                            // Show notification
+                            setTimeout(() => {
+                                const notification = document.createElement('div');
+                                notification.className = 'novel-plugin-notification';
+                                notification.textContent = \`Completed \${State.currentNovel.title.romaji} - Removed from library\`;
+                                notification.style.cssText = 'position:fixed;top:20px;right:20px;background:#2a2a2a;color:#fff;padding:12px 16px;border-radius:8px;border-left:4px solid #4CAF50;z-index:99999;';
+                                document.body.appendChild(notification);
+                                setTimeout(() => notification.remove(), 3000);
+                            }, 500);
+                        }
                     }
 
                     State.isLoading = false;
@@ -390,7 +552,7 @@ function init() {
                     // Fetch details for each novel in library
                     const promises = library.map(async (libItem) => {
                         try {
-                            const media = await AnilistQueries.getAnilistLightNovelDetails(libItem.anilistId);
+                            const media = await CachedAnilistQueries.getAnilistLightNovelDetails(libItem.anilistId);
                             if (media) {
                                 return {
                                     ...libItem,
@@ -429,7 +591,7 @@ function init() {
                 
                 try {
                     // Get novel details
-                    const media = await AnilistQueries.getAnilistLightNovelDetails(anilistId);
+                    const media = await CachedAnilistQueries.getAnilistLightNovelDetails(anilistId);
                     if (!media) {
                         throw new Error("Failed to load novel details");
                     }
@@ -480,13 +642,34 @@ function init() {
 
             // Remove from library
             function removeFromLibrary(anilistId) {
-                if (confirm("Remove this novel from your library? Your reading progress will be kept.")) {
+                if (confirm("Remove this novel from your library? Your reading progress will also be removed.")) {
                     StorageService.removeFromLibrary(anilistId);
                     State.libraryLoaded = false;
                     if (State.page === "library") {
                         renderUI();
                     }
                 }
+            }
+
+            // TASK 4: Library pagination functions
+            function getPaginatedLibraryItems() {
+                const startIndex = (State.libraryPage - 1) * State.libraryPageSize;
+                const endIndex = startIndex + State.libraryPageSize;
+                return State.libraryNovels.slice(startIndex, endIndex);
+            }
+
+            function updateLibraryPagination() {
+                State.libraryTotalPages = Math.ceil(State.libraryNovels.length / State.libraryPageSize);
+                if (State.libraryPage > State.libraryTotalPages && State.libraryTotalPages > 0) {
+                    State.libraryPage = State.libraryTotalPages;
+                }
+            }
+
+            // TASK 4: Library view mode toggle
+            function toggleLibraryViewMode() {
+                State.libraryViewMode = State.libraryViewMode === 'list' ? 'cards' : 'list';
+                localStorage.setItem('novel_plugin_library_view', State.libraryViewMode);
+                renderUI();
             }
 
             // New Helper: Image Modal
@@ -585,7 +768,7 @@ function init() {
             // --- Page: Discover ---
             async function renderDiscoverPage(wrapper) {
                 wrapper.innerHTML = \`<div class="novel-plugin-loader"></div>\`;
-                const media = await AnilistQueries.getTrendingLightNovels();
+                const media = await CachedAnilistQueries.getTrendingLightNovels();
                 wrapper.innerHTML = "";
 
                 if (!media?.length) {
@@ -642,6 +825,8 @@ function init() {
                     sort: wrapper.querySelector("#novel-plugin-sort-select"),
                     genre: wrapper.querySelector("#novel-plugin-genre-select")
                 };
+                
+                // TASK 3: Fix for centered loading spinner
                 async function performSearch(prefill = false) {
                     const query = elements.input.value;
                     const sort = elements.sort.value;
@@ -650,11 +835,13 @@ function init() {
                     elements.results.innerHTML = \`<div class="novel-plugin-loader"></div>\`;
                     
                     let media;
-                    if (prefill && (!query || !query.trim()) && !genre) {
-                        media = await AnilistQueries.getTrendingLightNovels();
+                    
+                    // TASK 4: Fix infinite loading bug when no query is provided
+                    if (prefill || (!query.trim() && !genre)) {
+                        // Show trending when no query and no genre
+                        media = await CachedAnilistQueries.getTrendingLightNovels();
                     } else {
-                        if (!prefill && (!query || !query.trim())) return;
-                        media = await AnilistQueries.searchAnilistLightNovels(query, sort, genre);
+                        media = await CachedAnilistQueries.searchAnilistLightNovels(query, sort, genre);
                     }
 
                     elements.results.innerHTML = (!media?.length) ?
@@ -677,6 +864,7 @@ function init() {
                 if (!State.libraryLoaded) {
                     wrapper.innerHTML = \`<div class="novel-plugin-loader"></div>\`;
                     await loadLibrary();
+                    updateLibraryPagination();
                 }
                 
                 wrapper.innerHTML = "";
@@ -691,51 +879,114 @@ function init() {
                     return;
                 }
                 
+                // TASK 4: Library header with view toggle and pagination
                 wrapper.innerHTML += \`
-                    <h1 class="novel-plugin-title">My Library</h1>
-                    <p class="novel-plugin-subtitle">Continue where you left off</p>
-                    <div class="novel-plugin-library-list" id="novel-plugin-library-list"></div>
+                    <div class="novel-plugin-library-header">
+                        <div>
+                            <h1 class="novel-plugin-title">My Library</h1>
+                            <p class="novel-plugin-subtitle">\${State.libraryNovels.length} novels</p>
+                        </div>
+                        <div class="novel-plugin-library-controls">
+                            <button class="novel-plugin-button icon-only secondary" id="novel-plugin-library-view-toggle" title="Toggle view">
+                                \${State.libraryViewMode === 'list' ? Templates.icon('grid') : Templates.icon('list')}
+                            </button>
+                            <div class="novel-plugin-library-pagination">
+                                <button class="novel-plugin-button icon-only" id="novel-plugin-library-prev" \${State.libraryPage <= 1 ? 'disabled' : ''}>‹</button>
+                                <span class="novel-plugin-library-page-info">Page \${State.libraryPage} of \${State.libraryTotalPages}</span>
+                                <button class="novel-plugin-button icon-only" id="novel-plugin-library-next" \${State.libraryPage >= State.libraryTotalPages ? 'disabled' : ''}>›</button>
+                            </div>
+                        </div>
+                    </div>
                 \`;
                 
-                const libraryList = wrapper.querySelector('#novel-plugin-library-list');
-                State.libraryNovels.forEach(item => {
-                    libraryList.innerHTML += Templates.libraryCard(item);
-                });
+                // Library content container
+                const contentContainer = document.createElement('div');
+                contentContainer.id = 'novel-plugin-library-content';
+                contentContainer.className = \`novel-plugin-library-content \${State.libraryViewMode === 'cards' ? 'grid-view' : 'list-view'}\`;
+                wrapper.appendChild(contentContainer);
+                
+                // Get current page items
+                const currentItems = getPaginatedLibraryItems();
+                
+                // Render items based on view mode
+                if (State.libraryViewMode === 'list') {
+                    currentItems.forEach(item => {
+                        contentContainer.innerHTML += Templates.libraryCardList(item);
+                    });
+                } else {
+                    currentItems.forEach(item => {
+                        contentContainer.innerHTML += Templates.libraryCardGrid(item);
+                    });
+                }
                 
                 // Add event listeners
-                libraryList.querySelectorAll('.continue-btn').forEach(btn => {
-                    btn.onclick = (e) => {
-                        e.stopPropagation();
-                        const anilistId = parseInt(btn.getAttribute('data-id'));
-                        const sourceId = btn.getAttribute('data-source');
-                        continueFromLibrary(anilistId, sourceId);
-                    };
-                });
+                const viewToggle = wrapper.querySelector('#novel-plugin-library-view-toggle');
+                const prevBtn = wrapper.querySelector('#novel-plugin-library-prev');
+                const nextBtn = wrapper.querySelector('#novel-plugin-library-next');
                 
-                libraryList.querySelectorAll('.remove-btn').forEach(btn => {
-                    btn.onclick = (e) => {
-                        e.stopPropagation();
-                        const anilistId = parseInt(btn.getAttribute('data-id'));
-                        removeFromLibrary(anilistId);
-                    };
-                });
+                if (viewToggle) {
+                    viewToggle.onclick = toggleLibraryViewMode;
+                }
                 
-                // Make entire card clickable to view details
-                libraryList.querySelectorAll('.novel-plugin-library-card').forEach(card => {
-                    card.onclick = (e) => {
-                        // Don't trigger if clicking on buttons
-                        if (e.target.closest('button')) return;
-                        const anilistId = parseInt(card.getAttribute('data-id'));
-                        handleNovelSelection(anilistId);
+                if (prevBtn) {
+                    prevBtn.onclick = () => {
+                        if (State.libraryPage > 1) {
+                            State.libraryPage--;
+                            renderUI();
+                        }
                     };
-                });
+                }
+                
+                if (nextBtn) {
+                    nextBtn.onclick = () => {
+                        if (State.libraryPage < State.libraryTotalPages) {
+                            State.libraryPage++;
+                            renderUI();
+                        }
+                    };
+                }
+                
+                // Add event listeners for library items
+                const addLibraryItemListeners = () => {
+                    // Continue buttons
+                    contentContainer.querySelectorAll('.continue-btn').forEach(btn => {
+                        btn.onclick = (e) => {
+                            e.stopPropagation();
+                            const anilistId = parseInt(btn.getAttribute('data-id'));
+                            const sourceId = btn.getAttribute('data-source');
+                            continueFromLibrary(anilistId, sourceId);
+                        };
+                    });
+                    
+                    // Remove buttons
+                    contentContainer.querySelectorAll('.remove-btn').forEach(btn => {
+                        btn.onclick = (e) => {
+                            e.stopPropagation();
+                            const anilistId = parseInt(btn.getAttribute('data-id'));
+                            removeFromLibrary(anilistId);
+                        };
+                    });
+                    
+                    // Make entire card clickable to view details
+                    contentContainer.querySelectorAll('.novel-plugin-library-card-list, .novel-plugin-library-card-grid').forEach(card => {
+                        card.onclick = (e) => {
+                            // Don't trigger if clicking on buttons
+                            if (e.target.closest('button')) return;
+                            const anilistId = parseInt(card.getAttribute('data-id'));
+                            handleNovelSelection(anilistId);
+                        };
+                    });
+                };
+                
+                // Wait for DOM to update
+                setTimeout(addLibraryItemListeners, 0);
             }
 
             // --- Page: Details ---
             async function renderDetailsPage(wrapper) {
                 if (!State.currentNovel?.id) return handleNovelSelection(null);
                 wrapper.innerHTML = \`<div class="novel-plugin-loader"></div>\`;
-                const media = await AnilistQueries.getAnilistLightNovelDetails(State.currentNovel.id);
+                const media = await CachedAnilistQueries.getAnilistLightNovelDetails(State.currentNovel.id);
                 wrapper.innerHTML = "";
 
                 if (!media) { wrapper.innerHTML = "<p>Error loading details.</p>"; return; }
@@ -988,7 +1239,7 @@ function init() {
                 });
             }
 
-            // --- Page: Reader (UPDATED with Settings) ---
+            // --- Page: Reader ---
             function renderReaderPage(wrapper) {
                 if (!State.currentNovel || !State.currentChapterContent) { State.page = "chapters"; renderUI(); return; }
 
@@ -998,7 +1249,7 @@ function init() {
 
                 const createBtn = (txt, disabled, fn) => {
                     const b = document.createElement('button');
-                    b.className = 'novel-plugin-button';
+                    b.className = 'novel-plugin-button' + (disabled ? ' disabled' : '');
                     b.textContent = txt;
                     b.disabled = disabled;
                     b.onclick = fn;
@@ -1154,7 +1405,7 @@ function init() {
                     el.id = id;
                     el.textContent = txt;
                     if (type === 'style') {
-                        // INJECTED CSS UPDATES FOR SETTINGS & HEADER FIXES
+                        // INJECTED CSS UPDATES
                         el.textContent += \`
                             .novel-plugin-reader-header { 
                                 display: flex; 
@@ -1179,6 +1430,19 @@ function init() {
                                 align-items: center;
                                 justify-content: center;
                                 white-space: nowrap;
+                            }
+
+                            /* Style for disabled buttons in reader */
+                            .novel-plugin-reader-header .novel-plugin-button.disabled {
+                                opacity: 0.5 !important;
+                                cursor: not-allowed !important;
+                                background: #3a3a3a !important;
+                                color: #888 !important;
+                                border-color: #3a3a3a !important;
+                            }
+                            .novel-plugin-reader-header .novel-plugin-button.disabled:hover {
+                                transform: none !important;
+                                background: #3a3a3a !important;
                             }
 
                             /* Settings Icon Special Handling */
@@ -1210,7 +1474,7 @@ function init() {
                             }
                             .novel-plugin-reader-content p { margin-bottom: 1em; }
 
-                            /* FIX: Ensure header sits above the banner so cover image is clickable */
+                            /* Ensure header sits above the banner so cover image is clickable */
                             .novel-plugin-details-header {
                                 position: relative !important;
                                 z-index: 2 !important;
@@ -1245,7 +1509,7 @@ function init() {
                             .novel-plugin-setting-row label { font-size: 0.9em; color: #ccc; }
                             .novel-plugin-select.small { width: 120px; padding: 4px; font-size: 0.85em; }
                             
-                            /* --- New Image Modal Styles --- */
+                            /* Image Modal Styles */
                             .novel-plugin-image-modal {
                                 position: fixed;
                                 top: 0;
@@ -1281,24 +1545,114 @@ function init() {
                                 transform: scale(1);
                             }
 
-                            /* --- Library Page Styles --- */
-                            .novel-plugin-library-card {
+                            /* TASK 2: Fix for misaligned buttons in library card overlay */
+                            .novel-plugin-library-grid-overlay {
+                                position: absolute;
+                                top: 0;
+                                left: 0;
+                                right: 0;
+                                bottom: 0;
+                                background: rgba(0,0,0,0.7);
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                gap: 8px;
+                                opacity: 0;
+                                transition: opacity 0.3s;
+                                flex-direction: row;
+                                align-items: center;
+                                justify-content: center;
+                            }
+                            .novel-plugin-library-grid-overlay .overlay-btn {
+                                margin: 0;
+                                padding: 8px 12px;
+                                font-size: 0.85em;
+                                height: 36px;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                            }
+                            .novel-plugin-library-grid-overlay .novel-plugin-button.icon-only {
+                                min-width: 36px;
+                                padding: 8px;
+                            }
+
+                            /* TASK 3: Center loading spinner in search page */
+                            #novel-plugin-search-results {
+                                position: relative;
+                                min-height: 200px;
+                            }
+                            #novel-plugin-search-results .novel-plugin-loader {
+                                position: absolute;
+                                top: 50%;
+                                left: 50%;
+                                transform: translate(-50%, -50%);
+                            }
+
+                            /* TASK 4: Library Page Styles */
+                            .novel-plugin-library-header {
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                margin-bottom: 20px;
+                                flex-wrap: wrap;
+                                gap: 15px;
+                            }
+                            
+                            .novel-plugin-library-controls {
+                                display: flex;
+                                align-items: center;
+                                gap: 15px;
+                            }
+                            
+                            .novel-plugin-library-pagination {
+                                display: flex;
+                                align-items: center;
+                                gap: 10px;
+                            }
+                            
+                            .novel-plugin-library-page-info {
+                                font-size: 0.9em;
+                                color: #aaa;
+                                min-width: 80px;
+                                text-align: center;
+                            }
+                            
+                            .novel-plugin-library-content {
+                                min-height: 400px;
+                            }
+                            
+                            .novel-plugin-library-content.list-view {
+                                display: flex;
+                                flex-direction: column;
+                                gap: 12px;
+                            }
+                            
+                            .novel-plugin-library-content.grid-view {
+                                display: grid;
+                                grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                                gap: 20px;
+                            }
+                            
+                            /* TASK 1 & 2: Updated Library List Card (without status) with proper button alignment */
+                            .novel-plugin-library-card-list {
                                 background: #1a1a1a;
                                 border-radius: 8px;
                                 padding: 16px;
-                                margin-bottom: 12px;
                                 border: 1px solid #2a2a2a;
                                 transition: all 0.2s;
                                 cursor: pointer;
+                                display: flex;
+                                flex-direction: column;
+                                gap: 12px;
                             }
-                            .novel-plugin-library-card:hover {
+                            .novel-plugin-library-card-list:hover {
                                 border-color: #3a3a3a;
                                 background: #1f1f1f;
                             }
                             .novel-plugin-library-card-header {
                                 display: flex;
                                 gap: 16px;
-                                margin-bottom: 12px;
                             }
                             .novel-plugin-library-img {
                                 width: 80px;
@@ -1319,60 +1673,93 @@ function init() {
                                 overflow: hidden;
                                 text-overflow: ellipsis;
                             }
-                            .novel-plugin-library-progress {
-                                display: flex;
-                                align-items: center;
-                                gap: 12px;
-                                margin-bottom: 8px;
-                            }
-                            .novel-plugin-progress-bar {
-                                flex: 1;
-                                height: 6px;
-                                background: #2a2a2a;
-                                border-radius: 3px;
-                                overflow: hidden;
-                            }
-                            .novel-plugin-progress-fill {
-                                height: 100%;
-                                background: linear-gradient(90deg, #8A2BE2, #6A5ACD);
-                                border-radius: 3px;
-                                transition: width 0.3s ease;
-                            }
-                            .novel-plugin-progress-text {
-                                font-size: 0.85em;
-                                color: #aaa;
-                                min-width: 50px;
-                            }
                             .novel-plugin-library-chapter {
                                 font-size: 0.9em;
                                 color: #888;
                                 white-space: nowrap;
                                 overflow: hidden;
                                 text-overflow: ellipsis;
+                                margin-bottom: 8px;
                             }
                             .novel-plugin-library-actions {
                                 display: flex;
                                 gap: 8px;
                                 justify-content: flex-end;
+                                align-items: center;
                             }
+                            
+                            /* TASK 1 & 2: Library Grid Card without status */
+                            .novel-plugin-library-card-grid {
+                                background: #1a1a1a;
+                                border-radius: 8px;
+                                overflow: hidden;
+                                border: 1px solid #2a2a2a;
+                                transition: all 0.2s;
+                                cursor: pointer;
+                                display: flex;
+                                flex-direction: column;
+                            }
+                            .novel-plugin-library-card-grid:hover {
+                                border-color: #3a3a3a;
+                                transform: translateY(-2px);
+                                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                            }
+                            .novel-plugin-library-grid-img-container {
+                                position: relative;
+                                width: 100%;
+                                height: 240px;
+                                overflow: hidden;
+                            }
+                            .novel-plugin-library-grid-img {
+                                width: 100%;
+                                height: 100%;
+                                object-fit: cover;
+                                transition: transform 0.3s;
+                            }
+                            .novel-plugin-library-card-grid:hover .novel-plugin-library-grid-img {
+                                transform: scale(1.05);
+                            }
+                            .novel-plugin-library-grid-info {
+                                padding: 12px;
+                                flex: 1;
+                            }
+                            .novel-plugin-library-grid-title {
+                                font-weight: 600;
+                                font-size: 0.95em;
+                                margin-bottom: 6px;
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                            }
+                            .novel-plugin-library-grid-chapter {
+                                font-size: 0.8em;
+                                color: #888;
+                                white-space: nowrap;
+                                overflow: hidden;
+                                text-overflow: ellipsis;
+                                margin-bottom: 8px;
+                            }
+                            
                             .novel-plugin-button.small {
                                 padding: 6px 12px;
                                 font-size: 0.9em;
                                 height: auto;
                             }
                             .novel-plugin-button.icon-only {
-                                padding: 6px;
+                                padding: 8px;
                                 display: flex;
                                 align-items: center;
                                 justify-content: center;
                                 min-width: 36px;
+                                height: 36px;
                             }
                             /* Center trash icon specifically */
                             .novel-plugin-library-actions .novel-plugin-button.icon-only.remove-btn {
                                 display: flex;
                                 align-items: center;
                                 justify-content: center;
-                                padding: 6px;
+                                padding: 8px;
+                                height: 36px;
                             }
                             .novel-plugin-library-actions .novel-plugin-button.icon-only.remove-btn svg {
                                 margin: 0;
@@ -1401,6 +1788,24 @@ function init() {
                                 margin-bottom: 24px;
                                 font-size: 1em;
                             }
+
+                            /* Notification styles */
+                            .novel-plugin-notification {
+                                position: fixed;
+                                top: 20px;
+                                right: 20px;
+                                background: #2a2a2a;
+                                color: #fff;
+                                padding: 12px 16px;
+                                border-radius: 8px;
+                                border-left: 4px solid #4CAF50;
+                                z-index: 99999;
+                                animation: slideIn 0.3s ease;
+                            }
+                            @keyframes slideIn {
+                                from { transform: translateX(100%); opacity: 0; }
+                                to { transform: translateX(0); opacity: 1; }
+                            }
                         \`;
                     }
                     document.head.appendChild(el);
@@ -1413,6 +1818,9 @@ function init() {
                 if (layout) layout.style.display = "none";
 
                 try {
+                    // Clear expired cache entries on startup
+                    CacheService.clearExpired();
+                    
                     await Promise.all([
                         loadAsset(CONFIG.assets.css, CONFIG.ids.style, 'style', 'CSS'),
                         loadAsset(CONFIG.assets.queries, CONFIG.ids.scriptQuery, 'script', 'Queries'),
