@@ -112,8 +112,8 @@ class Provider {
             // Always apply deduplication
             chapters = this.deduplicateChapters(chapters);
 
-            // Sort descending by chapter number
-            chapters.sort((a, b) => parseFloat(b.chapter) - parseFloat(a.chapter));
+            // Sort ascending by chapter number (Reversed list)
+            chapters.sort((a, b) => parseFloat(a.chapter) - parseFloat(b.chapter));
             chapters.forEach((chapter, i) => (chapter.index = i));
 
             return chapters;
