@@ -112,9 +112,16 @@ class Provider {
             // Always apply deduplication
             chapters = this.deduplicateChapters(chapters);
 
-            // Sort ascending by chapter number (Reversed list)
-            chapters.sort((a, b) => parseFloat(a.chapter) - parseFloat(b.chapter));
-            chapters.forEach((chapter, i) => (chapter.index = i));
+            // 1. Sort by number to ensure they are in a clean descending order first
+            chapters.sort((a, b) => parseFloat(b.chapter) - parseFloat(a.chapter));
+            
+            // 2. Reverse the list so Chapter 1 is at index 0 (matching your working example)
+            chapters.reverse();
+
+            // 3. Set the index based on the final reversed order
+            chapters.forEach((chapter, i) => {
+                chapter.index = i;
+            });
 
             return chapters;
         }
@@ -127,41 +134,31 @@ class Provider {
      * Extract numeric chapter number from chapter string
      */
     extractChapterNumber(chapterStr) {
-        // Try to parse as float first
         const num = parseFloat(chapterStr);
         if (!isNaN(num)) {
             return num;
         }
-        
-        // If that fails, try to extract numbers from the string
         const match = chapterStr.match(/(\d+(?:\.\d+)?)/);
         return match ? parseFloat(match[1]) : 0;
     }
 
     /**
      * Deduplicate chapters by chapter number only
-     * When multiple scanlators have the same chapter number, keep the best version
      */
     deduplicateChapters(chapters) {
         const chapterMap = new Map();
         
-        // Process chapters to find the best version of each chapter
         chapters.forEach(chapter => {
             const chapterNum = this.extractChapterNumber(chapter.chapter);
-            const chapterNumKey = chapterNum.toString(); // Use string as key for consistency
+            const chapterNumKey = chapterNum.toString();
             
             if (!chapterMap.has(chapterNumKey)) {
-                // First time seeing this chapter number
                 chapterMap.set(chapterNumKey, { ...chapter });
             } else {
-                // We already have a chapter with this number
                 const existing = chapterMap.get(chapterNumKey);
-                
-                // Check which title is more complete (has "—" separator with extra content)
                 const existingHasTitle = existing.title.includes("—");
                 const currentHasTitle = chapter.title.includes("—");
                 
-                // Combine scanlator names if they're different
                 let combinedScanlator = existing.scanlator;
                 if (chapter.scanlator && existing.scanlator) {
                     const existingScanlators = existing.scanlator.split(', ');
@@ -172,21 +169,17 @@ class Provider {
                     combinedScanlator = chapter.scanlator;
                 }
                 
-                // Decide which chapter to keep
                 if (currentHasTitle && !existingHasTitle) {
-                    // Current chapter has a title, existing doesn't - replace with current
                     chapterMap.set(chapterNumKey, { 
                         ...chapter, 
                         scanlator: combinedScanlator 
                     });
                 } else {
-                    // Keep existing but update scanlator info
                     existing.scanlator = combinedScanlator;
                 }
             }
         });
         
-        // Convert map back to array
         return Array.from(chapterMap.values());
     }
 
@@ -204,7 +197,6 @@ class Provider {
             const response = await fetch(url);
             const body = await response.text();
 
-            // Matches: "images":[...], \"images\": [...], ,"images":[...], etc.
             const regex = /["\\]*images["\\]*\s*:\s*(\[[^\]]*\])/s;
 
             const match = body.match(regex);
