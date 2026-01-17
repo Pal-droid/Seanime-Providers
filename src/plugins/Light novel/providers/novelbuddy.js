@@ -104,12 +104,31 @@
     async function getChapterContent(chapterUrl) {
         const url = `${NOVELBUDDY_URL}${chapterUrl}`;
 
-        // Helper: Converts fancy unicode (𝒻, 𝐚, 𝙚) into plain text (f, a, e)
-        const normalizeText = (str) => {
-            return str.normalize("NFKD")
-                      .replace(/[\u0300-\u036f]/g, "") // Remove accents
-                      .toLowerCase()
-                      .replace(/[^a-z0-9]/g, "");    // Remove symbols/spaces for strict checking
+        // Improved normalization function for watermark detection
+        const normalizeForWatermark = (str) => {
+            return str
+                .normalize("NFKD") // Decompose fancy Unicode characters
+                .replace(/[\u0300-\u036f\u1AB0-\u1AFF\u1DC0-\u1DFF]/g, "") // Remove diacritics
+                .replace(/[^\x00-\x7F]/g, "") // Remove non-ASCII characters
+                .toLowerCase()
+                .replace(/\s+/g, "") // Remove all whitespace
+                .replace(/[^a-z0-9]/g, ""); // Remove symbols
+        };
+
+        // Check if text contains watermark
+        const containsWatermark = (text) => {
+            const normalized = normalizeForWatermark(text);
+            // Common watermark patterns (normalized)
+            const watermarkPatterns = [
+                'freewebnovel',
+                'novelbuddy', 
+                'readnovel',
+                'freenovel',
+                'thiscontentistakenfrom',
+                'contentistakenfrom'
+            ];
+            
+            return watermarkPatterns.some(pattern => normalized.includes(pattern));
         };
 
         try {
@@ -137,10 +156,10 @@
             if (!contentElement) throw new Error("Could not extract content.");
 
             // 1. Remove obvious ad/script elements
-            contentElement.querySelectorAll('script, div[id^="pf-"], ins, .code-block, .ads-container, .hidden, #listen-chapter, #voices, #click-required-button').forEach(el => el.remove());
+            contentElement.querySelectorAll('script, div[id^="pf-"], ins, .code-block, .ads-container, .hidden, #listen-chapter, #voices, #click-required-button, iframe, .ad, .ads, .advertisement').forEach(el => el.remove());
     
-            // 2. Extract all text nodes and rebuild content
-            const textNodes = [];
+            // 2. Extract all text nodes and rebuild clean content
+            const cleanParagraphs = [];
             const walker = document.createTreeWalker(
                 contentElement,
                 NodeFilter.SHOW_TEXT,
@@ -148,105 +167,77 @@
                 false
             );
             
-            let node;
-            while (node = walker.nextNode()) {
-                if (node.parentElement.tagName !== 'SCRIPT' && 
-                    node.parentElement.tagName !== 'STYLE' &&
-                    !node.parentElement.closest('script') &&
-                    !node.parentElement.closest('style')) {
-                    textNodes.push({
-                        text: node.textContent,
-                        parent: node.parentElement
-                    });
-                }
-            }
-            
-            // 3. Filter out watermark text and rebuild clean HTML
-            const cleanParagraphs = [];
+            let currentNode = walker.nextNode();
             let currentParagraph = [];
             
-            for (const { text, parent } of textNodes) {
-                const normalized = normalizeText(text);
-                const isWatermark = normalized.includes("freewebnovel") || 
-                                   normalized.includes("freenovel") ||
-                                   normalized.includes("novelbuddy") ||
-                                   normalized.includes("readnovel") ||
-                                   normalized.includes("novel") && normalized.includes("free") ||
-                                   text.includes("freewebnove") ||
-                                   text.toLowerCase().includes("this content is taken from");
+            while (currentNode) {
+                const text = currentNode.textContent.trim();
+                const parent = currentNode.parentElement;
                 
-                if (!isWatermark && text.trim().length > 0) {
-                    currentParagraph.push(text.trim());
+                // Skip script/style content
+                if (parent.tagName === 'SCRIPT' || parent.tagName === 'STYLE' || 
+                    parent.closest('script') || parent.closest('style')) {
+                    currentNode = walker.nextNode();
+                    continue;
                 }
                 
-                // If we hit a line break or the parent is a paragraph/div, finalize the paragraph
-                if (text.includes('\n') || parent.tagName === 'P' || parent.tagName === 'DIV' || parent.tagName === 'BR') {
-                    if (currentParagraph.length > 0) {
-                        const paragraphText = currentParagraph.join(' ').trim();
-                        if (paragraphText.length > 10) { // Minimum reasonable paragraph length
-                            cleanParagraphs.push(`<p>${paragraphText}</p>`);
-                        }
-                        currentParagraph = [];
+                // Check for watermark in this text node
+                if (!containsWatermark(text) && text.length > 0) {
+                    currentParagraph.push(text);
+                }
+                
+                // Check if we should finalize the current paragraph
+                const shouldBreak = 
+                    parent.tagName === 'P' || 
+                    parent.tagName === 'DIV' || 
+                    parent.tagName === 'BR' ||
+                    (currentNode.nextSibling && currentNode.nextSibling.nodeType === 1 && 
+                     ['P', 'DIV', 'BR', 'HR'].includes(currentNode.nextSibling.tagName));
+                
+                if (shouldBreak && currentParagraph.length > 0) {
+                    const paragraphText = currentParagraph.join(' ').trim();
+                    // Ensure paragraph has meaningful content and isn't just whitespace/watermark
+                    if (paragraphText.length > 10 && !containsWatermark(paragraphText)) {
+                        cleanParagraphs.push(`<p>${paragraphText}</p>`);
                     }
+                    currentParagraph = [];
                 }
+                
+                currentNode = walker.nextNode();
             }
             
-            // Add any remaining text
+            // Add any remaining text as final paragraph
             if (currentParagraph.length > 0) {
                 const paragraphText = currentParagraph.join(' ').trim();
-                if (paragraphText.length > 10) {
+                if (paragraphText.length > 10 && !containsWatermark(paragraphText)) {
                     cleanParagraphs.push(`<p>${paragraphText}</p>`);
                 }
             }
             
-            // 4. If we have clean paragraphs, use them
+            // 3. If we have clean paragraphs, use them
             if (cleanParagraphs.length > 0) {
-                return cleanParagraphs.join('');
+                // Additional filtering: remove any paragraph that contains watermark fragments
+                const finalContent = cleanParagraphs.filter(p => {
+                    const text = p.replace(/<[^>]*>/g, ''); // Strip HTML tags
+                    return !containsWatermark(text);
+                }).join('');
+                
+                if (finalContent.length > 100) {
+                    return finalContent;
+                }
             }
             
-            // 5. Fallback: original cleaning method
-            contentElement.querySelectorAll('p, div, span, em, strong').forEach(p => {
-                const normalized = normalizeText(p.textContent);
-                
-                // Targets "freewebnovel" in any font style or spacing
-                if (normalized.includes("freewebnovel") || 
-                    normalized.includes("freenovel") ||
-                    normalized.includes("novelbuddy") ||
-                    normalized.includes("readnovel") ||
-                    text.includes("freewebnove") ||
-                    p.textContent.toLowerCase().includes("this content is taken from")) {
-                    p.remove();
-                }
+            // 4. Fallback: Direct content extraction with aggressive watermark removal
+            const directText = contentElement.textContent || contentElement.innerText || "";
+            const lines = directText.split('\n').map(line => line.trim()).filter(line => {
+                return line.length > 10 && !containsWatermark(line);
             });
-
-            // 6. Final regex pass on the remaining HTML string for inline fragments
-            let cleanHtml = contentElement.innerHTML;
-            const fuzzyRegex = /f[^\w]?r[^\w]?e[^\w]?e[^\w]?w[^\w]?e[^\w]?b[^\w]?n[^\w]?o[^\w]?v[^\w]?e[^\w]?l|freewebnove|novelbuddy|readnovel/gi;
-            cleanHtml = cleanHtml.replace(fuzzyRegex, "");
-
-            // 7. Clean up empty tags left over
-            const wrapper = document.createElement('div');
-            wrapper.innerHTML = cleanHtml;
-            wrapper.querySelectorAll('p, div, span').forEach(el => {
-                if (!el.textContent.trim() && el.children.length === 0) el.remove();
-            });
-
-            // 8. If content is still too short, try to get text content directly
-            if (wrapper.textContent.trim().length < 500) {
-                const directText = contentElement.textContent || contentElement.innerText || "";
-                if (directText.length > 500) {
-                    // Split by double newlines or common paragraph separators
-                    const paragraphs = directText.split(/\n\s*\n|\.\s{2,}/).filter(p => {
-                        const normalized = normalizeText(p);
-                        return !normalized.includes("freewebnovel") && 
-                               !normalized.includes("freenovel") &&
-                               p.trim().length > 20;
-                    });
-                    return paragraphs.map(p => `<p>${p.trim()}</p>`).join('');
-                }
+            
+            if (lines.length > 0) {
+                return lines.map(line => `<p>${line}</p>`).join('');
             }
-
-            return wrapper.innerHTML || "<p>Error: No content could be extracted.</p>";
+            
+            return "<p>Error: No content could be extracted.</p>";
         } catch (err) {
             console.error("[novel-plugin] NovelBuddy Content Error:", err);
             return "<p>Error loading chapter content.</p>";
