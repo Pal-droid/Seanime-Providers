@@ -72,6 +72,18 @@
     "website": ""
   },
   {
+    "id": "anitube",
+    "name": "AniTube",
+    "description": "AniTube is an online streaming provider for brazilian/portugese sub/dubs.",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/anitube/manifest.json",
+    "author": "Pal",
+    "type": "onlinestream-provider",
+    "language": "typescript",
+    "lang": "pt",
+    "icon": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/anitube.png",
+    "website": ""
+  },
+  {
     "id": "aniworld",
     "name": "AniWorld",
     "description": "AniWorld is an online streaming provider for german dubs.",
