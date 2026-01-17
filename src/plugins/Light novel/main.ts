@@ -40,12 +40,12 @@ function init() {
                     appLayout: ".UI-AppLayout__root"
                 },
                 assets: {
-                    css: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/development/src/plugins/Light%20novel/styles.css",
-                    queries: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/anilist.js",
-                    scraperBuddy: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/providers/novelbuddy.js",
-                    scraperBin: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/providers/novelbin.js",
-                    scraperHall: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/providers/novelhall.js",
-                    scraperFire: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/development/src/plugins/Light%20novel/providers/novelfire.js",
+                    css: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/plugins/Light%20novel/styles.css",
+                    queries: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/anilist.js",
+                    scraperBuddy: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/providers/novelbuddy.js",
+                    scraperBin: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/providers/novelbin.js",
+                    scraperHall: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/providers/novelhall.js",
+                    scraperFire: "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/Light%20novel/providers/novelfire.js",
                 },
                 genres: [
                     "Action", "Adventure", "Comedy", "Drama", "Ecchi", "Fantasy", "Hentai",
