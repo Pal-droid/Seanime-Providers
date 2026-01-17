@@ -43,6 +43,7 @@ Here’s a list of all currently available **extensions and plugins**:
 | <div align="center"><img src="https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/hentaiworld.png" width="48" height="48"/><br><b>HentaiWorld</b></div> | IT | HentaiWorld is an online streaming provider for Seanime | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/hentaiworld/manifest.json) |
 | <div align="center"><img src="https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/mynimeku.jpg" width="48" height="48"/><br><b>MyNimeKu</b></div> | ID | MyNimeKu is an online streaming provider for indonesian subs. | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/mynimeku/manifest.json) |
 | <div align="center"><img src="https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/animegg.png" width="48" height="48"/><br><b>MyNimeKu</b></div> | EN | AnimeGG is an online streaming provider for english subs/dubs. | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/animegg/manifest.json) |
+| <div align="center"><img src="https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/anitube.png" width="48" height="48"/><br><b>AniTube</b></div> | PT | AniTube is an online streaming provider for Brazilian / Portugese subs/dubs. | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/anitube/manifest.json) |
 
 </details>
 
