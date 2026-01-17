@@ -5,8 +5,6 @@
     }
 
     const NOVELHALL_URL = "https://www.novelhall.com";
-    // ADDED: CORS Proxy
-    const CORS_PROXY_URL = "https://corsproxy.io/?url=";
 
     // --- Private Utility Functions ---
 
@@ -46,7 +44,7 @@
      * @returns {Promise<SearchResult[]>}
      */
     async function manualSearch(query) {
-        const url = `${CORS_PROXY_URL}${NOVELHALL_URL}/index.php?s=so&module=book&keyword=${encodeURIComponent(query)}`;
+        const url = `${NOVELHALL_URL}/index.php?s=so&module=book&keyword=${encodeURIComponent(query)}`;
         try {
             const res = await fetch(url);
             if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
@@ -95,7 +93,7 @@
      */
     async function getChapters(novelUrl) {
         try {
-            const url = `${CORS_PROXY_URL}${novelUrl}`;
+            const url = `${novelUrl}`;
             const res = await fetch(url);
             if (!res.ok) throw new Error(`Chapter fetch failed: ${res.status}`);
             const html = await res.text();
@@ -142,7 +140,7 @@
      */
     async function getChapterContent(chapterUrl) {
         try {
-            const res = await fetch(`${CORS_PROXY_URL}${chapterUrl}`);
+            const res = await fetch(`${chapterUrl}`);
             if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
             const html = await res.text();
             const parser = new DOMParser();
