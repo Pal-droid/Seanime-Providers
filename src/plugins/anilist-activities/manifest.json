@@ -1,7 +1,7 @@
 {
   "id": "anilist-activity",
   "name": "Anilist activity",
-  "version": "1.0.2",
+  "version": "1.1.2",
   "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/plugins/anilist-activities/manifest.json",
   "description": "A plugin for viewing your friend's and your Anilist activities inside Seanime.",
   "author": "Pal",
@@ -13,7 +13,19 @@
   "plugin": {
     "version": "1",
     "permissions": {
-      "scopes": ["anilist-token", "database", "storage"]
+      "scopes": [
+        "anilist-token",
+        "database",
+        "storage"
+      ],
+      "allow": {
+        "unsafeFlags": [
+          {
+            "flag": "dom-script-manipulation",
+            "reason": "Allows script injection to render Anilist activity."
+          }
+        ]
+      }
     }
   }
 }
