@@ -27,7 +27,8 @@ Here’s a list of all currently available **extensions and plugins**:
 | <div align="center"><img src="https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/mangabuddy.png" width="48" height="48"/><br><b>MangaBuddy</b></div> | EN | MangaBuddy is a manga provider for Seanime | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/mangabuddy/manifest.json) |
 | <div align="center"><img src="https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/mangafreak.jpeg" width="48" height="48"/><br><b>MangaFreak</b></div> | EN | MangaFreak is a manga provider for Seanime | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/mangafreak/manifest.json) |
 | <div align="center"><img src="https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/MangaWorld.jpeg" width="48" height="48"/><br><b>MangaWorldAdult</b></div> | IT | MangaWorldAdult is a manga provider for Seanime | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/manga/MangaWorldAdult/manifest.json) |
-| <div align="center"><img src="https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/scanita.png" width="48" height="48"/><br><b>Scanita</b></div> | IT | Scanita is a manga provider for Seanime | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/scanita/manifest.json) |
+| <div align="center"><img src="https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/scanita.png" width="48" height="48"/><br><b>Scanita</b><br><img src="https://img.shields.io/badge/BROKEN-red?style=flat-square" /></div> | IT | Scanita is a manga provider for Seanime | [Click here](https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/scanita/manifest.json) |
+
 
 </details>
 
