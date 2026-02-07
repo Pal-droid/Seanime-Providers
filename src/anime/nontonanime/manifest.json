@@ -6,7 +6,7 @@
   "version": "1.0.0",
   "author": "Pal",
   "type": "onlinestream-provider",
-  "language": "typescript",
+  "language": "javascript",
   "lang": "id",
   "icon": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/public/nontonanime.png",
   "payloadURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/main/src/anime/nontonanime/provider.js"
