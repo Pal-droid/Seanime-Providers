@@ -5,7 +5,6 @@ This file tracks the status of various plugins, extensions, and core fixes.
 ## 🚀 High Priority
 - [x] **Snow effects plugin** 
 - [x] **Mangabats** fix
-- [x] **Mynimeku** (Manga-oriented extension)
 - [x] **LN-reader** implementation
 - [ ] **Animeheaven** fix (Specific anime entries)
 - [ ] **Animegg** - Add proper Sub/Dub implementation
