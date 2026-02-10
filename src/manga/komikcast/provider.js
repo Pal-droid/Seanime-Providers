@@ -1,15 +1,15 @@
 /**
  * Komikcast Extension
- * Implements MangaProvider interface for 'https://komikcast03.com'.
+ * Implements MangaProvider interface for 'https://be.komikcast.fit'.
  */
 class Provider {
 
     constructor() {
-        // Base URL
-        this.api = 'https://komikcast03.com';
+        // Base URL for the JSON API
+        this.api = 'https://be.komikcast.fit';
+        // Base URL for headers
+        this.baseUrl = 'https://v1.komikcast.fit';
     }
-
-    api = '';
 
     getSettings() {
         return {
@@ -19,52 +19,57 @@ class Provider {
     }
 
     /**
+     * Helper to get headers for requests
+     */
+    getHeaders() {
+        return {
+            'Referer': this.baseUrl,
+            'Origin': this.baseUrl
+        };
+    }
+
+    /**
      * Searches for manga based on a query.
      */
     async search(opts) {
-        // Search URL format: https://komikcast03.com/?s=jujutsu+kaisen
-        const queryParam = opts.query;
-        const url = `${this.api}/?s=${encodeURIComponent(queryParam)}`;
+        const query = opts.query || "";
+        
+        // Filter format: title=like="query",nativeTitle=like="query"
+        const filterValue = `title=like="${query}",nativeTitle=like="${query}"`;
+
+        const params = new URLSearchParams({
+            filter: filterValue,
+            takeChapter: '2',
+            includeMeta: 'true',
+            sort: 'latest',
+            sortOrder: 'desc',
+            take: '12',
+            page: '1'
+        });
+
+        const url = `${this.api}/series?${params.toString()}`;
 
         try {
-            const response = await fetch(url);
+            const response = await fetch(url, {
+                headers: this.getHeaders()
+            });
 
             if (!response.ok) return [];
 
-            const body = await response.text();
-            const doc = LoadDoc(body);
+            const json = await response.json();
 
-            let mangas = [];
+            if (!json.data || !Array.isArray(json.data)) {
+                return [];
+            }
 
-            const items = doc('div.list-update_item');
-
-            items.each((index, element) => {
-                const anchorElement = element.find('a').first();
-                const titleElement = element.find('h3.title').first();
-                const imageElement = element.find('img').first();
-
-                const title = titleElement.text().trim();
-                const mangaUrl = anchorElement.attrs()['href'];
-
-                // Extract manga ID from the URL: https://komikcast03.com/komik/jujutsu-kaisen-modulo/
-                // ID will be 'jujutsu-kaisen-modulo'
-                const mangaIdMatch = mangaUrl.match(/\/komik\/([^\/]+)\/?$/);
-                const mangaId = mangaIdMatch ? mangaIdMatch[1] : null;
-
-                const imageUrl = imageElement.attrs()['src']; 
-
-                if (mangaId && title && imageUrl) {
-                    mangas.push({
-                        id: mangaId,
-                        title: title,
-                        synonyms: undefined,
-                        year: undefined,
-                        image: imageUrl,
-                    });
-                }
+            return json.data.map(item => {
+                const d = item.data;
+                return {
+                    id: d.slug, 
+                    title: d.title,
+                    image: d.coverImage, 
+                };
             });
-
-            return mangas;
         }
         catch (e) {
             console.error("Komikcast search failed:", e);
@@ -76,58 +81,44 @@ class Provider {
      * Finds and parses all chapters for a given manga ID.
      */
     async findChapters(mangaId) {
-        // Manga URL format: https://komikcast03.com/komik/jujutsu-kaisen-modulo/
-        const url = `${this.api}/komik/${mangaId}/`;
+        const url = `${this.api}/series/${mangaId}/chapters`;
 
         try {
-            const response = await fetch(url);
-            const body = await response.text();
-            const doc = LoadDoc(body);
+            const response = await fetch(url, {
+                headers: this.getHeaders()
+            });
+            
+            if (!response.ok) return [];
 
-            let chapters = [];
-            let chapterIndex = 0; // Use an index for sorting later
+            const json = await response.json();
 
-            doc('li.komik_info-chapters-item').each((index, element) => {
-                const linkElement = element.find('a.chapter-link-item').first();
-                if (!linkElement || !linkElement.attrs || !linkElement.attrs()['href']) {
-                    return;
-                }
+            if (!json.data || !Array.isArray(json.data)) {
+                return [];
+            }
 
-                const fullUrl = linkElement.attrs()['href'];
-                const titleText = linkElement.text().trim();
+            const chapters = json.data.map(item => {
+                const d = item.data;
+                const chapterIndex = d.index;
+                const compositeId = `${mangaId}/${chapterIndex}`;
+                const title = d.title ? d.title : `Chapter ${chapterIndex}`;
 
-                // Extract chapter ID from the URL: 
-                // https://komikcast03.com/chapter/jujutsu-kaisen-modulo-chapter-10-bahasa-indonesia/
-                // ID will be 'chapter/jujutsu-kaisen-modulo-chapter-10-bahasa-indonesia'
-                const chapterIdMatch = fullUrl.match(/\/chapter\/(.+)\/?$/);
-                const chapterId = chapterIdMatch ? `chapter/${chapterIdMatch[1]}` : null;
-                
-                // Title text is typically "Chapter 10" - we need to extract the number
-                let chapterNumber = '0';
-                const chapMatch = titleText.match(/(\d+(\.\d+)?)/);
-                if (chapMatch) chapterNumber = chapMatch[0];
-
-                if (chapterId) {
-                    chapters.push({
-                        id: chapterId,
-                        url: fullUrl,
-                        title: titleText,
-                        chapter: chapterNumber,
-                        index: chapterIndex++,
-                    });
-                }
+                return {
+                    id: compositeId,
+                    title: title,
+                    chapter: chapterIndex.toString(),
+                    rawIndex: typeof chapterIndex === 'number' ? chapterIndex : parseFloat(chapterIndex)
+                };
             });
 
-            // Komikcast usually lists chapters from newest to oldest. 
-            // Sort them to be oldest (lowest number) first, then assign index based on that sort.
-            chapters.sort((a, b) => parseFloat(a.chapter) - parseFloat(b.chapter));
+            // Sort oldest to newest
+            chapters.sort((a, b) => a.rawIndex - b.rawIndex);
 
-            // Re-assign index based on the sorted order
-            chapters.forEach((chapter, i) => {
-                chapter.index = i;
-            });
-
-            return chapters;
+            return chapters.map((chap, i) => ({
+                id: chap.id,
+                title: chap.title,
+                chapter: chap.chapter,
+                index: i
+            }));
         }
         catch (e) {
             console.error("Komikcast findChapters failed:", e);
@@ -139,34 +130,34 @@ class Provider {
      * Finds and parses the image pages for a given chapter ID.
      */
     async findChapterPages(chapterId) {
-        // Chapter URL format: https://komikcast03.com/chapter/jujutsu-kaisen-modulo-chapter-10-bahasa-indonesia/
-        // chapterId is like 'chapter/jujutsu-kaisen-modulo-chapter-10-bahasa-indonesia'
-        const url = `${this.api}/${chapterId}/`;
-        const referer = url; // Set referer to the chapter page URL
+        const parts = chapterId.split('/');
+        
+        if (parts.length < 2) return [];
+
+        const slug = parts[0];
+        const index = parts[1];
+
+        const url = `${this.api}/series/${slug}/chapters/${index}`;
 
         try {
-            const response = await fetch(url);
-            const body = await response.text();
-            const doc = LoadDoc(body);
-
-            let pages = [];
-            let pageIndex = 0;
-
-            doc('div.main-reading-area img').each((index, element) => {
-                const imgUrl = element.attrs()['src']; 
-
-                if (imgUrl) {
-                    pages.push({
-                        url: imgUrl,
-                        index: pageIndex++,
-                        headers: {
-                            'Referer': referer, 
-                        },
-                    });
-                }
+            const response = await fetch(url, {
+                headers: this.getHeaders()
             });
 
-            return pages;
+            if (!response.ok) return [];
+
+            const json = await response.json();
+            const images = json.data?.data?.images;
+
+            if (!images || !Array.isArray(images)) {
+                return [];
+            }
+
+            return images.map((imgUrl, i) => ({
+                url: imgUrl,
+                index: i,
+                headers: this.getHeaders()
+            }));
         }
         catch (e) {
             console.error("Komikcast findChapterPages failed:", e);
