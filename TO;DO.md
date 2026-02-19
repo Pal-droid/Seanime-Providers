@@ -17,7 +17,6 @@ This file tracks the status of various plugins, extensions, and core fixes.
 - [ ] **Agefans** search improvements
 - [ ] **Anime News** - Minor improvements and add paging.
 - [ ] **Mynimeku** manga-specific extension
-- [ ] **Kagane (Manga)** extension
 - [ ] **Manganato (Manga)** - Add mirrors
 - [ ] **Crunchyscans (Manga)** extension
 - [ ] **Anitube** extension fix
