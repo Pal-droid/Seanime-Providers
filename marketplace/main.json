@@ -12,6 +12,18 @@
     "website": ""
   },  
   {
+    "id": "taiyo",
+    "name": "Taiyo",
+    "description": "Taiyo is a manga provider for Seanime",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/taiyo/manifest.json",
+    "author": "Pal",
+    "type": "manga-provider",
+    "language": "javascript",
+    "lang": "pt",
+    "icon": "https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/taiyo.jpeg",
+    "website": ""
+  },
+  {
     "id": "asurascans",
     "name": "AsuraScans",
     "description": "AsuraScans is a manga provider for Seanime",
