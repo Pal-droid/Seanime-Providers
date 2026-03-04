@@ -11,17 +11,11 @@ class Provider {
         };
     }
 
-    /**
-     * Helper to wrap URLs in the proxy with Referer headers.
-     */
     applyProxy(targetUrl) {
         const headers = JSON.stringify({ "Referer": `${this.api}/` });
         return `${this.proxyBase}?url=${encodeURIComponent(targetUrl)}&headers=${encodeURIComponent(headers)}`;
     }
 
-    /**
-     * Searches for manga.
-     */
     async search(opts) {
         const queryParam = opts.query.replace(/\s+/g, '_');
         const url = `${this.api}/search/story/${encodeURIComponent(queryParam)}`;
@@ -67,10 +61,6 @@ class Provider {
         }
     }
 
-    /**
-     * Parses chapters from the API endpoint using pagination.
-     * Sorted Ascending (Oldest to Newest).
-     */
     async findChapters(mangaId) {
         const cleanMangaId = mangaId.replace(/\/$/, '');
         let allChapters = [];
@@ -125,7 +115,6 @@ class Provider {
                 return await this.findChaptersAlternative(cleanMangaId);
             }
 
-            // Reversed logic: a - b (Ascending)
             return allChapters
                 .sort((a, b) => parseFloat(a.chapter) - parseFloat(b.chapter))
                 .map((chap, index) => ({ ...chap, index }));
@@ -136,10 +125,6 @@ class Provider {
         }
     }
 
-    /**
-     * Scrapes chapters from HTML as a robust fallback.
-     * Sorted Ascending (Oldest to Newest).
-     */
     async findChaptersAlternative(mangaId) {
         const cleanMangaId = mangaId.replace(/\/$/, '');
         const url = `${this.api}/manga/${cleanMangaId}`;
@@ -162,16 +147,12 @@ class Provider {
                 });
             }
             
-            // Reversed logic: a - b (Ascending)
             return chapters.sort((a, b) => parseFloat(a.chapter) - parseFloat(b.chapter));
         } catch (e) {
             return [];
         }
     }
 
-    /**
-     * Extracts chapter images and fixes URL concatenation.
-     */
     async findChapterPages(chapterId) {
         const url = `${this.api}/${chapterId}`;
         try {
@@ -195,16 +176,17 @@ class Provider {
 
             const cdns = clean(cdnsRaw[1]);
             const imagePaths = clean(imagesRaw[1]);
-            const baseCdn = cdns[0].replace(/\/$/, '');
+
+            // Keep trailing slash intact so domain + path join correctly
+            const baseCdn = cdns[0].endsWith('/') ? cdns[0] : `${cdns[0]}/`;
 
             return imagePaths.map((path, index) => {
                 const cleanPath = path.replace(/^\//, '');
-                const fullUrl = path.startsWith('http') ? path : `${baseCdn}/${cleanPath}`;
+                const fullUrl = path.startsWith('http') ? path : `${baseCdn}${cleanPath}`;
                 
                 return {
-                    url: fullUrl,
+                    url: this.applyProxy(fullUrl),
                     index: index,
-                    headers: { 'Referer': `${this.api}/` } 
                 };
             });
         } catch (e) {
