@@ -8,7 +8,7 @@ class Provider {
         this.api = 'https://taiyo.moe';
         this.searchApi = 'https://meilisearch.taiyo.moe';
         this.cdn = 'https://cdn.taiyo.moe';
-        this.searchToken = '48aa86f73de09a7705a2938a1a35e5a12cff6519695fcad395161315182286e5'; // doesn't seem like a session based token, so it can be hardcoded
+        this.searchToken = '48aa86f73de09a7705a2938a1a35e5a12cff6519695fcad395161315182286e5'; // doesn't seem like a session based token, so we can hardcode it
     }
 
     api = '';
@@ -173,14 +173,14 @@ class Provider {
 
             if (!combined) return [];
 
-            // Extract the pages array
-            const pagesMatch = combined.match(/"pages":\[(\{"id":"[^"]+","extension":"[^"]+"[^}]*\}(?:,\{"id":"[^"]+","extension":"[^"]+"[^}]*\})*)\]/);
+            // Extract the pages array — extension field may be absent in some chapters
+            const pagesMatch = combined.match(/"pages":\[([\s\S]*?)\](?=,\"previousChapter\"|,\"nextChapter\"|,\"uploader\")/);
             if (!pagesMatch) return [];
 
             const pagesJson = JSON.parse(`[${pagesMatch[1]}]`);
 
             return pagesJson.map((page, index) => ({
-                url: `${this.cdn}/medias/${mangaId}/chapters/${realChapterId}/${page.id}.${page.extension}`,
+                url: `${this.cdn}/medias/${mangaId}/chapters/${realChapterId}/${page.id}.${page.extension ?? 'jpg'}`,
                 index: index,
                 headers: { 'Referer': url },
             }));
