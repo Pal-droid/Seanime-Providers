@@ -106,6 +106,10 @@ Or
 - [License](./LICENSE)
 - [TO;DO List](./TO;DO.md)
 
+### Other related projects (Made by me)
+
+- [Seanime Android](https://github.com/Pal-droid/seanime-android)
+
 ### Other connections
 
 <p align="center">
