@@ -85,7 +85,7 @@ or
 
 Or 
 
-**[Hit me up on discord!](https://discord.gg/gWaY3t5m)**
+**[Hit me up on discord!](https://discord.com/users/1254072406667169855)**
 
 ---
 
