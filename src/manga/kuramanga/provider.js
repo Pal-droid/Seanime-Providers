@@ -172,7 +172,8 @@ class Provider {
 
             const html = await response.text();
 
-            // Match each <img> tag's src attribute
+            // Match each <img> tag's src attribute, restricted to actual chapter page images
+            // (the reader page also contains unrelated images like logos/nav icons/ads)
             const imgRegex = /<img[^>]+src="([^"]+)"[^>]*>/g;
 
             const pages = [];
@@ -180,6 +181,10 @@ class Provider {
             let index = 0;
             while ((match = imgRegex.exec(html)) !== null) {
                 const src = match[1];
+
+                // Only keep images served from the manga chapters CDN path
+                if (!src.includes('/chapters/')) continue;
+
                 pages.push({
                     url: src.startsWith('http') ? src : `${this.imgCdn}${src}`,
                     index: index,
