@@ -180,6 +180,18 @@
     "website": ""
   },
   {
+    "id": "kuramanga",
+    "name": "KuraManga",
+    "description": "KuraManga is a manhwa provider for Seanime",
+    "manifestURI": "https://raw.githubusercontent.com/Pal-droid/Seanime-Providers/refs/heads/main/src/manga/kuramanga/manifest.json",
+    "author": "Pal",
+    "type": "manga-provider",
+    "language": "javascript",
+    "lang": "en",
+    "icon": "https://raw.githubusercontent.com/pal-droid/seanime-providers/refs/heads/main/public/kuramanga.ico",
+    "website": ""
+  },
+  {
     "id": "ravenscans",
     "name": "RavenScans",
     "description": "RavenScans is a manga provider for Seanime",
